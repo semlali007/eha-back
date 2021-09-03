@@ -1,0 +1,16 @@
+{
+    "infos": {
+        "provider_code": "664064",
+        "provider_label": "TRALALERE",
+        "provider_town": "PARIS 3",
+        "provider_siret": "43181023300046"
+    },
+    "contracts": [
+        {
+            "contract": "PGI2, ligne fonctions communes et SEI, C43P8C1740",
+            "contract_code": "C43P8C1740-F2",
+            "contract_label": "Prestations relative \u00e0 la conception de l\u2019approche p\u00e9dagogique et \u00e0 la",
+            "contract_date_end": "2021-09-07"
+        }
+    ]
+}

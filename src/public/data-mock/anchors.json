@@ -1,0 +1,34 @@
+{
+        "status": true,
+        "message": "",
+        "providers": [
+            [
+                {
+                    "code": "664064",
+                    "siret": "43181023300046",
+                    "label": "TRALALERE",
+                    "town": "PARIS 3",
+                    "zipcode": "75003",
+                    "activities": [
+                        "TP:1"
+                    ],
+                    "nace": "5911",
+                    "distance": 0
+                }
+            ],
+            [
+                {
+                    "code": "747839",
+                    "siret": "81981938400028",
+                    "label": "SAFIR L AERONEF",
+                    "town": "PARIS",
+                    "zipcode": "75010",
+                    "activities": null,
+                    "nace": "4110",
+                    "distance": 0
+                }
+            ]
+        ],
+        "maxRadius": 150,
+        "maxProviders": 3000
+    }

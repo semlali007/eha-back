@@ -1,0 +1,104 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Exceptions\InvalidParameterException;
+use App\Manager\Hotline\HotlineActionManager;
+use App\Manager\Hotline\HotlineManager;
+use App\Repository\Hotline\HotlineRepository;
+use App\Services\StaticTextService;
+use App\Validation\Validator;
+use Database\DBConnection;
+use Exception;
+
+class HotlineActionController extends Controller
+{
+    private  $hotlineRepository;
+    private  $hotlineManager;
+    private  $hotlineActionManager;
+    public function __construct(DBConnection $db, $roles = [])
+    {
+        parent::__construct($db, $roles);
+        $this->hotlineRepository = new HotlineRepository($db);
+        $this->hotlineManager = new HotlineManager($db);
+        $this->hotlineActionManager = new HotlineActionManager($db);
+    }
+
+    public function forward()
+    {
+        try {
+            $options = $this->decode(file_get_contents("php://input"));
+            return $this->response($this->hotlineManager->forward($options));
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
+    }
+
+    public function post()
+    {
+        try {
+            $options = $this->decode(file_get_contents("php://input"));
+            return $this->response($this->hotlineManager->post($options));
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
+    }
+
+    public function upload()
+    {
+        try {
+
+            $answer = array(
+                'status'  =>  false,
+                'message' => '',
+            );
+    
+            $validator = new Validator($_POST);
+            $errors = $validator->validate([
+                'id' => ['required'],
+                'sha' => ['required'],
+                'name' => ['name'],
+            ]);
+    
+            if ($errors) {
+                throw (new InvalidParameterException())->setErrors($errors);
+            }
+    
+            if (empty($_FILES['file'])) {
+                $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
+                return $this->response($answer);
+            }
+
+            return $this->response($this->hotlineActionManager->upload($_POST, $_FILES['file']));
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
+    }
+
+    public function close()
+    {
+        return  $this->response([
+            'status' => true,
+            'message' => 'Fonctionnalité en attente'
+        ]);
+    }
+
+   
+
+    public function dump()
+    {
+        return  $this->response([
+            'status' => true,
+            'message' => 'Fonctionnalité en attente'
+        ]);
+    }
+
+    public function recovery()
+    {
+        return  $this->response([
+            'status' => true,
+            'message' => 'Fonctionnalité en attente'
+        ]);
+    }
+    
+}

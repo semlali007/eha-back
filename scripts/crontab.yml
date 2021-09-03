@@ -1,0 +1,31 @@
+---
+- name: "export data"
+  cron:
+    name: "export data - export_hotline.sh"
+    minute: "0"
+    hour: "6"
+    weekday: "0-6"
+    job:  "/appli/projects/{{INSTANCE_WEB}}/scripts/hotline/export_hotline.sh > /tmp/export_hotline.txt 2>&1"
+    user: postgres
+    state: present
+
+- name: "move_export.sh"
+  cron:
+    name: "export - move_export.sh"
+    minute: "10"
+    hour: "6"
+    weekday: "0-6"
+    job:  "/appli/projects/{{INSTANCE_WEB}}/scripts/hotline/move_export.sh > /tmp/move_export.txt 2>&1"
+    user: webadm
+    state: present
+
+- name: "scripts php"
+  cron:
+    name: "scripts php"
+    minute: "20"
+    hour: "5"
+    weekday: "1-6"
+    job:  "/appli/projects/{{INSTANCE_WEB}}/scripts/php/scripts_php.sh > /tmp/eha_php.log"
+    user: webadm
+    state: present
+
