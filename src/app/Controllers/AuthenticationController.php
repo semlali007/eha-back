@@ -49,7 +49,7 @@ class AuthenticationController extends Controller
             ldap_set_option($ldapConn, getenv('LDAP_OPT_PROTOCOL_VERSION'), 3);
             // Connexion au serveur LDAP
             // on met @ car on gère l'erreur après
-            $ldapBind = @ldap_bind($ldapConn, getenv('CONFIG_GARDIAN_LDAP_PWD'), getenv('CONFIG_GARDIAN_LDAP_PWD'));
+            $ldapBind = @ldap_bind($ldapConn, getenv('CONFIG_GARDIAN_LDAP_RDN'), getenv('CONFIG_GARDIAN_LDAP_PWD'));
             // Vérification de l'authentification
             if (!$ldapBind) {
                 // échec de la connexion avec le compte technique

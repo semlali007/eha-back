@@ -10,27 +10,27 @@ class MigrateManager extends AbstractManager
     protected $subject;
     
     public static $MigrateConfig = [
-        'source' => CONFIG_MIGRATION_SOURCE,
+        'source' => '',
         'dait' =>
         [
-            'contrat' => CONFIG_MIGRATION_SOURCE . 'Contrats_DAIT/',
-            'doc_dep' => CONFIG_MIGRATION_SOURCE . 'Doc_Dep_DAIT/',
+            'contrat' => 'Contrats_DAIT/',
+            'doc_dep' => 'Doc_Dep_DAIT/',
         ],
         'dapi' =>
         [
-            'contrat' => CONFIG_MIGRATION_SOURCE . 'Contrats_DAPI/',
-            'doc_dep' => CONFIG_MIGRATION_SOURCE . 'Doc_Dep_DAPI/',
+            'contrat' =>  'Contrats_DAPI/',
+            'doc_dep' =>  'Doc_Dep_DAPI/',
         ],
         'datp' =>
         [
             'contrat' => [
-                'edf_enedis' => CONFIG_MIGRATION_SOURCE . 'Contrats_EDF_Enedis/',
-                'enedis' => CONFIG_MIGRATION_SOURCE . 'Contrats_Enedis/',
+                'edf_enedis' =>  'Contrats_EDF_Enedis/',
+                'enedis' =>  'Contrats_Enedis/',
             ],
-            'doc_dep' => CONFIG_MIGRATION_SOURCE . 'Doc_Dep_DATP/',
+            'doc_dep' =>  'Doc_Dep_DATP/',
         ]
     ];
-
+    
     public function updateData($options)
     {
         try {

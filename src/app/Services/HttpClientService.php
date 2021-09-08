@@ -50,16 +50,25 @@ class HttpClientService {
      * @param array $data
      * @return string
      */
-    public static function get(string $url, array $data) {
+    public static function get(string $url, array $data = []) {
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-        $response = curl_exec($ch);
-        curl_close($ch); // Close the connection
         
-        return json_decode($response) ;
+        //curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception($error);
+        } else {
+            curl_close($ch);
+        }
+
+        return $response;
     }
 
 }

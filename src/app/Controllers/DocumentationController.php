@@ -13,7 +13,7 @@ class DocumentationController extends Controller
 
     public function index()
     {
-        $filename =  CONFIG_DOCUMENTATION_FILE;
+        $filename =  getenv('CONFIG_DOCUMENTATION_FILE');
         return $this->response([
             'status' => true,
             'data' => file_get_contents($filename)
