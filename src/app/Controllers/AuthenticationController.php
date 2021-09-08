@@ -17,26 +17,6 @@ class AuthenticationController extends Controller
     public function login()
     {
         session_start();
-        $entity = EntityService::findEntity('/EDF/9651/9803/9708');
-        $_SESSION['user'] = array(
-            'nni' =>'WID03C5N',
-            'email' =>'walid-externe.ibrahim@edf.fr',
-            'direction' =>$entity[1],
-            'entity_code' =>$entity[0],
-            'full_name' => 'WALID IBRAHIM',//$userEntries[0]['cn'][0]
-            'roles' => ['ADMIN', 'USER']
-        );
-        return json_encode(array(
-            'logged' => true,
-            'data' => array(
-                'nni' => $_SESSION['user']['nni'],
-                'email' => $_SESSION['user']['email'],
-                'direction' => $_SESSION['user']['direction'],
-                'entity_code' => $_SESSION['user']['entity_code'],
-                'roles' => ['ADMIN', 'USER']
-            )
-        ));
-        session_start();
         $data = json_decode(file_get_contents("php://input"), true) ?? [];
         if (!isset($data['nni']) || is_null($data['nni']) || empty($data['nni'])) {
             $this->response(

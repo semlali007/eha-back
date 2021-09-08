@@ -63,15 +63,12 @@ class HttpClientService {
         if (curl_errno($ch)) {
             $error = curl_error($ch);
             curl_close($ch);
-            var_dump($response);exit;
             throw new Exception($error);
         } else {
             curl_close($ch);
         }
 
         return $response;
-        //curl_close($ch); // Close the connection
-       // return json_decode($response) ;
     }
 
 }
