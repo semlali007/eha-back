@@ -295,9 +295,11 @@ class SheetManager extends AbstractManager
             }
             
             $sheetOption = new SheetOption($this->db);
-            foreach ($data['options'] as $option) {
-                $option['sheet_id'] = $id;
-                $sheetOption->add($option);
+            if (array_key_exists('options', $data)) {
+                foreach ($data['options'] as $option) {
+                    $option['sheet_id'] = $id;
+                    $sheetOption->add($option);
+                }
             }
 
             $this->db->getPDO()->commit();

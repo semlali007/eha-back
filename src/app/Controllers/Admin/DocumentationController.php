@@ -15,7 +15,7 @@ class DocumentationController extends Controller
 
     public function edit()
     {
-        $filename =  CONFIG_DOCUMENTATION_FILE;
+        $filename =   getenv('CONFIG_DOCUMENTATION_FILE');
         return $this->response([
             'status' => true,
             'data' => file_get_contents($filename)
@@ -25,7 +25,7 @@ class DocumentationController extends Controller
     public function update()
     {
         $post = json_decode(file_get_contents("php://input"));
-        $filename =  CONFIG_DOCUMENTATION_FILE;
+        $filename =   getenv('CONFIG_DOCUMENTATION_FILE');
         if (isset($post->data)) {
             if (file_put_contents($filename, $post->data)) {
                 $answer = [

@@ -22,9 +22,9 @@ class DatpaManager extends MigrateManager
     public function migrate($options)
     {
         $migrateConfig = self::$MigrateConfig;
-        $sourceContractEnedis =  $migrateConfig['datp']['contrat']['enedis'] . "Actifs/";
-        $sourceContractEdfEnedis =  $migrateConfig['datp']['contrat']['edf_enedis'] . "Actifs/";
-        $sourceDepDoc =  $migrateConfig['datp']['doc_dep'] . "Actifs/";
+        $sourceContractEnedis =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['contrat']['enedis'] . "Actifs/";
+        $sourceContractEdfEnedis =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['contrat']['edf_enedis'] . "Actifs/";
+        $sourceDepDoc =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['doc_dep'] . "Actifs/";
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
 
         try {
