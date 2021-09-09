@@ -5,7 +5,6 @@ namespace App\Security;
 class User {
 
     const INFOKEY = "USERINFO";
-    const DEFAULT_ROLE = "USER" ;
 
     /**
      * @var string
@@ -15,7 +14,7 @@ class User {
     /**
      * @var User Roles 
      */
-    private $roles = [self::DEFAULT_ROLE];
+    private $roles = [Role::DEFAULT];
 
     /**
      * @var string
@@ -41,14 +40,15 @@ class User {
      * @param array $roles
      */
     public function addRoles(array $roles = []): self {
-        
+
         $this->roles = array_merge($this->roles, $roles);
         return $this;
     }
 
     /**
      * if has role 
-     * @param type $roles
+     * $this->roles => roles de l'utilisateur
+     * @param type $roles => recu par le routing.php
      */
     public function hasRole(array $roles = []): bool {
         if (is_array($roles)) {
