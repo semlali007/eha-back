@@ -25,7 +25,7 @@ composer install
 
 
 ## Usage
-Lancer l'application sur http://IP-ADDRESS:9000
+Lancer l'application sur https://IP-ADDRESS:9000
 (le port d’écoute est 9000)
 
 ## Configuration
