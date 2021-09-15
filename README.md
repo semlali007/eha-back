@@ -1,5 +1,5 @@
 # EHA-BACK 
-Cette application est la partie back de l'application Achatpédia codée en PHP basé sur le modèle MVC.
+Cette application est la partie back de l'application Achatpédia codée en PHP basée sur le modèle MVC.
 
 
 ## Logiciels requis
