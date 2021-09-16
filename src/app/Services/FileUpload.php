@@ -6,33 +6,13 @@ use App\Exceptions\SheetException;
 
 class FileUpload
 {
-    public function uploadSheetFiles($files, $params)
+    public function uploadSheetFiles($medias, $params)
     {
         $uploadedFiles = [];
         $fileManager   =   new FileManager();
         $fileManager->setExtensions($params['extensions']);
         $fileManager->setMaxSize($params['size']);
         $fileManager->setDir($params['dirpath']);
-
-
-        $medias = [
-            [
-                'type' => 1,
-                'value' => isset($files['kits']) ? $files['kits'] : null,
-            ],
-            [
-                'type' => 2,
-                'value' => isset($files['privates']) ? $files['privates'] : null,
-            ],
-            [
-                'type' => 3,
-                'value' => isset($files['privates_enedis']) ? $files['privates_enedis'] : null,
-            ],
-            [
-                'type' => 4,
-                'value' => isset($files['privates_edf_enedis']) ? $files['privates_edf_enedis'] : null,
-            ]
-        ];
 
         foreach ($medias as $media) {
             if ($media['value'] != null && isset($media['value']['name']) && !empty(array_filter($media['value']['name']))) {
