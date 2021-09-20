@@ -6,12 +6,8 @@ use App\Exceptions\AccessDeniedException;
 use App\Security\User;
 use App\Services\{
     UserService,
-    HttpClientService as client
+    JwtTokenService
 };
-use Core\Cache\{
-    ApcuCachePool as cache,
-    Common\PhpCacheItem as CacheItem
-} ;
 
 class AuthorizationSecurity extends AbstractSecurity {
 
@@ -52,6 +48,9 @@ class AuthorizationSecurity extends AbstractSecurity {
                     $user->addRoles($formatedRoles);
                 }
 
+
+                $roles = $this->translateRoles([]);
+               
                 if (!$user->hasRole($roles)) {
                     http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
                     throw new AccessDeniedException(); // retour a la frontend app 
@@ -65,11 +64,25 @@ class AuthorizationSecurity extends AbstractSecurity {
      * @return Object
      */
     public function getUser() {
-        $decodedToken = (new jwtTokenService())->decodeToken($this->idToken);
+        $decodedToken = (new JwtTokenService())->decodeToken($this->idToken);
         if (is_object($decodedToken)):
             return (new User())->setToken($this->idToken);
         endif;
         return new User();
+    }
+
+    /**
+     * 
+     * @param array $roles
+     * @return array
+     */
+    public function translateRoles(array $roles): array {
+
+        $input = array_fill_keys(array_values($roles), "");
+        return array_values(array_replace(
+                        $input, array_intersect_key(
+                                $GLOBALS['configuration']['roles'], $input
+        )));
     }
 
 }
