@@ -47,10 +47,8 @@ class AuthorizationSecurity extends AbstractSecurity {
                     $formatedRoles = Role::format($userInfo["isMemberOf"]);
                     $user->addRoles($formatedRoles);
                 }
-
-
+                // Traduction des roles de Standard to EHA_ROLES
                 $roles = $this->translateRoles($roles);
-               
                 if (!$user->hasRole($roles)) {
                     http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
                     throw new AccessDeniedException(); // retour a la frontend app 
