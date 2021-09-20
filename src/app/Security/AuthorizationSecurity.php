@@ -49,7 +49,7 @@ class AuthorizationSecurity extends AbstractSecurity {
                 }
 
 
-                $roles = $this->translateRoles([]);
+                $roles = $this->translateRoles($roles);
                
                 if (!$user->hasRole($roles)) {
                     http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
