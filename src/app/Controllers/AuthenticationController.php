@@ -6,6 +6,7 @@ use App\Models\External;
 use App\Models\Administrator;
 use App\Services\EntityService;
 use Database\DBConnection;
+use Core\Http\Request ;
 
 class AuthenticationController extends Controller
 {
@@ -17,8 +18,7 @@ class AuthenticationController extends Controller
     public function login()
     {
         session_start();
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-        if (!isset($data['nni']) || is_null($data['nni']) || empty($data['nni'])) {
+        if (!isset($_REQUEST['nni']) || is_null($_REQUEST['nni']) || empty($_REQUEST['nni'])) {
             $this->response(
                 [
                     'logged' => false,
@@ -27,8 +27,8 @@ class AuthenticationController extends Controller
             );
         }
 
-        $nni = $data['nni'];
-        if (!isset($data['pwd']) || is_null($data['pwd']) || empty($data['pwd'])) {
+        $nni = $_REQUEST['nni'];
+        if (!isset($_REQUEST['pwd']) || is_null($_REQUEST['pwd']) || empty($_REQUEST['pwd'])) {
             $this->response(
                 [
                     'logged' => false,
@@ -37,7 +37,7 @@ class AuthenticationController extends Controller
             );
         }
 
-        $pwd = $data['pwd'];
+        $pwd = $_REQUEST['pwd'];
         unset($_SESSION['user']);
         $msg = 107;
         $ldapConn = ldap_connect(getenv('CONFIG_GARDIAN_HOST'), 636);
