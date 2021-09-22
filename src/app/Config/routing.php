@@ -61,7 +61,7 @@ $router->post('/hotlines/upload', 'App\Controllers\HotlineActionController@uploa
 $router->post('/hotlines/close', 'App\Controllers\HotlineActionController@close', ['USER']);
 
 
-$router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ['ADMIN']);
+$router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ['EHA_ADMIN']);
 $router->post('/documentations/save', 'App\Controllers\Admin\DocumentationController@update', ['ADMIN']);
 
 $router->get('/administrators', 'App\Controllers\Admin\AdministratorController@index', ['ADMIN']);
@@ -88,15 +88,16 @@ $router->post('/migration/save', 'App\Controllers\Admin\MigrateController@saveDa
 $router->post('/migration/migrate', 'App\Controllers\Admin\MigrateController@migrate', ['ADMIN']);
 $router->post('/migration/list', 'App\Controllers\Admin\MigrateController@index', ['ADMIN']);
 
-try {
-    $data = $router->run();
-    if (
-            is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE)
-    )
-        echo $data;
-} catch (Exception $e) {
-    echo json_encode([
-        'code' => $e->getCode(),
-        'message' => $e->getMessage()
-    ]);
-}
+//try {
+$data = $router->run();
+if (is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE)):
+    echo $data;
+endif ;
+//} catch (Exception $e) {
+//    echo json_encode([
+//        'code' => $e->getCode(), // à mettre dans un syséme de log (il faut pas l'afficher dans l'appli)
+//        'message' => $e->getMessage()
+//    ]);
+#le try catch à été supprimé car Les détails exposés sur l'environnement de l'application, les utilisateurs ou les données associées (par exemple,
+#la trace de la pile) pourraient permettre à un attaquant de trouver une autre faille et l'aider à lancer une attaque. Cela peut également divulguer des données sensibles, par ex.
+#mots de passe ou champs de base de données. 
