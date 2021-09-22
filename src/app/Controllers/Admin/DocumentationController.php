@@ -21,7 +21,6 @@ class DocumentationController extends Controller {
 
     public function update() {
         $post = json_decode(file_get_contents("php://input"));
-        var_dump($post,$_REQUEST) ;die ;
         if (isset($post->data)) {
             if (file_put_contents(getenv('CONFIG_DOCUMENTATION_FILE'), $post->data)) {
                 $answer = [
