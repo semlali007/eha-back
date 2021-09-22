@@ -5,29 +5,25 @@ namespace App\Controllers\Admin;
 use App\Controllers\Controller;
 use Database\DBConnection;
 
-class DocumentationController extends Controller
-{
+class DocumentationController extends Controller {
 
-    public function __construct(DBConnection $db, $roles = [])
-    {
+    public function __construct(DBConnection $db, $roles = []) {
         parent::__construct($db, $roles);
     }
 
-    public function edit()
-    {
-        $filename =   getenv('CONFIG_DOCUMENTATION_FILE');
+    public function edit() {
+        $filename = getenv('CONFIG_DOCUMENTATION_FILE');
         return $this->response([
-            'status' => true,
-            'data' => file_get_contents($filename)
+                    'status' => true,
+                    'data' => file_get_contents($filename)
         ]);
     }
 
-    public function update()
-    {
+    public function update() {
         $post = json_decode(file_get_contents("php://input"));
-        $filename =   getenv('CONFIG_DOCUMENTATION_FILE');
+        var_dump($post,$_REQUEST) ;die ;
         if (isset($post->data)) {
-            if (file_put_contents($filename, $post->data)) {
+            if (file_put_contents(getenv('CONFIG_DOCUMENTATION_FILE'), $post->data)) {
                 $answer = [
                     'status' => true,
                     'data' => $post->data
@@ -38,13 +34,14 @@ class DocumentationController extends Controller
                     'data' => 'Impossible d\'écrire les données'
                 ];
             }
-        } else {
-            $answer = [
-                'status' => false,
-                'data' => 'Impossible de lire les données'
-            ];
         }
-        
+        $answer = [
+            'status' => false,
+            'data' => 'Impossible de lire les données'
+        ];
+
+
         return $this->response($answer);
     }
+
 }
