@@ -23,6 +23,7 @@ class Committee extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':code', $code, $pdo::PARAM_INT);
             $sth->execute();
+            $sth->commit();
             return $sth->fetch($pdo::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
