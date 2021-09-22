@@ -36,6 +36,7 @@ class Committee extends Model
             $query = 'SELECT DISTINCT * FROM ' . $this->table  . ' ORDER BY label asc';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
+            $sth->commit();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
