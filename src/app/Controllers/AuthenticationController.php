@@ -18,7 +18,8 @@ class AuthenticationController extends Controller
     public function login()
     {
         session_start();
-        if (!isset($_REQUEST['nni']) || is_null($_REQUEST['nni']) || empty($_REQUEST['nni'])) {
+        $data = json_decode(file_get_contents("php://input"), true) ?? [];
+        if (!isset($data['nni']) || is_null($data['nni']) || empty($data['nni'])) {
             $this->response(
                 [
                     'logged' => false,
@@ -27,8 +28,8 @@ class AuthenticationController extends Controller
             );
         }
 
-        $nni = $_REQUEST['nni'];
-        if (!isset($_REQUEST['pwd']) || is_null($_REQUEST['pwd']) || empty($_REQUEST['pwd'])) {
+        $nni = $data['nni'];
+        if (!isset($data['pwd']) || is_null($data['pwd']) || empty($data['pwd'])) {
             $this->response(
                 [
                     'logged' => false,
@@ -37,7 +38,7 @@ class AuthenticationController extends Controller
             );
         }
 
-        $pwd = $_REQUEST['pwd'];
+        $pwd = $data['pwd'];
         unset($_SESSION['user']);
         $msg = 107;
         $ldapConn = ldap_connect(getenv('CONFIG_GARDIAN_HOST'), 636);
