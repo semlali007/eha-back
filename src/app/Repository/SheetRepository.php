@@ -14,33 +14,31 @@ use App\Models\SheetOption;
 use App\Models\SheetProvider;
 use Exception;
 
-class SheetRepository extends AbstractRepository
-{
-    public function search($options)
-    {
+class SheetRepository extends AbstractRepository {
+
+    public function search($options) {
         $sheet = new Sheet($this->db);
         $sheet->initSearchCondition($options);
         return
-            [
-                'sheets' => $sheet->search($options),
-                'total' => $sheet->getCount(),
-                'filter' => [
-                    'edf_open' => $sheet->groupedByOpenEdf(),
-                    'showcase' => $sheet->groupedByShowcase(),
-                    'status' => $sheet->groupedByStatus(),
-                    'partnership' => $sheet->groupedByPartnership(),
-                    'protected_sector' => $sheet->groupedBySector(),
-                    'dauphin' => $sheet->groupedByDauphin(),
-                    'beneficiaries' => $sheet->groupedByFiliale(),
-                    'areas' => $sheet->groupedByZone(),
-                    'providers' => $sheet->groupedByProvider(),
-                    'directions' => $sheet->groupedByDirections(),
-                ],
-            ];
+                [
+                    'sheets' => $sheet->search($options),
+                    'total' => $sheet->getCount(),
+                    'filter' => [
+                        'edf_open' => $sheet->groupedByOpenEdf(),
+                        'showcase' => $sheet->groupedByShowcase(),
+                        'status' => $sheet->groupedByStatus(),
+                        'partnership' => $sheet->groupedByPartnership(),
+                        'protected_sector' => $sheet->groupedBySector(),
+                        'dauphin' => $sheet->groupedByDauphin(),
+                        'beneficiaries' => $sheet->groupedByFiliale(),
+                        'areas' => $sheet->groupedByZone(),
+                        'providers' => $sheet->groupedByProvider(),
+                        'directions' => $sheet->groupedByDirections(),
+                    ],
+        ];
     }
 
-    public function getDetails($id)
-    {
+    public function getDetails($id) {
         try {
             $details = (new Sheet($this->db))->get($id);
 
@@ -80,9 +78,7 @@ class SheetRepository extends AbstractRepository
         }
     }
 
-
-    public function export($options)
-    {
+    public function export($options) {
         $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
         $sheet = new Sheet($this->db);
         $answer = [];
@@ -93,7 +89,7 @@ class SheetRepository extends AbstractRepository
         $committee = new Committee($this->db);
         $sheetContract = new SheetContract($this->db);
         $sheet->initSearchCondition($options);
-        $result =  $sheet->searchWithoutPagination($options);
+        $result = $sheet->searchWithoutPagination($options);
         $header = [
             'Id',
             'Titre',
@@ -120,7 +116,7 @@ class SheetRepository extends AbstractRepository
 
         foreach ($result['sheets'] as $sheet) {
             if (isset($sheet['committee'])) {
-                $committeeItem =  $committee->getByCode($sheet['committee']);
+                $committeeItem = $committee->getByCode($sheet['committee']);
                 if (!is_null($committeeItem) && is_array($committeeItem) && isset($committeeItem['label'])) {
                     $sheet['committee'] = $committeeItem['label'];
                 }
@@ -133,7 +129,7 @@ class SheetRepository extends AbstractRepository
                     $sheet['providers'] .= '|';
                 }
 
-                $sheet['providers'] .=  $provider['name'];
+                $sheet['providers'] .= $provider['name'];
             }
 
             $filiales = $sheetFiliale->getBySheet($sheet['id']);
@@ -179,9 +175,28 @@ class SheetRepository extends AbstractRepository
             $sheet['protected_sector'] = ($sheet['protected_sector'] == 1) ? 'Oui' : 'Non';
             $sheet['partnership'] = ($sheet['partnership'] == 1) ? 'Oui' : 'Non';
             $sheet['status'] = $status[$sheet['status']];
+            $sheet['description'] = $this->toPlainText($sheet['description']);
+
             $csv['data'][] = $sheet;
         }
-        
-        return  $csv;
+        return $csv;
     }
+
+    /**
+     * 
+     * @param string $str
+     * @return string
+     */
+    public function toPlainText(string $str): string {
+        $str = str_replace('&nbsp;', ' ', $str);
+        $str = html_entity_decode($str, ENT_QUOTES | ENT_COMPAT, 'UTF-8');
+        $str = html_entity_decode($str, ENT_HTML5, 'UTF-8');
+        $str = html_entity_decode($str);
+        $str = htmlspecialchars_decode($str);
+        $str = strip_tags($str);
+
+        return $str;
+    }
+
+
 }

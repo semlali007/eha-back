@@ -6,12 +6,11 @@ use App\Exceptions\InternalServerException;
 use Exception;
 use PDO;
 
-class Committee extends Model
-{
+class Committee extends Model {
+
     protected $tableName = 'committee';
 
-    public function getByCode($code = null)
-    {
+    public function getByCode($code = null) {
         $pdo = $this->db->getPDO();
         $code = trim($code);
         try {
@@ -19,25 +18,27 @@ class Committee extends Model
                 return null;
             }
 
-            $query = 'SELECT * FROM ' . $this->table  . ' WHERE code=:code';
-            $sth = $this->db->getPDO()->prepare($query);
+            $query = 'SELECT * FROM ' . $this->table . ' WHERE code=:code';
+            $sth = $pdo->prepare($query);
             $sth->bindParam(':code', $code, $pdo::PARAM_INT);
-            $sth->execute();
+
             return $sth->fetch($pdo::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            throw new InternalServerException();
+        } catch (Exception $e) {
+           
+            echo "Failed: " . $e->getMessage();
         }
     }
 
-    public function getList()
-    {
+    public function getList() {
+        $dbh = $this->db->getPDO();
         try {
-            $query = 'SELECT DISTINCT * FROM ' . $this->table  . ' ORDER BY label asc';
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->execute();
-            return  $sth->fetchall(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            throw new InternalServerException();
+            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY label asc';
+            $sth = $dbh->prepare($query);
+
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            echo "Failed: " . $e->getMessage();
         }
     }
+
 }

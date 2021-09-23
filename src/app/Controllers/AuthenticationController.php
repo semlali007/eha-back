@@ -6,6 +6,7 @@ use App\Models\External;
 use App\Models\Administrator;
 use App\Services\EntityService;
 use Database\DBConnection;
+use Core\Http\Request ;
 
 class AuthenticationController extends Controller
 {
