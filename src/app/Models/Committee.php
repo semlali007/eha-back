@@ -24,7 +24,7 @@ class Committee extends Model {
 
             return $sth->fetch($pdo::FETCH_ASSOC);
         } catch (Exception $e) {
-            $pdo->rollBack();
+           
             echo "Failed: " . $e->getMessage();
         }
     }
@@ -37,7 +37,6 @@ class Committee extends Model {
 
             return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            $dbh->rollBack();
             echo "Failed: " . $e->getMessage();
         }
     }
