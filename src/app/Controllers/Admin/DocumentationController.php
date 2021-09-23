@@ -33,11 +33,12 @@ class DocumentationController extends Controller {
                     'data' => 'Impossible d\'écrire les données'
                 ];
             }
-        }
+        } else {
         $answer = [
             'status' => false,
             'data' => 'Impossible de lire les données'
         ];
+        }
 
 
         return $this->response($answer);
