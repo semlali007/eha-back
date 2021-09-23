@@ -61,7 +61,7 @@ $router->post('/hotlines/upload', 'App\Controllers\HotlineActionController@uploa
 $router->post('/hotlines/close', 'App\Controllers\HotlineActionController@close', ['USER']);
 
 
-$router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ['EHA_ADMIN']);
+$router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ['ADMIN']);
 $router->post('/documentations/save', 'App\Controllers\Admin\DocumentationController@update', ['ADMIN']);
 
 $router->get('/administrators', 'App\Controllers\Admin\AdministratorController@index', ['ADMIN']);
