@@ -35,12 +35,12 @@ class SheetController extends Controller {
 
     public function update() {
         $sheetData = json_decode($_POST['model'], true);
-        return $this->sheetManager->update($sheetData);
+        return $this->sheetManager->update($this->currentUser,$sheetData);
     }
 
     public function add() {
         $sheetData = json_decode($_POST['model'], true);
-        return $this->sheetManager->add($sheetData);
+        return $this->sheetManager->add($this->currentUser,$sheetData);
     }
 
     public function download() {

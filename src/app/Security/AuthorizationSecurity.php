@@ -14,21 +14,9 @@ class AuthorizationSecurity extends AbstractSecurity {
     private $accessToken;
     private $idToken;
 
-    function checkUserAuthorization($roles) {
+    function checkUserAuthorization($roles =[]) {
 
-        if (isset($roles) && is_array($roles) && !empty($roles)) {
-
-            if (getenv('WEBSSO') != true) {
-                $user = UserService::getUser();
-                if (!is_array($user) || !isset($user['roles']) || !is_array($user['roles'])) {
-                    throw new AccessDeniedException();
-                }
-
-                $userRoles = $user['roles'];
-                if (count(array_intersect($userRoles, $roles)) == 0) {
-                    throw new AccessDeniedException();
-                }
-            } else {
+        if (isset($roles) && is_array($roles) && !empty($roles)) { 
                 $headers = getallheaders();
                 $authorization = explode(" ", $headers['authorization']);
                 $this->idToken = $authorization[1];
@@ -38,22 +26,15 @@ class AuthorizationSecurity extends AbstractSecurity {
                     throw new AccessDeniedException('You must provide a valid token');
                 }
                 // 1- recupérer l'objet user
-                $user = $this->getUser();
-                // Vérifier les roles user (Appel Userinfo) => isMemberOf
-                $userInfo = UserService::getInfo($this->accessToken);
-
-                // Chercher dans isMemberOf le role necessaire 
-                if (array_key_exists("isMemberOf", $userInfo)) {
-                    $formatedRoles = Role::format($userInfo["isMemberOf"]);
-                    $user->addRoles($formatedRoles);
-                }
+                $user = UserService::create($this->accessToken, $this->getUser());
                 // Traduction des roles de Standard to EHA_ROLES
                 $roles = $this->translateRoles($roles);
                 if (!$user->hasRole($roles)) {
                     http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
                     throw new AccessDeniedException(); // retour a la frontend app 
-                }
+                 
             }
+            return $user ;
         }
     }
 
