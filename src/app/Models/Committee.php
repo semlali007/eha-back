@@ -11,7 +11,6 @@ class Committee extends Model {
     protected $tableName = 'committee';
 
     public function getByCode($code = null) {
-        $pdo = $this->db->getPDO();
         $code = trim($code);
         try {
             if (is_null($code) || empty($code)) {
@@ -19,25 +18,24 @@ class Committee extends Model {
             }
 
             $query = 'SELECT * FROM ' . $this->table . ' WHERE code=:code';
-            $sth = $pdo->prepare($query);
-            $sth->bindParam(':code', $code, $pdo::PARAM_INT);
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':code', $code, $this->db->getPDO()::PARAM_INT);
 
-            return $sth->fetch($pdo::FETCH_ASSOC);
-        } catch (Exception $e) {
-           
-            echo "Failed: " . $e->getMessage();
+            return $sth->fetch($this->db->getPDO()::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
         }
     }
 
     public function getList() {
-        $dbh = $this->db->getPDO();
+
         try {
             $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY label asc';
-            $sth = $dbh->prepare($query);
+            $sth = $this->db->getPDO()->prepare($query);
 
             return $sth->fetchall(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            echo "Failed: " . $e->getMessage();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
         }
     }
 
