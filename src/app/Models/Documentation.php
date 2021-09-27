@@ -10,18 +10,7 @@ namespace App\Models;
 class Documentation extends Page {
 
     protected $tableName = 'menu_documentations';
-
-    public function getList() {
-
-        try {
-            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY label asc';
-            $sth = $this->db->getPDO()->prepare($query);
-
-            return $sth->fetchall(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            throw new InternalServerException();
-        }
-    }
+ 
 
     /**
      * 

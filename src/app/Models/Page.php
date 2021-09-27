@@ -1,11 +1,11 @@
 <?php
 
 namespace App\Models;
-
+use PDO ;
 class Page extends Model{
 
     protected $table = 'menu_documentations';
-
+    
     /**
      * 
      * @param int $id
@@ -14,7 +14,7 @@ class Page extends Model{
      */
     public function getItems(int $id):array {
         try {
-            $sth = $this->pdo->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
+            $sth =  $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
             $sth->bindParam(':parent_id', $id, PDO::PARAM_INT);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
@@ -29,9 +29,9 @@ class Page extends Model{
      * @return array
      * @throws Exception
      */
-    public function getById(int $id):array {
+    public function getById(int $id) {
         try {
-            $sth = $this->pdo->prepare('SELECT * FROM ' . $this->table . ' WHERE id = :id');
+            $sth =  $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE id = :id');
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
             return $sth->fetch(PDO::FETCH_ASSOC);
@@ -48,7 +48,7 @@ class Page extends Model{
      */
     public function getMenus($parentId):array {
         try {
-            $sth = $this->pdo->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
+            $sth =  $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
             $sth->bindParam(':parent_id', $parentId, PDO::PARAM_INT);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
@@ -68,7 +68,7 @@ class Page extends Model{
             $query = '
         INSERT INTO ' . $this->table . ' (label, position, parent, link, breadcrumb, external, warning, description) VALUES (:label, (select coalesce(max(position), 0) + 1 FROM ' . $this->table . ' WHERE  parent=:parent_id), :parent, :link, :breadcrumb, :external, :warning, :description);
         ';
-            $sth = $this->pdo->prepare($query);
+            $sth =  $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
             $sth->bindParam(':parent_id', $data['parent'], PDO::PARAM_STR);
             $sth->bindParam(':parent', $data['parent'], PDO::PARAM_STR);
@@ -78,7 +78,7 @@ class Page extends Model{
             $sth->bindParam(':warning', $data['warning'], PDO::PARAM_STR);
             $sth->bindParam(':description', $data['description'], PDO::PARAM_STR);
             $sth->execute();
-            return $this->pdo->lastInsertId();
+            return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
             throw new Exception('erreur d\'ajout de contact' . $e->getMessage());
         }
@@ -96,7 +96,7 @@ class Page extends Model{
                 $query = '
                 UPDATE ' . $this->table . ' set label=:label, link=:link, breadcrumb=:breadcrumb, external=:external, warning=:warning, description=:description WHERE id=:id;
         ';
-                $sth = $this->pdo->prepare($query);
+                $sth =  $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
                 $sth->bindParam(':link', $data['link'], PDO::PARAM_STR);
                 $sth->bindParam(':breadcrumb', $data['breadcrumb'], PDO::PARAM_STR);
@@ -125,7 +125,7 @@ class Page extends Model{
                 $query = '
                 UPDATE ' . $this->table . ' set position=:position WHERE id=:id;
         ';
-                $sth = $this->pdo->prepare($query);
+                $sth =  $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':position', $newPosition, PDO::PARAM_INT);
                 $sth->bindParam(':id', $id, PDO::PARAM_INT);
                 $sth->execute();
@@ -145,7 +145,7 @@ class Page extends Model{
      */
     public function getMenu($id) {
         try {
-            $sth = $this->pdo->prepare('SELECT * FROM ' . $this->table . ' WHERE id = :id');
+            $sth =  $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE id = :id');
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
             return $sth->fetch(PDO::FETCH_ASSOC);
@@ -162,11 +162,11 @@ class Page extends Model{
     public function delete($id) {
         try {
             $query = 'DELETE FROM ' . $this->table . ' WHERE id = :id';
-            $sth = $this->pdo->prepare($query);
+            $sth =  $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
             $query = 'DELETE FROM ' . $this->table . ' WHERE parent != 0 and parent not in (select id from ' . $this->table . ' )';
-            $sth = $this->pdo->prepare($query);
+            $sth =  $this->db->getPDO()->prepare($query);
             $sth->execute();
         } catch (\Exception $e) {
             throw new Exception('erreur de suppression de contact');
