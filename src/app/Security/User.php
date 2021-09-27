@@ -12,19 +12,35 @@ class User {
     private $token;
 
     /**
+     *
+     * @var string
+     */
+    private string $nni;
+
+    /**
+     *
+     * @var string
+     */
+    private string $fullname;
+
+    /**
      * @var User Roles 
      */
     private $roles = [Role::DEFAULT];
 
     /**
-     * @var string
+     * 
+     * @return string|null
      */
-    private $profile;
-
     public function getToken(): ?string {
         return $this->token;
     }
 
+    /**
+     * 
+     * @param string $token
+     * @return \self
+     */
     public function setToken(string $token): self {
         $this->token = $token;
 
@@ -58,18 +74,41 @@ class User {
         return false;
     }
 
+
     /**
      * 
-     * @return string|null
+     * @return string
      */
-    public function getProfile(): ?string {
-        return $this->profile;
+    function getNni(): string {
+        return $this->nni;
     }
 
-    public function setProfile(string $profile): self {
-        $this->profile = $profile;
-
-        return $this;
+    /**
+     * 
+     * @param string $nni
+     * @return void
+     */
+    function setNni(string $nni): void {
+        $this->nni = $nni;
     }
+    
+    /**
+     * 
+     * @return string
+     */
+    function getFullname(): string {
+        return $this->fullname;
+    }
+
+    /**
+     * 
+     * @param string $fullname
+     * @return void
+     */
+    function setFullname(string $fullname): void {
+        $this->fullname = $fullname;
+    }
+
+
 
 }

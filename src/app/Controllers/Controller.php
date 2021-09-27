@@ -18,6 +18,8 @@ abstract class Controller
      * @var array|mixed
      */
     protected $roles;
+    
+    protected $currentUser ;
 
     /**
      * Controller constructor.
@@ -64,7 +66,7 @@ abstract class Controller
     protected function checkUserAuthorization()
     {
             $authorization = new AuthorizationSecurity();
-            $authorization->checkUserAuthorization($this->roles);
+            $this->currentUser = $authorization->checkUserAuthorization($this->roles);
     }
 
     /**

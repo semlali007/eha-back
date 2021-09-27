@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
-use App\Security\User;
+use App\Security\{
+    User,
+    Role
+};
 use Core\Cache\{
     ApcuCachePool as cache,
     Common\PhpCacheItem as CacheItem
@@ -10,16 +13,6 @@ use Core\Cache\{
 
 class UserService {
 
-    static function getUser() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (isset($_SESSION['user'])) {
-            return $_SESSION['user'];
-        } else {
-            return null;
-        }
-    }
 
     /**
      * Chercher les informations de l'utilisateur
@@ -32,12 +25,38 @@ class UserService {
         } else {
             // Generer l'URL
             $userInfoUrl = getenv("URL_GARDIAN_WEBSSO") . getenv("PATH_USERINFO");
-            $headers = [ "Content-type:application/x-www-form-urlencoded", "Authorization: Bearer {$accessToken}"];
+            $headers = ["Content-type:application/x-www-form-urlencoded", "Authorization: Bearer {$accessToken}"];
             // Get user-info data    
             $infos = HttpClientService::exec_post($userInfoUrl, [], $headers);
             cache::storeItemInCache(new CacheItem(User::INFOKEY, $infos));
             return $infos;
         }
     }
-   
+
+    /**
+     * 
+     * @param string $accessToken
+     * @param User $user
+     * @return object $user
+     */
+    public static function create(string $accessToken, User $user): User {
+        $userInfo = self::getInfo($accessToken);
+
+        // verifier si sub existe dans les userinfo
+        if (array_key_exists("sub", $userInfo)) {
+            $user->setNni($userInfo['sub']);
+        }
+        // verifier si sub existe dans les userinfo
+        if (array_key_exists("cn", $userInfo)) {
+            $user->setFullname($userInfo['cn']);
+        }
+        // Chercher dans isMemberOf le role necessaire 
+        if (array_key_exists("isMemberOf", $userInfo)) {
+            // Vérifier les roles user (Appel Userinfo) => isMemberOf
+            $formatedRoles = Role::format($userInfo["isMemberOf"]);
+            $user->addRoles($formatedRoles);
+        }
+        return $user;
+    }
+
 }

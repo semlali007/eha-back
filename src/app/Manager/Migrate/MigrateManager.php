@@ -5,10 +5,9 @@ namespace App\Manager\Migrate;
 use App\Manager\AbstractManager;
 use Exception;
 
-class MigrateManager extends AbstractManager
-{
+class MigrateManager extends AbstractManager {
+
     protected $subject;
-    
     public static $MigrateConfig = [
         'source' => '',
         'dait' =>
@@ -18,21 +17,20 @@ class MigrateManager extends AbstractManager
         ],
         'dapi' =>
         [
-            'contrat' =>  'Contrats_DAPI/',
-            'doc_dep' =>  'Doc_Dep_DAPI/',
+            'contrat' => 'Contrats_DAPI/',
+            'doc_dep' => 'Doc_Dep_DAPI/',
         ],
         'datp' =>
         [
             'contrat' => [
-                'edf_enedis' =>  'Contrats_EDF_Enedis/',
-                'enedis' =>  'Contrats_Enedis/',
+                'edf_enedis' => 'Contrats_EDF_Enedis/',
+                'enedis' => 'Contrats_Enedis/',
             ],
-            'doc_dep' =>  'Doc_Dep_DATP/',
+            'doc_dep' => 'Doc_Dep_DATP/',
         ]
     ];
-    
-    public function updateData($options)
-    {
+
+    public function updateData($options) {
         try {
             $this->db->getPDO()->beginTransaction();
             $this->subject->initData();
@@ -44,23 +42,23 @@ class MigrateManager extends AbstractManager
                 }
 
                 $data = array_map(function ($data) {
-                    if (!is_array($data)) {
-                        return (string)pg_escape_string($data);
-                    } else {
-
+                    $text = $data;
+                    if (is_array($data)) {
                         $text = "";
                         foreach ($data["richText"] as $key => $c) {
-
                             if ($key !== 0) {
                                 $text .= '. ';
                             }
                             $text .= $c['text'];
                         }
-
-                        return  (string)pg_escape_string($text);
+                    }
+                    try {
+                        return (string) pg_escape_string($text);
+                    } catch (\Exception $exception) {
+                        return $text;
                     }
                 }, $line);
-                $values  = implode("','", $data);
+                $values = implode("','", $data);
                 $this->subject->insertData($values);
             }
 
@@ -72,4 +70,5 @@ class MigrateManager extends AbstractManager
             throw new Exception($e->getMessage());
         }
     }
+
 }

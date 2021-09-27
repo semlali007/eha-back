@@ -15,6 +15,7 @@ use App\Models\SheetProvider;
 use App\Services\FileUpload;
 use App\Services\UserService;
 use Exception;
+use App\Security\User;
 
 class SheetManager extends AbstractManager {
 
@@ -175,10 +176,11 @@ class SheetManager extends AbstractManager {
         }
     }
 
-    public function add($sheetData) {
+    public function add(User $user, $sheetData) {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
+
         try {
-            $user = UserService::getUser();
+
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['start_date'] = $sheetData['start_date'] ?? '';
@@ -204,36 +206,15 @@ class SheetManager extends AbstractManager {
             $date = date('Y-m-d H:i:s');
             $data['created_at'] = $date;
             $data['updated_at'] = $date;
-            $data['created_by'] = $user['nni'];
-            $data['updated_by'] = $user['nni'];
-            $data['created_by_full_name'] = $user['full_name'] ?? '';
-            $data['updated_by_full_name'] = $user['full_name'] ?? '';
+            $data['created_by'] = $user->getNni();
+            $data['updated_by'] = $user->getNni();
+            $data['created_by_full_name'] = $user->getFullname() ?? '';
+            $data['updated_by_full_name'] = $user->getFullname() ?? '';
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
 
-### Checkmarks XSRF 
-            $medias = [
-                [
-                    'type' => 1,
-                    'value' => isset($_FILES['kits']) ? $_FILES['kits'] : null,
-                ],
-                [
-                    'type' => 2,
-                    'value' => isset($_FILES['privates']) ? $_FILES['privates'] : null,
-                ],
-                [
-                    'type' => 3,
-                    'value' => isset($_FILES['privates_enedis']) ? $_FILES['privates_enedis'] : null,
-                ],
-                [
-                    'type' => 4,
-                    'value' => isset($_FILES['privates_edf_enedis']) ? $_FILES['privates_edf_enedis'] : null,
-                ]
-            ];
-
-
             $fileUpload = new FileUpload();
-            $data['files'] = $fileUpload->uploadSheetFiles($medias, [
+            $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
                 'size' => 2100000
