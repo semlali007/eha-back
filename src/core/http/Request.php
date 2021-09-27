@@ -24,8 +24,9 @@ class Request {
      *
      */
     public static function get(string $key = "", string $default = null) {
-        if (self::exists('get')) {
-            return (isset($_GET[$key]) && (!empty($_GET[$key])) ? $_GET[$key] : $default);
+            
+        if (self::exists()) {
+            return ((isset($_GET[$key]) && !empty($_GET[$key])) ? $_GET[$key] : $default);
         }
         return $_GET;
     }
@@ -38,12 +39,12 @@ class Request {
      * @return boolean
      *
      */
-    public static function exists(string $source = "post"): bool {
+    public static function exists(string $source = "get"): bool {
         switch ($source) {
             case 'post':
-                return (!empty($_POST));
+                return $_SERVER['REQUEST_METHOD']=="POST";
             case 'get':
-                return (!empty($_GET));
+             return $_SERVER['REQUEST_METHOD']=="GET";
         }
         return false;
     }
