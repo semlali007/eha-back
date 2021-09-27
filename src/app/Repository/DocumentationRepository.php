@@ -16,8 +16,8 @@ class DocumentationRepository extends AbstractRepository{
      * 
      * @return array|null
      */
-    public function getList():?array
+    public function getList(int $parent = 0):?array
     {
-        return (new Documentation($this->db))->getList();
+        return (new Documentation($this->db))->getByParentId($parent);
     }
 }
