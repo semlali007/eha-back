@@ -10,15 +10,34 @@ class DocumentationController extends Controller {
 
     private $documentationRepository;
 
-    public function __construct(DBConnection $db, $roles = []) {
+    /**
+     * 
+     * @param DBConnection $db
+     * @param type $roles
+     */
+    public function __construct(DBConnection $db, array $roles = []) {
 
         parent::__construct($db, $roles);
         $this->documentationRepository = new DocumentationRepository($db);
     }
 
+    /**
+     * Liste des elements dans le menu 
+     * @return Array
+     */
     public function index() {
+
+        return $this->response($this->documentationRepository->getList(Request::get('parent', 0)));
+    }
+
+    /**
+     * Liste des elements dans le menu 
+     * @return Array
+     */
+    public function edit() {
         
-        return $this->response($this->documentationRepository->getList(Request::get('parent',0)));
+        $options = Request::input()  ; 
+        return $this->response($this->documentationRepository->edit($options));
     }
 
 }
