@@ -7,7 +7,7 @@ use PDO;
 class DBConnection
 {
 
-    private $dbname;
+    private $dbname ;
     private $host;
     private $username;
     private $password;
@@ -15,14 +15,14 @@ class DBConnection
     private $pdo;
     private $schema;
 
-    public function __construct(string $dbname, string $host, string $username, string $password, string $port, string $schema)
+    public function __construct()
     {
-        $this->dbname = $dbname;
-        $this->host = $host;
-        $this->username = $username;
-        $this->password = $password;
-        $this->port = $port;
-        $this->schema = $schema;
+        $this->dbname = getenv("DB_NAME");
+        $this->host = getenv("DB_HOST");
+        $this->username = getenv("DB_USER");
+        $this->password = getenv("DB_PWD");
+        $this->port = getenv("DB_PORT");
+        $this->schema = getenv("DB_SCHEMA");
     }
 
     public function getPDO(): PDO
