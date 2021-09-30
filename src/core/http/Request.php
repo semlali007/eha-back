@@ -30,6 +30,15 @@ class Request {
         }
         return $_GET;
     }
+    
+    /**
+     * 
+     * @return PHP input value as array
+     */
+    public static function input():?array {
+            
+        return json_decode(file_get_contents("php://input"), true) ?? [];
+    }
 
     /**
      * Existe: détermine si une demande existe en vérifiant si le GET ou le POST
