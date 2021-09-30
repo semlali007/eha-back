@@ -156,10 +156,10 @@ class Page extends Model{
 
     /**
      * 
-     * @param type $id
+     * @param int $id
      * @throws Exception
      */
-    public function delete($id) {
+    public function delete(int $id) {
         try {
             $query = 'DELETE FROM ' . $this->table . ' WHERE id = :id';
             $sth =  $this->db->getPDO()->prepare($query);

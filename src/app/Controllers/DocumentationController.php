@@ -38,5 +38,23 @@ class DocumentationController extends Controller {
          
         return $this->response($this->documentationRepository->edit(Request::input()));
     }
+    
+    /**
+     * Liste des elements dans le menu 
+     * @return Array
+     */
+    public function delete() {
+         
+        return $this->response($this->documentationRepository->delete(Request::input()));
+    }
+    
+     /**
+     * Liste des elements dans le menu 
+     * @return Array
+     */
+    public function show() {
+         
+        return $this->response($this->documentationRepository->details(Request::input()));
+    }
 
 }
