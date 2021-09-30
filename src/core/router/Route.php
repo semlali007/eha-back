@@ -35,7 +35,7 @@ class Route
     {
 
         $params = explode('@', $this->action);
-        $controller = new $params[0](new DBConnection(getenv("DB_NAME"),getenv("DB_HOST"), getenv("DB_USER") , getenv("DB_PWD"), getenv("DB_PORT"), getenv("DB_SCHEMA")),$this->roles);
+        $controller = new $params[0](new DBConnection(),$this->roles);
         $method = $params[1];
         switch (count($this->matches)) {
             case 1:
