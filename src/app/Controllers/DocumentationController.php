@@ -35,9 +35,8 @@ class DocumentationController extends Controller {
      * @return Array
      */
     public function edit() {
-        
-        $options = Request::input()  ; 
-        return $this->response($this->documentationRepository->edit($options));
+         
+        return $this->response($this->documentationRepository->edit(Request::input()));
     }
 
 }
