@@ -113,13 +113,13 @@ class Page extends Model{
         }
     }
 
-    /**
-     * 
-     * @param type $id
-     * @param type $newPosition
-     * @throws Exception
-     */
-    public function updatePosition($id, $newPosition) {
+   /**
+    * 
+    * @param int $id
+    * @param int $newPosition
+    * @throws Exception
+    */
+    public function updatePosition(int $id, int $newPosition) {
         try {
             try {
                 $query = '
