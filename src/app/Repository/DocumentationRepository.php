@@ -2,23 +2,23 @@
 
 namespace App\Repository;
 
-use App\Models\Documentation ;
+use App\Models\Documentation;
+
 /**
  * Description of DocumentationRepository
  *
  * @author HGDDEDBN
  */
-class DocumentationRepository extends AbstractRepository{
- 
+class DocumentationRepository extends AbstractRepository {
+
     /**
      * 
      * @return array|null
      */
-    public function getList(int $parent = 0):?array
-    {
-        return (new Documentation($this->db))->getByParentId($parent);
+    public function getList(int $parent = 0): ?array {
+        return (new Documentation())->getByParentId($parent);
     }
-    
+
     /**
      * 
      * @param array $options
@@ -26,7 +26,7 @@ class DocumentationRepository extends AbstractRepository{
      */
     public function edit(array $options = []): void {
         try {
-            $documentation = (new Documentation($this->db))->update($options);
+            $documentation = (new Documentation())->update($options);
             foreach ($options['items'] as $item) {
                 $documentation->updatePosition($item['id'], $item['position']);
             }
@@ -38,5 +38,25 @@ class DocumentationRepository extends AbstractRepository{
             ]);
         }
     }
+
+    /**
+     * 
+     * @param int $id
+     * @return type
+     */
+    public function delete(int $id) {
+
+        return json_encode(new Documentation())->delete($id);
+    }
     
+     /**
+     * 
+     * @param int $id
+     * @return type
+     */
+    public function details(int $id) {
+
+        return (new Documentation())->details($id);
+    }
+
 }
