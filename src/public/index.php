@@ -3,7 +3,7 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload'
 
 require '../vendor/autoload.php';
 
-
+ 
 use Core\Http\Request ;
 use Core\{
     Router\Router,
@@ -11,7 +11,7 @@ use Core\{
 };
 
 (new DotEnv(__DIR__ . '/../.env'))->load(); // Charger le dotenv module
-$router = new Router(Request::get('url'));
+$router = new Router($_SERVER['REQUEST_URI']);
 
 include '../app/Config/Config.php';
 include '../app/Config/routing.php';// Création des routes
