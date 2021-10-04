@@ -12,11 +12,29 @@ use App\Models\Documentation;
 class DocumentationRepository extends AbstractRepository {
 
     /**
+     * Ajout des nouvels elements
+     * @return array
+     */
+    public function add() {
+        try {
+            return [
+                'id' =>(new Documentation($this->db))->add(\Core\Http\Request::input())
+            ];
+        } catch (Exception $ex) {
+            http_response_code(500);
+            echo json_encode([
+                'error' => $ex->getCode(),
+                'message' => 'un problème est survenu. réessayez plus tard',
+            ]);
+        }
+    }
+
+    /**
      * 
      * @return array|null
      */
     public function getList(int $parent = 0): ?array {
-        return (new Documentation())->getByParentId($parent);
+        return (new Documentation($this->db))->getByParentId($parent);
     }
 
     /**
@@ -26,7 +44,7 @@ class DocumentationRepository extends AbstractRepository {
      */
     public function edit(array $options = []): void {
         try {
-            $documentation = (new Documentation())->update($options);
+            $documentation = (new Documentation($this->db))->update($options);
             foreach ($options['items'] as $item) {
                 $documentation->updatePosition($item['id'], $item['position']);
             }
@@ -46,7 +64,7 @@ class DocumentationRepository extends AbstractRepository {
      */
     public function delete(int $id) {
 
-        return json_encode(new Documentation())->delete($id);
+        return json_encode(new Documentation($this->db))->delete($id);
     }
     
      /**
@@ -56,7 +74,7 @@ class DocumentationRepository extends AbstractRepository {
      */
     public function details(int $id) {
 
-        return (new Documentation())->details($id);
+        return (new Documentation($this->db))->details($id);
     }
 
 }
