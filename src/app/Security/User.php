@@ -88,8 +88,10 @@ class User {
      * @param string $nni
      * @return void
      */
-    function setNni(string $nni): void {
+    function setNni(string $nni = ""): self {
         $this->nni = $nni;
+        
+        return $this ;
     }
     
     /**

@@ -42,10 +42,12 @@ class AuthorizationSecurity extends AbstractSecurity {
      * Vérifier si l'utilisateur existe ou non 
      * @return Object
      */
-    public function getUser() {
+     public function getUser() {
         $decodedToken = (new JwtTokenService())->decodeToken($this->idToken);
         if (is_object($decodedToken)):
-            return (new User())->setToken($this->idToken);
+            return (new User())
+            ->setToken($this->idToken)
+            ->setNni($decodedToken->sub);
         endif;
         return new User();
     }
