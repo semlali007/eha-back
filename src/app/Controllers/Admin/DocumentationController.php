@@ -32,6 +32,15 @@ class DocumentationController extends Controller {
 
         return $this->response($this->documentationRepository->delete(Request::input()));
     }
+    
+     /**
+     * ajout des elements dans le menu 
+     * @return Array
+     */
+    public function add() {
+
+        return $this->response($this->documentationRepository->add(Request::input()));
+    }
 
     /**
      * Liste des elements dans le menu 
