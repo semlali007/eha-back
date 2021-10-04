@@ -11,9 +11,9 @@ abstract class Model {
     protected $tableName;
     protected $table;
 
-    public function __construct()
+    public function __construct(DBConnection $db)
     {
-        $this->db = new DBConnection();
-        $this->table = $this->db->getSchema().$this->tableName;
+        $this->db = $db;
+        $this->table = $db->getSchema().$this->tableName;
     }
 }

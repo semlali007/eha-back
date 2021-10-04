@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+use Database\DBConnection ;
 use PDO ;
 class Page extends Model{
 
@@ -14,7 +15,7 @@ class Page extends Model{
      */
     public function getItems(int $id):array {
         try {
-            $sth =  $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
+            $sth = (DBConnection::getPDO)->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
             $sth->bindParam(':parent_id', $id, PDO::PARAM_INT);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
