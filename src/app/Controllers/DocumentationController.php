@@ -3,20 +3,31 @@
 namespace App\Controllers;
 
 use Database\DBConnection;
+use App\Repository\DocumentationRepository;
+use Core\Http\Request;
 
-class DocumentationController extends Controller
-{
-    public function __construct(DBConnection $db, $roles = [])
-    {
+class DocumentationController extends Controller {
+
+    private $documentationRepository;
+
+    /**
+     * 
+     * @param DBConnection $db
+     * @param type $roles
+     */
+    public function __construct(DBConnection $db, array $roles = []) {
+
         parent::__construct($db, $roles);
+        $this->documentationRepository = new DocumentationRepository($db);
     }
 
-    public function index()
-    {
-        $filename =  getenv('CONFIG_DOCUMENTATION_FILE');
-        return $this->response([
-            'status' => true,
-            'data' => file_get_contents($filename)
-        ]);
+    /**
+     * Liste des elements dans le menu 
+     * @return Array
+     */
+    public function index() {
+
+        return $this->response($this->documentationRepository->getList(Request::get('parent', 0)));
     }
+
 }
