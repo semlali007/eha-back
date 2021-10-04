@@ -62,6 +62,7 @@ $router->post('/hotlines/close', 'App\Controllers\HotlineActionController@close'
 
 
 $router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ['ADMIN']);
+$router->post('/documentations/add', 'App\Controllers\Admin\DocumentationController@add', ['ADMIN']);
 $router->get('/documentations/delete', 'App\Controllers\Admin\DocumentationController@delete', ['ADMIN']);
 $router->get('/documentations/show', 'App\Controllers\Admin\DocumentationController@show', ['ADMIN']);
 $router->post('/documentations/save', 'App\Controllers\Admin\DocumentationController@update', ['ADMIN']);

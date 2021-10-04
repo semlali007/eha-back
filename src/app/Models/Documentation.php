@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use PDO ;
 /**
  * Description of Documentation
  *
@@ -122,7 +123,7 @@ class Documentation extends Model {
      * @return type
      * @throws Exception
      */
-    public function add($data) {
+    public function add(array $data) {
         try {
             $query = '
         INSERT INTO ' . $this->table . ' (label, position, parent, link, breadcrumb, external, warning, description) VALUES (:label, (select coalesce(max(position), 0) + 1 FROM ' . $this->table . ' WHERE  parent=:parent_id), :parent, :link, :breadcrumb, :external, :warning, :description);
@@ -139,7 +140,7 @@ class Documentation extends Model {
             $sth->execute();
             return $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
-            throw new Exception('erreur d\'ajout de contact' . $e->getMessage());
+            throw new \Exception('erreur d\'ajout de contact' . $e->getMessage());
         }
     }
 
@@ -148,9 +149,8 @@ class Documentation extends Model {
      * @param type $data
      * @throws Exception
      */
-    public function update($data) {
+    public function update(array $data) {
         try {
-            $id = $data['id'];
             try {
                 $query = '
                 UPDATE ' . $this->table . ' set label=:label, link=:link, breadcrumb=:breadcrumb, external=:external, warning=:warning, description=:description WHERE id=:id;

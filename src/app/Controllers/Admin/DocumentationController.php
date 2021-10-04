@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\Controller;
 use Database\DBConnection;
 use App\Repository\DocumentationRepository;
+use Core\Http\Request ;
 
 class DocumentationController extends Controller {
 
@@ -38,7 +39,6 @@ class DocumentationController extends Controller {
      * @return Array
      */
     public function add() {
-
         return $this->response($this->documentationRepository->add(Request::input()));
     }
 
