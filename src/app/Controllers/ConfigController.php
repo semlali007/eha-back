@@ -44,8 +44,9 @@ class ConfigController extends Controller
 
     public function postCheck()
     {
+        $resp = $this->decode(file_get_contents("php://input"));
         $response =[
-            'viewed'=> true,
+            'viewed'=> $resp,
         ];
         return  $this->response($response);
     }
