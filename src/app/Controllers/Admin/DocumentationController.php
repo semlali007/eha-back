@@ -46,9 +46,9 @@ class DocumentationController extends Controller {
      * Liste des elements dans le menu 
      * @return Array
      */
-    public function show() {
+    public function show($id) {
 
-        return $this->response($this->documentationRepository->details(Request::input()));
+        return $this->response($this->documentationRepository->details($id));
     }
 
     public function update() {
