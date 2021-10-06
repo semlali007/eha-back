@@ -44,12 +44,11 @@ class AuthorizationSecurity extends AbstractSecurity {
      */
      public function getUser() {
         $decodedToken = (new JwtTokenService())->decodeToken($this->idToken);
-        if (is_object($decodedToken)):
-            return (new User())
-            ->setToken($this->idToken)
-            ->setNni($decodedToken->sub);
+        $user = (new User())->setToken($this->idToken);
+        if (is_object($decodedToken)&&property_exists($decodedToken, "sub")):
+            $user->setNni($decodedToken->sub);
         endif;
-        return new User();
+        return $user;
     }
 
     /**
