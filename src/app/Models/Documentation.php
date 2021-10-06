@@ -56,7 +56,7 @@ class Documentation extends Model {
             }
 
             $detail['parents'] = $parents;
-            return json_encode($detail);
+            return $detail;
         } catch (Exception $ex) {
             http_response_code(500);
             echo json_encode([
