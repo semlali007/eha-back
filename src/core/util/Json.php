@@ -32,7 +32,7 @@ class Json {
      * @param string $message
      * @return array
      */
-    public static function toJson(string $message):array
+    public static function toJson(mixed $message):mixed
     {
         return json_encode($message) ;
     }

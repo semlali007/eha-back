@@ -1,5 +1,7 @@
 <?php
 
+
+$router->get('/api/monitoring/health_check', 'App\Controllers\HealthcheckController@index');
 $router->post('/authentication/login', 'App\Controllers\AuthenticationController@login');
 $router->get('/authentication/logout', 'App\Controllers\AuthenticationController@logout');
 
