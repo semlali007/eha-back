@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Controllers\Controller as baseController;
 use Core\Util\HealthCheck as HCUtility;
-use Core\Util\Json;
 
 /**
  * Description of HealthcheckController
@@ -15,7 +14,7 @@ class HealthcheckController extends baseController {
 
     /**
      * 
-     * @return Json array
+     * @return array
      */
     public function index() {
 
