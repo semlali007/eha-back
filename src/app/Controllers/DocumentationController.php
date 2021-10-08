@@ -27,7 +27,7 @@ class DocumentationController extends Controller {
      */
     public function index() {
 
-        return $this->response($this->documentationRepository->getList(Request::get('parent', 0)));
+        return $this->response($this->documentationRepository->getList());
     }
 
 }
