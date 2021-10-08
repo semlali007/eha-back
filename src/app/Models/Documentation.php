@@ -14,26 +14,17 @@ class Documentation extends Model {
 
     /**
      * 
-     * @param int $parentId
-     * @return type
+     * @param type $parentId
      */
-    public function getByParentId(int $parentId = 0) {
-        $parents = [];
-        $current = $this->getById($parentId);
-        $ItemParentId = $current['parent'] ?? 0;
-        $position = 1;
-        while ($ItemParentId !== 0) {
-            $item = $this->getById($ItemParentId);
-            $item['position'] = $position;
-            $position++;
-            $parents[] = $item;
-            $ItemParentId = $item['parent'];
+    public function getByParentId($parentId) {
+        $response= [];
+        $documents = $this->getItems($parentId); 
+        foreach ($documents as $document) { 
+            $element = $document;
+            $element['sub'] = $this->getByParentId($document['id']);
+            $response[] = $element ;
         }
-        return [
-            'current' => $current,
-            'data' => $this->getItems($parentId),
-            'parents' => $parents
-        ];
+        return $response ;
     }
 
     /**
@@ -74,7 +65,7 @@ class Documentation extends Model {
      */
     public function getItems(int $id): array {
         try {
-            $sth = (DBConnection::getPDO)->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
+            $sth = $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
             $sth->bindParam(':parent_id', $id, PDO::PARAM_INT);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
