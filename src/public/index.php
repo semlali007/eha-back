@@ -3,8 +3,7 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload'
 
 require '../vendor/autoload.php';
 
- 
-use Core\Http\Request ;
+
 use Core\{
     Router\Router,
     Util\DotEnv
