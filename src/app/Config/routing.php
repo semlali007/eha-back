@@ -5,6 +5,10 @@ $router->get('/api/monitoring/health_check', 'App\Controllers\HealthcheckControl
 $router->post('/authentication/login', 'App\Controllers\AuthenticationController@login');
 $router->get('/authentication/logout', 'App\Controllers\AuthenticationController@logout');
 
+## Modal home ##
+$router->get('/config/news', 'App\Controllers\NewsController@getNews');
+$router->post('/config/checkInput', 'App\Controllers\NewsController@postCheck');
+
 $router->post('/search', 'App\Controllers\SearchController@search', ['USER']);
 $router->post('/search/anchors', 'App\Controllers\SearchController@getAnchors', ['USER']);
 

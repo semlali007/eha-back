@@ -20,7 +20,10 @@ class CommitteeController extends Controller
 
     public function index()
     {
-        
-            return  $this->response($this->committeeRepository->getList()); 
+        try {
+            return $this->response($this->committeeRepository->getList());
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
     }
 }
