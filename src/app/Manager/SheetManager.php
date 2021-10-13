@@ -15,12 +15,12 @@ use App\Models\SheetProvider;
 use App\Services\FileUpload;
 use App\Services\UserService;
 use Exception;
+use App\Security\User;
 
-class SheetManager extends AbstractManager
-{
-    public function update($sheetData)
-    {
-        $dirPath =  getenv("CONFIG_UPLOAD_PATH");
+class SheetManager extends AbstractManager {
+
+    public function update($sheetData) {
+        $dirPath = getenv("CONFIG_UPLOAD_PATH");
         try {
             $data['id'] = $sheetData['id'];
             $data['label'] = $sheetData['label'] ?? '';
@@ -35,12 +35,12 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
 
-       
+
             if (empty($data['label'])) {
                 throw SheetException::forSheetSave('Le titre est obligatoire');
             }
 
-            $data['status'] = $sheetData['status'] ??  '0';
+            $data['status'] = $sheetData['status'] ?? '0';
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['updated_at'] = $date;
@@ -49,7 +49,7 @@ class SheetManager extends AbstractManager
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $fileUpload = new FileUpload();
 
-            $data['files'] = $fileUpload->uploadSheetFiles($_FILES, [
+            $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
                 'size' => 2100000
@@ -96,7 +96,7 @@ class SheetManager extends AbstractManager
                 }
 
                 $sheetFiliale = new SheetBeneficiary($this->db);
-                $filialesId  = [];
+                $filialesId = [];
                 foreach ($data['filiales'] as $f) {
                     $filialesId[] = $f['id'];
                     $sheetFiliale->add($id, $f['id']);
@@ -104,14 +104,14 @@ class SheetManager extends AbstractManager
                 $sheetFiliale->deleteFiliales($id, $filialesId);
 
                 $sheetProvider = new SheetProvider($this->db);
-                $providers  = [];
+                $providers = [];
                 foreach ($data['providers'] as $p) {
                     $providers[] = $p['id'];
                     $sheetProvider->add($id, $p['id']);
                 }
                 $sheetProvider->deleteProviders($id, $providers);
                 $sheetGroup = new SheetGroup($this->db);
-                $groups  = [];
+                $groups = [];
                 foreach ($data['groups'] as $p) {
                     $groups[] = $p['id'];
                     $sheetGroup->add($id, $p['id']);
@@ -119,14 +119,14 @@ class SheetManager extends AbstractManager
                 $sheetGroup->deleteGroups($id, $groups);
 
                 $sheetZone = new SheetArea($this->db);
-                $zones  = [];
+                $zones = [];
                 foreach ($data['zones'] as $p) {
                     $zones[] = $p['id'];
                     $sheetZone->add($id, $p['id']);
                 }
                 $sheetZone->deleteZones($id, $zones);
 
-                $lots  = [];
+                $lots = [];
                 foreach ($data['lots'] as $lot) {
                     $lots[] = $lot['name'];
                     $sheetLot->add($id, $lot);
@@ -135,7 +135,7 @@ class SheetManager extends AbstractManager
                 $sheetLot->deleteLots($id, $lots);
 
                 $sheetOption = new SheetOption($this->db);
-                $options  = [];
+                $options = [];
                 foreach ($data['options'] as $option) {
                     if (isset($option['id'])) {
                         $sheetOption->update($option);
@@ -153,7 +153,7 @@ class SheetManager extends AbstractManager
                         $sheetOption->delete($op['id']);
                     }
                 }
-                
+
                 $this->db->getPDO()->commit();
             } catch (\Exception $e) {
                 if ($this->db->getPDO()->inTransaction()) {
@@ -176,11 +176,11 @@ class SheetManager extends AbstractManager
         }
     }
 
-    public function add($sheetData)
-    {
-        $dirPath =  getenv("CONFIG_UPLOAD_PATH");
+    public function add(User $user, $sheetData) {
+        $dirPath = getenv("CONFIG_UPLOAD_PATH");
+
         try {
-            $user = UserService::getUser();
+
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['start_date'] = $sheetData['start_date'] ?? '';
@@ -201,25 +201,25 @@ class SheetManager extends AbstractManager
                 throw SheetException::forSheetSave('Le titre est obligatoire');
             }
 
-            $data['status'] = $sheetData['status'] ??  '0';
+            $data['status'] = $sheetData['status'] ?? '0';
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['created_at'] = $date;
             $data['updated_at'] = $date;
-            $data['created_by'] = $user['nni'];
-            $data['updated_by'] = $user['nni'];
-            $data['created_by_full_name'] = $user['full_name'] ?? '';
-            $data['updated_by_full_name'] = $user['full_name'] ??  '';
+            $data['created_by'] = $user->getNni();
+            $data['updated_by'] = $user->getNni();
+            $data['created_by_full_name'] = $user->getFullname() ?? '';
+            $data['updated_by_full_name'] = $user->getFullname() ?? '';
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
 
             $fileUpload = new FileUpload();
-            $data['files'] = $fileUpload->uploadSheetFiles($_FILES, [
+            $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
                 'size' => 2100000
             ]);
-            
+
 
             $id = $this->addSheet($data);
             return json_encode([
@@ -236,8 +236,7 @@ class SheetManager extends AbstractManager
         }
     }
 
-    public function addSheet($data)
-    {
+    public function addSheet($data) {
         $sheet = new Sheet($this->db);
         try {
             $this->db->getPDO()->beginTransaction();
@@ -288,12 +287,12 @@ class SheetManager extends AbstractManager
                 }
             }
 
-            $lots  = [];
+            $lots = [];
             foreach ($data['lots'] as $lot) {
                 $lots[] = $lot['name'];
                 $sheetLot->add($id, $lot);
             }
-            
+
             $sheetOption = new SheetOption($this->db);
             if (array_key_exists('options', $data)) {
                 foreach ($data['options'] as $option) {
@@ -308,8 +307,9 @@ class SheetManager extends AbstractManager
             if ($this->db->getPDO()->inTransaction()) {
                 $this->db->getPDO()->rollback();
             }
-            
+
             throw SheetException::forSheetSave($e->getMessage());
         }
     }
+
 }

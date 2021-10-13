@@ -5,7 +5,6 @@ namespace App\Security;
 class User {
 
     const INFOKEY = "USERINFO";
-    const DEFAULT_ROLE = "USER" ;
 
     /**
      * @var string
@@ -13,19 +12,35 @@ class User {
     private $token;
 
     /**
-     * @var User Roles 
-     */
-    private $roles = [self::DEFAULT_ROLE];
-
-    /**
+     *
      * @var string
      */
-    private $profile;
+    private string $nni;
 
+    /**
+     *
+     * @var string
+     */
+    private string $fullname;
+
+    /**
+     * @var User Roles 
+     */
+    private $roles = [Role::DEFAULT];
+
+    /**
+     * 
+     * @return string|null
+     */
     public function getToken(): ?string {
         return $this->token;
     }
 
+    /**
+     * 
+     * @param string $token
+     * @return \self
+     */
     public function setToken(string $token): self {
         $this->token = $token;
 
@@ -41,14 +56,15 @@ class User {
      * @param array $roles
      */
     public function addRoles(array $roles = []): self {
-        
+
         $this->roles = array_merge($this->roles, $roles);
         return $this;
     }
 
     /**
      * if has role 
-     * @param type $roles
+     * $this->roles => roles de l'utilisateur
+     * @param type $roles => recu par le routing.php
      */
     public function hasRole(array $roles = []): bool {
         if (is_array($roles)) {
@@ -58,18 +74,43 @@ class User {
         return false;
     }
 
+
     /**
      * 
-     * @return string|null
+     * @return string
      */
-    public function getProfile(): ?string {
-        return $this->profile;
+    function getNni(): string {
+        return $this->nni;
     }
 
-    public function setProfile(string $profile): self {
-        $this->profile = $profile;
-
-        return $this;
+    /**
+     * 
+     * @param string $nni
+     * @return void
+     */
+    function setNni(string $nni = ""): self {
+        $this->nni = $nni;
+        
+        return $this ;
     }
+    
+    /**
+     * 
+     * @return string
+     */
+    function getFullname(): string {
+        return $this->fullname;
+    }
+
+    /**
+     * 
+     * @param string $fullname
+     * @return void
+     */
+    function setFullname(string $fullname): void {
+        $this->fullname = $fullname;
+    }
+
+
 
 }

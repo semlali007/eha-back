@@ -8,19 +8,17 @@ use Database\DBConnection;
 use Exception;
 use PDO;
 
-class Hotline extends Model
-{
+class Hotline extends Model {
+
     protected $tableName = 'hotline';
     protected $hotelineFileTable;
 
-    public function __construct(DBConnection $db)
-    {
+    public function __construct(DBConnection $db) {
         parent::__construct($db);
-        $this->hotelineFileTable =  (new HotlineFil($this->db))->table;
+        $this->hotelineFileTable = (new HotlineFil($this->db))->table;
     }
 
-    public function getList($options)
-    {
+    public function getList($options) {
         try {
             $email = $options['email'];
             $categoryWhere = '';
@@ -62,14 +60,13 @@ class Hotline extends Model
             }
 
             $sth->execute();
-            return  $sth->fetchall(PDO::FETCH_ASSOC);
+            return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
     }
 
-    public function getHotline($id)
-    {
+    public function getHotline($id) {
         try {
             $query = '
         SELECT a.discussion as id, 
@@ -95,8 +92,7 @@ class Hotline extends Model
         }
     }
 
-    public function getInfos($id, $sha)
-    {
+    public function getInfos($id, $sha) {
         try {
             $res = null;
             $query = '
@@ -109,7 +105,7 @@ class Hotline extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
-            $row =  $sth->fetch(PDO::FETCH_ASSOC);
+            $row = $sth->fetch(PDO::FETCH_ASSOC);
 
             // we send the data
             if (!empty($row)) {
@@ -132,8 +128,7 @@ class Hotline extends Model
         }
     }
 
-    public function insertRequest($options)
-    {
+    public function insertRequest($options) {
         try {
             $query = '
         INSERT INTO ' . $this->table . ' (opened_at, email_from, info_entity, theme_id, category_id, question, sha_demandeur, sha_hotline) VALUES (now(), :email, :entity, :theme, :category, :post, :sha_demandeur, :sha_hotline)
@@ -147,37 +142,49 @@ class Hotline extends Model
             $sth->bindParam(':sha_demandeur', $options['sha_demandeur'], PDO::PARAM_STR);
             $sth->bindParam(':sha_hotline', $options['sha_hotline'], PDO::PARAM_STR);
             $sth->execute();
-            return  $this->db->getPDO()->lastInsertId();
+            return $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
     }
 
-
     function getCounterparts($options) {
         if (isset($options['is_hotline']) && $options['is_hotline']) {
             // La contrepartie de la hotline est le demandeur.
-            $query = "
+            try {
+                $query = "
                 SELECT DISTINCT u.email FROM (
                     (SELECT email_from AS email FROM {$this->table} WHERE discussion = :id)
                     UNION ALL
                     (SELECT email FROM {$this->hotelineFileTable} WHERE discussion = :discussion AND is_hotline = false)
                 ) AS u
             ";
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
-            $sth->bindParam(':discussion', $options['id'], PDO::PARAM_INT);
+
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
+                $sth->bindParam(':discussion', $options['id'], PDO::PARAM_INT);
+            } catch (PDOException $Exception) {
+                // PHP Fatal Error. Second Argument Has To Be An Integer, But PDOException::getCode Returns A
+                // String.
+                throw new MyDatabaseException($Exception->getMessage(), $Exception->getCode());
+            }
         } else {
-            // La contrepartie du demandeur est la hotline.
-            $query = "
+            try {
+                // La contrepartie du demandeur est la hotline.
+                $query = "
                 SELECT DISTINCT email FROM {$this->hotelineFileTable} WHERE discussion = :id AND is_hotline = true
             ";
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
+            } catch (PDOException $Exception) {
+                // PHP Fatal Error. Second Argument Has To Be An Integer, But PDOException::getCode Returns A
+                // String.
+                throw new MyDatabaseException($Exception->getMessage(), $Exception->getCode());
+            }
         }
 
         $sth->execute();
-        $res =  $sth->fetchall(PDO::FETCH_ASSOC);
+        $res = $sth->fetchall(PDO::FETCH_ASSOC);
 
         $to = '';
         foreach ($res as $row) {
@@ -186,4 +193,5 @@ class Hotline extends Model
         $to = substr($to, 0, -2);
         return $to;
     }
+
 }

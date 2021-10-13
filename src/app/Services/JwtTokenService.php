@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Security;
+namespace App\Services;
 
 use Firebase\JWT\{
     JWK,
@@ -11,7 +11,7 @@ use Firebase\JWT\{
 };
 use App\Exceptions\InvalidTokenException;
 use App\Services\HttpClientService as client;
-use \Core\Http\Response;
+use Core\Http\Response;
 use Core\Cache\{
     ApcuCachePool as cache,
     Common\PhpCacheItem

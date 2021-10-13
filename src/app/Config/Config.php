@@ -25,6 +25,12 @@ $configuration = [
             ]
         ]
     ]
+    , 
+    'roles' => [
+        "ADMIN" => "EHA_ADMIN",
+        "GESTIONNAIRE" => "EHA_GESTIONNAIRE",
+        "USER" => "USER"
+    ]
 ];
 
 

@@ -8,7 +8,6 @@ class CommitteeRepository extends AbstractRepository
 {
     public function getList()
     {
-        $committee = new Committee($this->db);
-        return $committee->getList();
+        return (new Committee($this->db))->getList();
     }
 }
