@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Models\Documentation;
+use Exception;
 use PDO ;
 
 /**
@@ -38,17 +39,40 @@ class DocumentationRepository extends AbstractRepository {
         return (new Documentation($this->db))->getByParentId($parent);
     }
 
+
     /**
      * 
      * @param array $options
      * @return void
      */
-    public function edit(array $options = []): void {
+
+    public function sort(array $options = []): void
+    {
         try {
-            $documentation = (new Documentation($this->db))->update($options);
+            $documentation = (new Documentation($this->db));
             foreach ($options['items'] as $item) {
                 $documentation->updatePosition($item['id'], $item['position']);
             }
+        } catch (Exception $ex) {
+            http_response_code(500);
+            echo json_encode([
+                'error' => $ex->getCode(),
+                'message' => 'un problème est survenu. réessayez plus tard',
+            ]);
+        }
+    }
+
+    /**
+     * 
+     * @param array $options
+     * @return void
+     */
+    public function update(array $options = []): void {
+        try {
+            $documentation = (new Documentation($this->db))->update($options);
+            /*foreach ($options['items'] as $item) {
+                $documentation->updatePosition($item['id'], $item['position']);
+            }*/
         } catch (Exception $ex) {
             http_response_code(500);
             echo json_encode([
@@ -64,8 +88,7 @@ class DocumentationRepository extends AbstractRepository {
      * @return type
      */
     public function delete(int $id) {
-
-        return json_encode(new Documentation($this->db))->delete($id);
+        return (new Documentation($this->db))->delete($id);
     }
     
      /**

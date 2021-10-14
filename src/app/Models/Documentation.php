@@ -19,12 +19,12 @@ class Documentation extends Model {
     public function getByParentId($parentId) {
         $response= [];
         $documents = $this->getItems($parentId); 
-        foreach ($documents as $document) { 
+        /*foreach ($documents as $document) { 
             $element = $document;
             $element['sub'] = $this->getByParentId($document['id']);
             $response[] = $element ;
-        }
-        return $response ;
+        }*/
+        return $documents ;
     }
 
     /**
@@ -63,10 +63,9 @@ class Documentation extends Model {
      * @return array
      * @throws Exception
      */
-    public function getItems(int $id): array {
+    public function getItems(): array {
         try {
-            $sth = $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' WHERE parent = :parent_id ORDER BY position asc');
-            $sth->bindParam(':parent_id', $id, PDO::PARAM_INT);
+            $sth = $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table . ' ORDER BY position asc');
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {

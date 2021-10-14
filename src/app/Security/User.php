@@ -15,13 +15,13 @@ class User {
      *
      * @var string
      */
-    private string $nni;
+    private  $nni;
 
     /**
      *
      * @var string
      */
-    private string $fullname;
+    private  $fullname;
 
     /**
      * @var User Roles 
