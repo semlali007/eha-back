@@ -32,7 +32,7 @@ class NewsController extends Controller
     }
 
 
-    public function postCheck()
+    public function createUserNews()
     {
         $resp = $this->decode(file_get_contents("php://input"));
         $response = $resp;
