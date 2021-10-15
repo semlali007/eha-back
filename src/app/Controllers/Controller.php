@@ -2,8 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Exception\AccessDeniedException;
 use App\Exceptions\InvalidParameterException;
-use App\Security\{AuthorizationSecurity,User};
+use App\Security\AuthorizationSecurity;
 use Database\DBConnection;
 use Exception;
 
@@ -17,9 +18,7 @@ abstract class Controller
      * @var array|mixed
      */
     protected $roles;
-    /**
-     * @var User|mixed
-     */
+    
     protected $currentUser ;
 
     /**
@@ -105,6 +104,4 @@ abstract class Controller
     function getCurrentUser(): mixed {
         return $this->currentUser;
     }
-
-
 }
