@@ -3,33 +3,39 @@
 namespace App\Security;
 
 use App\Exceptions\AccessDeniedException;
-use App\Security\{User,Role};
-use App\Services\{UserService,JwtTokenService};
+use App\Security\User;
+use App\Services\{
+    UserService,
+    JwtTokenService
+};
 
 class AuthorizationSecurity extends AbstractSecurity {
 
     private $accessToken;
     private $idToken;
 
-    function checkUserAuthorization(array $roles =[]) {
-        
-        $headers = getallheaders();
-        $authorization = explode(" ", $headers['authorization']);
-        $this->idToken = $authorization[1];
-        $this->accessToken = $authorization[2];
+    function checkUserAuthorization($roles =[]) {
 
-        if (null === $this->idToken) {
-            throw new AccessDeniedException('You must provide a valid token');
+        if (isset($roles) && is_array($roles) && !empty($roles)) { 
+                $headers = getallheaders();
+                $authorization = explode(" ", $headers['authorization']);
+                $this->idToken = $authorization[1];
+                $this->accessToken = $authorization[2];
+
+                if (null === $this->idToken) {
+                    throw new AccessDeniedException('You must provide a valid token');
+                }
+                // 1- recupérer l'objet user
+                $user = UserService::create($this->accessToken, $this->getUser());
+                // Traduction des roles de Standard to EHA_ROLES
+                $roles = $this->translateRoles($roles);
+                if (!$user->hasRole($roles)) {
+                    http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
+                    throw new AccessDeniedException(); // retour a la frontend app 
+                 
+            }
+            return $user ;
         }
-        // 1- recupérer l'objet user
-        $user = UserService::create($this->accessToken, $this->getUser());
-        $roles = $this->translateRoles($roles); // 2- Traduction des roles de Standard to EHA_ROLES
-        
-        if (!$user->hasRole($roles)) {
-            http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
-            throw new AccessDeniedException(); // retour a la frontend app 
-        }     
-        return $user;
     }
 
     /**
@@ -50,9 +56,9 @@ class AuthorizationSecurity extends AbstractSecurity {
      * @param array $roles
      * @return array
      */
-    public function translateRoles(array $roles = []): array {
-        
-        $input = array_fill_keys(array_values((empty($roles)) ? [Role::DEFAULT] : $roles), "");
+    public function translateRoles(array $roles): array {
+
+        $input = array_fill_keys(array_values($roles), "");
         return array_values(array_replace(
                         $input, array_intersect_key(
                                 $GLOBALS['configuration']['roles'], $input
