@@ -70,7 +70,7 @@ abstract class Controller
     }
 
     /**
-     * @param $data
+     * @param Exception
      */
 
     protected function error(Exception $ex)
@@ -96,5 +96,12 @@ abstract class Controller
         if (is_null($value) || empty($value)) {
             throw (new InvalidParameterException())->setErrors([$message]);
         }
+    }
+    /**
+     * 
+     * @return mixed
+     */
+    function getCurrentUser(): mixed {
+        return $this->currentUser;
     }
 }
