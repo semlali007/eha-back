@@ -41,6 +41,5 @@ class NewsController extends Controller
         }
         return  $this->response($response);
     }
-
    
 }
