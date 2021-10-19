@@ -3,11 +3,10 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload'
 
 require '../vendor/autoload.php';
 
+Logger::configure(__DIR__.'/../app/config/logger.xml') ; // Charger le fichier de configuration
 
-use Core\{
-    Router\Router,
-    Util\DotEnv
-};
+use Core\{ Router\Router,Util\DotEnv};
+use Core\Logger\{LoggerHandler, Level } ;
 
 (new DotEnv(__DIR__ . '/../.env'))->load(); // Charger le dotenv module
 $router = new Router($_SERVER['REQUEST_URI']);
