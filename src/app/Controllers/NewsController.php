@@ -41,7 +41,7 @@ class NewsController extends Controller
     /**
      * 
      */
-    public function postCheck()
+    public function createUserNews()
     {
         $response = Request::input();
         foreach($response as $n) {
