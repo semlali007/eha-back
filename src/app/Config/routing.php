@@ -7,7 +7,7 @@ $router->get('/authentication/logout', 'App\Controllers\AuthenticationController
 
 ## Modal home ##
 $router->get('/config/news', 'App\Controllers\NewsController@getNews',['USER']);
-$router->post('/config/checkInput', 'App\Controllers\NewsController@postCheck',['USER']);
+$router->post('/config/create-user-news', 'App\Controllers\NewsController@createUserNews',['USER']);
 
 $router->post('/search', 'App\Controllers\SearchController@search', ['USER']);
 $router->post('/search/anchors', 'App\Controllers\SearchController@getAnchors', ['USER']);
