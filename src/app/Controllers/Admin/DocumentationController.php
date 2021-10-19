@@ -20,7 +20,7 @@ class DocumentationController extends Controller {
      * Liste des elements dans le menu 
      * @return Array
      */
-    public function edit() {
+    public function update() {
 
         return $this->response($this->documentationRepository->edit(Request::input()));
     }
@@ -29,9 +29,9 @@ class DocumentationController extends Controller {
      * Liste des elements dans le menu 
      * @return Array
      */
-    public function delete() {
+    public function delete($id) {
 
-        return $this->response($this->documentationRepository->delete(Request::input()));
+        return $this->response($this->documentationRepository->delete($id));
     }
     
      /**
@@ -51,29 +51,9 @@ class DocumentationController extends Controller {
         return $this->response($this->documentationRepository->details($id));
     }
 
-    public function update() {
-        $post = json_decode(file_get_contents("php://input"));
-        if (isset($post->data)) {
-            if (file_put_contents(getenv('CONFIG_DOCUMENTATION_FILE'), $post->data)) {
-                $answer = [
-                    'status' => true,
-                    'data' => $post->data
-                ];
-            } else {
-                $answer = [
-                    'status' => false,
-                    'data' => 'Impossible d\'écrire les données'
-                ];
-            }
-        } else {
-            $answer = [
-                'status' => false,
-                'data' => 'Impossible de lire les données'
-            ];
-        }
+    public function sort() {
 
-
-        return $this->response($answer);
+        return $this->response($this->documentationRepository->sort(Request::input()));
     }
 
    }
