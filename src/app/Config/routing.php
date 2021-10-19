@@ -7,7 +7,7 @@ $router->get('/authentication/logout', 'App\Controllers\AuthenticationController
 
 ## Modal home ##
 $router->get('/config/news', 'App\Controllers\NewsController@getNews',['USER']);
-$router->post('/config/checkInput', 'App\Controllers\NewsController@postCheck',['USER']);
+$router->post('/config/create-user-news', 'App\Controllers\NewsController@postCheck',['USER']);
 
 $router->post('/search', 'App\Controllers\SearchController@search', ['USER']);
 $router->post('/search/anchors', 'App\Controllers\SearchController@getAnchors', ['USER']);
@@ -70,9 +70,10 @@ $router->post('/hotlines/close', 'App\Controllers\HotlineActionController@close'
 // Gestion de se documenter coté admin ... 
 $router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ['ADMIN']);
 $router->post('/documentations/add', 'App\Controllers\Admin\DocumentationController@add', ['ADMIN']);
-$router->get('/documentations/delete', 'App\Controllers\Admin\DocumentationController@delete', ['ADMIN']);
+$router->get('/documentations/delete/:id', 'App\Controllers\Admin\DocumentationController@delete', ['ADMIN']);
 $router->get('/documentations/show/:id', 'App\Controllers\Admin\DocumentationController@show', ['ADMIN']);
-$router->post('/documentations/save', 'App\Controllers\Admin\DocumentationController@update', ['ADMIN']);
+$router->post('/documentations/update', 'App\Controllers\Admin\DocumentationController@update', ['ADMIN']);
+$router->post('/documentations/sort', 'App\Controllers\Admin\DocumentationController@sort', ['ADMIN']);
 // Gestion des admins
 $router->get('/administrators', 'App\Controllers\Admin\AdministratorController@index', ['ADMIN']);
 $router->post('/administrators/create', 'App\Controllers\Admin\AdministratorController@create', ['ADMIN']);
