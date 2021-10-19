@@ -1,0 +1,36 @@
+<configuration xmlns="http://logging.apache.org/log4php/">
+     <!--- Appenders  -->
+    <appender name="DefaultAppender" class="LoggerAppenderFile">
+        <layout class="LoggerLayoutPattern">
+            <param name="conversionPattern" value="[%level] %date [%logger] %message%newline" />
+        </layout>
+        <param name="file" value="../logs/default.log" />
+    </appender>
+    <appender name="DatabaseAppender" class="LoggerAppenderFile">
+        <layout class="LoggerLayoutPattern">
+            <param name="conversionPattern" value="[%level] %date [%logger] %message%newline" />
+        </layout>
+        <param name="file" value="../logs/database.log" />
+    </appender>
+    <appender name="AppAppender" class="LoggerAppenderFile">
+        <layout class="LoggerLayoutPattern">
+            <param name="conversionPattern" value="[%level] %date [%logger] %message%newline" />
+        </layout>
+        <param name="file" value="../logs/application.log" />
+    </appender>
+    
+   <!--- Logger  -->  
+    <logger name="DEFAULT">
+        <appender_ref ref="DefaultAppender" /> <!-- Default Appender -->
+    </logger>
+    <!-- DATABASE Appender -->
+    <logger name="DB">
+        <appender_ref ref="DatabaseAppender" /> 
+    </logger>
+    <!-- APP Appender -->
+    <logger name="APP">
+        <appender_ref ref="AppAppender" /> 
+    </logger>
+    
+   
+</configuration>
