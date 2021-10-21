@@ -11,30 +11,31 @@ interface LoggerInterface {
 
     /**
      * 
-     * @param string $type
      * @param string $message
      */
     function info(string $message);
-    
-     /**
+
+    /**
      * 
-     * @param string $type
      * @param string $message
      */
     function err(string $message);
 
-     /**
+    /**
      * 
-     * @param string $type
      * @param string $message
      */
     function warn(string $message);
-    
-     /**
+
+    /**
      * 
-     * @param string $type
      * @param string $message
      */
     function fatal(string $message);
-    
+
+    /**
+     * 
+     * @param string $message
+     */
+    function notice(string $message);
 }
