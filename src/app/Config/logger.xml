@@ -4,19 +4,19 @@
         <layout class="LoggerLayoutPattern">
             <param name="conversionPattern" value="[%level] %date [%logger] %message%newline" />
         </layout>
-        <param name="file" value="../logs/default.log" />
+        <param name="file" value="../../var/logs/default.log" />
     </appender>
     <appender name="DatabaseAppender" class="LoggerAppenderFile">
         <layout class="LoggerLayoutPattern">
             <param name="conversionPattern" value="[%level] %date [%logger] %message%newline" />
         </layout>
-        <param name="file" value="../logs/database.log" />
+        <param name="file" value="../../var/logs/database.log" />
     </appender>
     <appender name="AppAppender" class="LoggerAppenderFile">
         <layout class="LoggerLayoutPattern">
             <param name="conversionPattern" value="[%level] %date [%logger] %message%newline" />
         </layout>
-        <param name="file" value="../logs/application.log" />
+        <param name="file" value="../../var/logs/application.log" />
     </appender>
     
    <!--- Logger  -->  
@@ -31,6 +31,4 @@
     <logger name="APP">
         <appender_ref ref="AppAppender" /> 
     </logger>
-    
-   
 </configuration>
