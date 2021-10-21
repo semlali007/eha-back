@@ -24,6 +24,7 @@ class Logger implements \SplObserver {
      * 1=> err
      * 2=> fatal
      * 3=> warning
+     * 4=> notice
      * 
      * @param \SplSubject $subject
      * @return void
@@ -31,10 +32,11 @@ class Logger implements \SplObserver {
     public function update(\SplSubject $subject, int $level = Level::INFO): void {
 
         match ($level) {
-            0 => $this->logger->info($subject->getMessage()), // create Info logs
-            1 => $this->logger->err ($subject->getMessage()), // create error logs
-            2 => $this->logger->fatal($subject->getMessage()), // create fatal logs
-            3 => $this->logger->warn ($subject->getMessage()), // create warning logs
+            Level::INFO => $this->logger->info($subject->getMessage()), // create Info logs
+            Level::ERROR => $this->logger->err($subject->getMessage()), // create error logs
+            Level::FATAL => $this->logger->fatal($subject->getMessage()), // create fatal logs
+            Level::WARNING => $this->logger->warn($subject->getMessage()), // create warning logs
+            Level::NOTICE => $this->logger->notice($subject->getMessage()), // create warning logs
         };
     }
 
