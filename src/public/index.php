@@ -5,8 +5,10 @@ require '../vendor/autoload.php';
 
 Logger::configure(__DIR__.'/../app/config/logger.xml') ; // Charger le fichier de configuration
 
-use Core\{ Router\Router,Util\DotEnv};
-use Core\Logger\{LoggerHandler, Level } ;
+use Core\{
+    Router\Router,
+    Util\DotEnv
+};
 
 (new DotEnv(__DIR__ . '/../.env'))->load(); // Charger le dotenv module
 $router = new Router($_SERVER['REQUEST_URI']);
