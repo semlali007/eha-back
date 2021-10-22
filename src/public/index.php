@@ -3,6 +3,7 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload'
 
 require '../vendor/autoload.php';
 
+Logger::configure(__DIR__.'/../app/config/logger.xml') ; // Charger le fichier de configuration
 
 use Core\{
     Router\Router,

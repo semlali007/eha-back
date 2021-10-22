@@ -1,5 +1,17 @@
 {
     "name": "achatpedia/api",
+    "config": {
+        "secure-http": true
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://si-devops-mirror.edf.fr/repository/packagist.org/"
+        },
+        {
+            "packagist.org": false
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Core\\": "core/",
@@ -8,6 +20,7 @@
         }
     },
     "require": {
-        "firebase/php-jwt": "^5.4"
+        "firebase/php-jwt": "^5.4",
+        "apache/log4php": "2.3.0"
     }
 }
