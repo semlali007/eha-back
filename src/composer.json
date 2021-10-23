@@ -1,6 +1,6 @@
 {
     "name": "achatpedia/api",
-    "version": "0.0.1",
+    "version": "0.0.1-SNAPSHOT",
     "config": {
         "secure-http": true
     },
