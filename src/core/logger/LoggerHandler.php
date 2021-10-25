@@ -10,10 +10,17 @@ use Core\Logger\Observer\DatabaseLogger;
  * @author HGDDEDBN
  */
 class LoggerHandler {
-
-    public string $channel; // les channels qui existent dans le fichier app/config/logger.xml
-    //Exemple APP/DB etc ...
-
+    
+  /**
+   * @var LoggerHandler
+   * @access private
+   * @static
+   */
+    private static $_instance = null;
+    
+   /** les channels qui existent dans le fichier app/config/logger.xml, Exemple APP/DB etc ... **/
+    public string $channel; 
+    
     /**
      * 
      * @param string $channel
@@ -23,6 +30,22 @@ class LoggerHandler {
 
         $this->channel = $channel;
     }
+    
+   /**
+    * Méthode qui crée l'unique instance de la classe
+    * si elle n'existe pas encore puis la retourne.
+    *
+    * @param void
+    * @return self|null
+    */
+   public static function getInstance(string $channel):?self {
+ 
+     if(is_null(self::$_instance)) {
+       self::$_instance = new LoggerHandler($channel);  
+     }
+ 
+     return self::$_instance;
+   }
 
     /**
      * Lancer la création du log
