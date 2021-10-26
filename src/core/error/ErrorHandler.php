@@ -62,7 +62,7 @@ class ErrorHandler {
      * @param int $msgType
      * @return null|string
      */
-    private static function generateMessageError(\Exception $exception, bool $forceCatchError = false, int $msgType = self::TXT_MSG): ?string {
+    private static function generateMessageError($exception, bool $forceCatchError = false, int $msgType = self::TXT_MSG): ?string {
 
         if ((true === $forceCatchError) || (isset($_ENV["DEV_MODE"]) && filter_var($_ENV["DEV_MODE"], FILTER_VALIDATE_BOOLEAN))):
             $message = "Error:";
