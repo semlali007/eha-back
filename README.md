@@ -35,17 +35,17 @@ composer install --no-dev
 composer install --dev
 ```
 
-## Usage
+## 4- Usage
 Lancer l'application sur https://IP-ADDRESS:9000
 (le port d’écoute est 9000)
 
-## Configuration
+## 5- Configuration
 
 Dans le fichier .env, remplissez les informations liées à la base de données que vous devez préalablement créer.
 (ce fichier doit être automatiquement rempli par le pipeline jenkins )
 
 
-### 4- Tests
+### 6- Tests
 
 Par convention, le répertoire tests/ doit répliquer le répertoire de votre application pour les tests unitaires.
 Le chargement automatique est automatiquement activé via le fichier vendor/autoload.php (comme configuré par défaut dans le fichier phpunit.xml.dist). 
