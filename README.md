@@ -20,20 +20,20 @@ cd /appli/projects/PHPEHA/src
 
 ### 3- installer les dépendances (vendor)
 
-## Environnement de développement:
+- Environnement de développement:
 ```
 composer install
 ```
 
-## Environnement de production:
+- Environnement de production:
 ```
 composer install --no-dev
 ```
+
 - Pour installer seulement les dépendances de dev il faut lancer cette commande : 
 ```
 composer install --dev
 ```
-
 
 ## Usage
 Lancer l'application sur https://IP-ADDRESS:9000
