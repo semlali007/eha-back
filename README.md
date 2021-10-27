@@ -32,3 +32,14 @@ Lancer l'application sur https://IP-ADDRESS:9000
 
 Dans le fichier .env, remplissez les informations liées à la base de données que vous devez préalablement créer.
 (ce fichier doit être automatiquement rempli par le pipeline jenkins )
+
+
+### 4- Tests
+
+Par convention, le répertoire tests/ doit répliquer le répertoire de votre application pour les tests unitaires.
+Le chargement automatique est automatiquement activé via le fichier vendor/autoload.php (comme configuré par défaut dans le fichier phpunit.xml.dist). 
+
+-   Pour lancer les tests il faut executer cette commande : 
+```
+php ./vendor/bin/phpunit ./src/tests
+```
