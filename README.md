@@ -20,7 +20,7 @@ cd /appli/projects/PHPEHA/src
 
 ### 3- installer les dépendances (vendor)
 
-- Environnement de développement:
+- Environnement de développement: (dependances DEV et NO DEV)
 ```
 composer install
 ```
