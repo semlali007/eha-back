@@ -1,24 +1,12 @@
 <?php
 
 declare(strict_types=1);
-
 namespace Tests ;
 
-use ArrayIterator;
-use DateInterval;
-use Exception;
-use IteratorAggregate;
-use PHPUnit\Framework\TestCase;
-use ReflectionException;
-use ReflectionObject;
+
 use stdClass;
 use Core\Cache\{Common\PhpCacheItem,ApcuCachePool } ;
-use function array_keys;
-use function array_map;
-use function extension_loaded;
-use function ini_get;
-use function is_array;
-use function is_object;
+ 
 
 final class ApcuCacheTest extends TestCase
 {
@@ -80,11 +68,10 @@ final class ApcuCacheTest extends TestCase
      */
     public function testGet($key, $value): void
     {
-        echo "est" ;
         ApcuCachePool::storeItemInCache(new PhpCacheItem($key, $value));
         $valueFromCache = ApcuCachePool::fetchObjectFromCache($key);
 
-        $this->assertSame($value, $valueFromCache);
+        $this->assertEquals($value, $valueFromCache);
     }
 
 
