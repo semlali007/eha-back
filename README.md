@@ -19,10 +19,21 @@ cd /appli/projects/PHPEHA/src
 ```
 
 ### 3- installer les dépendances (vendor)
+
+- Environnement de développement: (dependances DEV et NO DEV)
 ```
-composer install 
+composer install
 ```
 
+- Environnement de production:
+```
+composer install --no-dev
+```
+
+- Pour installer seulement les dépendances de dev il faut lancer cette commande : 
+```
+composer install --dev
+```
 
 ## Usage
 Lancer l'application sur https://IP-ADDRESS:9000
@@ -32,3 +43,14 @@ Lancer l'application sur https://IP-ADDRESS:9000
 
 Dans le fichier .env, remplissez les informations liées à la base de données que vous devez préalablement créer.
 (ce fichier doit être automatiquement rempli par le pipeline jenkins )
+
+
+## Tests
+
+Le répertoire tests/ doit répliquer le répertoire de votre application pour les tests unitaires.
+Le chargement automatique est automatiquement activé via le fichier vendor/autoload.php (comme configuré par défaut dans le fichier phpunit.xml.dist). 
+
+-   Pour lancer les tests il faut executer cette commande : 
+```
+php ./src/vendor/bin/phpunit ./src/tests
+```
