@@ -13,8 +13,9 @@ class SearchController extends Controller
     private  $contractRepository;
     private  $dauphinRepository;
     private  $itemRepository;
-    public function __construct()
+    public function __construct($roles = [])
     {
+        parent::__construct($roles);
         $this->providerRepository = new ProviderRepository();
         $this->contractRepository = new ContractRepository();
         $this->dauphinRepository = new DauphinRepository();

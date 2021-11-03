@@ -14,7 +14,8 @@ class DocumentationController extends Controller {
      * @param DBConnection $db
      * @param type $roles
      */
-    public function __construct() {
+    public function __construct($roles = []) {
+        parent::__construct($roles);
         $this->documentationRepository = new DocumentationRepository();
     }
 

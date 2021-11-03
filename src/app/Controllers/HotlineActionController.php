@@ -15,9 +15,9 @@ class HotlineActionController extends Controller
     private  $hotlineRepository;
     private  $hotlineManager;
     private  $hotlineActionManager;
-    public function __construct()
+    public function __construct($roles = [])
     {
-        parent::__construct();
+        parent::__construct($roles);
         $this->hotlineRepository = new HotlineRepository();
         $this->hotlineManager = new HotlineManager();
         $this->hotlineActionManager = new HotlineActionManager();

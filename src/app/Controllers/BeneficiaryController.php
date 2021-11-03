@@ -9,9 +9,9 @@ class BeneficiaryController extends Controller
 {
     private  $beneficiaryRepository;
     private  $beneficiaryManager;
-    public function __construct()
+    public function __construct($roles = [])
     {
-        parent::__construct();
+        parent::__construct($roles);
         $this->beneficiaryRepository = new BeneficiaryRepository();
         $this->beneficiaryManager = new BeneficiaryManager();
     }

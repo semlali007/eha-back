@@ -11,8 +11,9 @@ class CommitteeController extends Controller
     private  $committeeRepository;
 
 
-    public function __construct()
+    public function __construct($roles = [])
     {
+        parent::__construct($roles);
         $this->committeeRepository = new CommitteeRepository();
     }
 

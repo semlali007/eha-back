@@ -24,8 +24,9 @@ class AreaController extends Controller
      * AreaController constructor.
      * 
      */
-    public function __construct()
+    public function __construct($roles = [])
     {
+        parent::__construct($roles);
         $this->areaRepository = new AreaRepository();
         $this->areaManager = new AreaManager();
     }

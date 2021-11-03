@@ -14,9 +14,9 @@ class NewsController extends Controller
      * AreaController constructor.
      * 
      */
-    public function __construct()
-    {
-        $this->currentNni = $this->getCurrentUser()->getNni() ;
+   public function __construct($roles = []) {
+        parent::__construct($roles);
+        $this->currentNni = $this->getCurrentUser()->getNni();
         $this->newsRepository = new NewsRepository();
     }
 

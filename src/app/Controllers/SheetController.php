@@ -12,9 +12,11 @@ class SheetController extends Controller {
     private $sheetRepository;
     private $sheetManager;
 
-    public function __construct() {
-        $this->sheetRepository = new SheetRepository($db);
-        $this->sheetManager = new SheetManager($db);
+    public function __construct($roles = [])
+    {
+        parent::__construct($roles);
+        $this->sheetRepository = new SheetRepository();
+        $this->sheetManager = new SheetManager();
     }
 
     public function index() {

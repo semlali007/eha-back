@@ -8,8 +8,9 @@ class ContractController extends Controller
 {
     private  $contractRepository;
     
-    public function __construct()
+    public function __construct($roles = [])
     {
+        parent::__construct($roles);
         $this->contractRepository = new ContractRepository();
     }
 

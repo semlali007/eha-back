@@ -8,8 +8,9 @@ class ProviderController extends Controller
 {
     private  $providerRepository;
     
-    public function __construct()
+    public function __construct($roles = [])
     {
+        parent::__construct($roles);
         $this->providerRepository = new ProviderRepository();
     }
 
