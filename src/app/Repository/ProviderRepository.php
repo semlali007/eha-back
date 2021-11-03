@@ -10,19 +10,19 @@ use Exception;
 class ProviderRepository extends AbstractRepository {
 
     public function autocomplete($word) {
-        $provider = new Provider($this->db);
+        $provider = new Provider();
         return $provider->getList(['name' => $word]);
     }
 
     public function search($options) {
-        $provider = new Provider($this->db);
+        $provider = new Provider();
 
         return
                 $provider->getPaginatedList($options);
     }
 
     public function get($id) {
-        $sheetProvider = new SheetProvider($this->db);
+        $sheetProvider = new SheetProvider();
         return $sheetProvider->getBySheet($id);
     }
 

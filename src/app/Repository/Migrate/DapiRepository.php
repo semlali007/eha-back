@@ -7,7 +7,7 @@ use App\Repository\AbstractRepository;
 
 class DapiRepository extends AbstractRepository{
     public function getList(){
-        $dapi = new LegacyDapi($this->db);
+        $dapi = new LegacyDapi();
         return $dapi->getList();
     }
 }

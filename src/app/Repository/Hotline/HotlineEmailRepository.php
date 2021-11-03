@@ -9,7 +9,7 @@ class HotlineEmailRepository extends AbstractRepository
 {
     public function getList()
     {
-        $email = new HotlineEmail($this->db);
+        $email = new HotlineEmail();
         return $email->getAll();
     }
 }

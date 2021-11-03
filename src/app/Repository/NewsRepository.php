@@ -9,18 +9,18 @@ class NewsRepository extends AbstractRepository
 {
     public function getNews()
     {
-        $news = new News($this->db);
+        $news = new News();
         return $news->getNews();
     }
 
     public function checkNni(int $idNews, string $userNni)
     {
-        $userNews = new UserNews($this->db);
+        $userNews = new UserNews();
         return $userNews->checkNni($idNews,$userNni);
     }
 
     public function insertUserNews($id,$monNNI) {
-        $userNews = new UserNews($this->db);
+        $userNews = new UserNews();
         return $userNews->insertUserNews($id,$monNNI);
     }
 }

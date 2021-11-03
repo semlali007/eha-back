@@ -8,13 +8,13 @@ class GroupRepository extends AbstractRepository
 {
     public function autocomplete($word)
     {
-        $group = new Group($this->db);
+        $group = new Group();
         return $group->getList(['name' => $word]);
     }
 
     public function search($options)
     {
-        $group = new Group($this->db);
+        $group = new Group();
         return
             $group->getPaginatedList($options);
     }

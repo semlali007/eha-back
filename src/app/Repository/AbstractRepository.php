@@ -2,14 +2,14 @@
 
 namespace App\Repository;
 
-use Database\DBConnection;
+use Core\Database\DBConnection;
 
 abstract class AbstractRepository {
 
     protected $db;
 
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        $this->db = $db;
+        $this->db = DBConnection::getInstance();
     }
 }
