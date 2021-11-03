@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection;
 use App\Repository\CommitteeRepository;
 use Exception;
 

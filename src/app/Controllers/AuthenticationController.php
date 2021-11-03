@@ -9,6 +9,10 @@ use Core\Http\Request ;
 
 class AuthenticationController extends Controller
 {
+    public function __construct($roles = []) {
+        parent::__construct($roles);
+    }
+
     public function login()
     {
         

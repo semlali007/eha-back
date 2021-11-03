@@ -7,7 +7,6 @@ use App\Models\HotlineEmail;
 use App\Models\HotlineGroup;
 use App\Models\HotlineTheme;
 use App\Repository\Hotline\HotlineRepository;
-use Database\DBConnection;
 use Exception;
 
 class HotlineController extends Controller

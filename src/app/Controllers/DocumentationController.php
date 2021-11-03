@@ -11,7 +11,6 @@ class DocumentationController extends Controller {
 
     /**
      * 
-     * @param DBConnection $db
      * @param type $roles
      */
     public function __construct($roles = []) {

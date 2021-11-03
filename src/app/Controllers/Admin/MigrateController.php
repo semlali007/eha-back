@@ -10,7 +10,6 @@ use App\Manager\Migrate\DatpbManager;
 use App\Repository\Migrate\DaitRepository;
 use App\Repository\Migrate\DapiRepository;
 use App\Repository\Migrate\DatpRepository;
-use Database\DBConnection;
 use Exception;
 
 class MigrateController extends Controller
@@ -30,7 +29,6 @@ class MigrateController extends Controller
         $this->dapiManager = new DapiManager();
         $this->datpaManager = new DatpaManager();
         $this->datpbManager = new DatpbManager();
-
         $this->daitRepository = new DaitRepository();
         $this->dapiRepository = new DapiRepository();
         $this->datpRepository = new DatpRepository();
