@@ -2,16 +2,15 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection;
 use App\Repository\ProviderRepository;
 
 class ProviderController extends Controller
 {
     private  $providerRepository;
-    public function __construct(DBConnection $db, $roles = [])
+    
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-        $this->providerRepository = new ProviderRepository($db);
+        $this->providerRepository = new ProviderRepository();
     }
 
     public function autocomplete($word)

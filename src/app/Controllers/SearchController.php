@@ -5,7 +5,6 @@ namespace App\Controllers;
 use App\Repository\ContractRepository;
 use App\Repository\DauphinRepository;
 use App\Repository\ItemRepository;
-use Database\DBConnection;
 use App\Repository\ProviderRepository;
 
 class SearchController extends Controller
@@ -14,13 +13,12 @@ class SearchController extends Controller
     private  $contractRepository;
     private  $dauphinRepository;
     private  $itemRepository;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-        $this->providerRepository = new ProviderRepository($db);
-        $this->contractRepository = new ContractRepository($db);
-        $this->dauphinRepository = new DauphinRepository($db);
-        $this->itemRepository = new ItemRepository($db);
+        $this->providerRepository = new ProviderRepository();
+        $this->contractRepository = new ContractRepository();
+        $this->dauphinRepository = new DauphinRepository();
+        $this->itemRepository = new ItemRepository();
     }
 
     public function search()

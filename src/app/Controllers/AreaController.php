@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Controllers;
+
 use App\Manager\AreaManager;
-use Database\DBConnection;
 use App\Repository\AreaRepository;
 
 /**
@@ -22,13 +22,12 @@ class AreaController extends Controller
 
     /**
      * AreaController constructor.
-     * @param DBConnection $db
+     * 
      */
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-        $this->areaRepository = new AreaRepository($db);
-        $this->areaManager = new AreaManager($db);
+        $this->areaRepository = new AreaRepository();
+        $this->areaManager = new AreaManager();
     }
 
     /**

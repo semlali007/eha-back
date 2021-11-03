@@ -14,11 +14,11 @@ class HotlineController extends Controller
 {
     private  $hotlineRepository;
     private  $hotlineManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->hotlineRepository = new HotlineRepository($db);
-        $this->hotlineManager = new HotlineManager($db);
+        parent::__construct();
+        $this->hotlineRepository = new HotlineRepository();
+        $this->hotlineManager = new HotlineManager();
     }
 
     public function index()

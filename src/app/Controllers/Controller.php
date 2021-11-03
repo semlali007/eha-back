@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Exception\AccessDeniedException;
 use App\Exceptions\InvalidParameterException;
 use App\Security\AuthorizationSecurity;
-use Database\DBConnection;
+use Core\Database\DBConnection;
 use Exception;
 
 abstract class Controller
@@ -26,9 +26,9 @@ abstract class Controller
      * @param DBConnection $db
      * @param array $roles
      */
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        $this->db = $db;
+        $this->db = DBConnection::getInstance();
         $this->roles = $roles;
         $this->checkUserAuthorization($roles);
     }

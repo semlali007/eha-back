@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Manager\SheetManager;
-use Database\DBConnection;
 use App\Repository\SheetRepository;
 use App\Services\FileService;
 use Core\Http\Request;
@@ -13,8 +12,7 @@ class SheetController extends Controller {
     private $sheetRepository;
     private $sheetManager;
 
-    public function __construct(DBConnection $db, $roles = []) {
-        parent::__construct($db, $roles);
+    public function __construct() {
         $this->sheetRepository = new SheetRepository($db);
         $this->sheetManager = new SheetManager($db);
     }

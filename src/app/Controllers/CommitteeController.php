@@ -11,10 +11,9 @@ class CommitteeController extends Controller
     private  $committeeRepository;
 
 
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-        $this->committeeRepository = new CommitteeRepository($db);
+        $this->committeeRepository = new CommitteeRepository();
     }
 
 

@@ -8,7 +8,6 @@ use App\Manager\Hotline\HotlineManager;
 use App\Repository\Hotline\HotlineRepository;
 use App\Services\StaticTextService;
 use App\Validation\Validator;
-use Database\DBConnection;
 use Exception;
 
 class HotlineActionController extends Controller
@@ -16,12 +15,12 @@ class HotlineActionController extends Controller
     private  $hotlineRepository;
     private  $hotlineManager;
     private  $hotlineActionManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-        $this->hotlineRepository = new HotlineRepository($db);
-        $this->hotlineManager = new HotlineManager($db);
-        $this->hotlineActionManager = new HotlineActionManager($db);
+        parent::__construct();
+        $this->hotlineRepository = new HotlineRepository();
+        $this->hotlineManager = new HotlineManager();
+        $this->hotlineActionManager = new HotlineActionManager();
     }
 
     public function forward()

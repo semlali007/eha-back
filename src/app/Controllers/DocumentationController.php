@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection;
 use App\Repository\DocumentationRepository;
 use Core\Http\Request;
 
@@ -15,10 +14,8 @@ class DocumentationController extends Controller {
      * @param DBConnection $db
      * @param type $roles
      */
-    public function __construct(DBConnection $db, array $roles = []) {
-
-        parent::__construct($db, $roles);
-        $this->documentationRepository = new DocumentationRepository($db);
+    public function __construct() {
+        $this->documentationRepository = new DocumentationRepository();
     }
 
     /**
@@ -26,7 +23,6 @@ class DocumentationController extends Controller {
      * @return Array
      */
     public function index() {
-
         return $this->response($this->documentationRepository->getList());
     }
 

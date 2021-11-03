@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Controllers;
+
 use App\Repository\NewsRepository;
-use Database\DBConnection;
 use Core\Http\Request ;
 
 class NewsController extends Controller
@@ -12,14 +12,12 @@ class NewsController extends Controller
     private $currentNni  ;
     /**
      * AreaController constructor.
-     * @param DBConnection $db
+     * 
      */
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-       
         $this->currentNni = $this->getCurrentUser()->getNni() ;
-        $this->newsRepository = new NewsRepository($db);
+        $this->newsRepository = new NewsRepository();
     }
 
     /**

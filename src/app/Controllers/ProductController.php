@@ -2,15 +2,9 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection; 
 use App\Services\HttpClientService ;
 
 class ProductController extends Controller {
- 
-    public function __construct(DBConnection $db, $roles = []) {
-        parent::__construct($db, $roles);
-       
-    }
 
     /**
      * Exemple appel: http://localhost:8000?url=/products/search/open-source
