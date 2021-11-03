@@ -15,7 +15,7 @@ class HotlineThemeManager extends AbstractManager
             if (!isset($options['id']) || empty($options['id'])) {
                 throw new Exception('id est obligatoire');
             }
-            $hotlineTheme = new HotlineTheme($this->db);
+            $hotlineTheme = new HotlineTheme();
             $hotlineTheme->update($options);
             return [
                 'status' => true,

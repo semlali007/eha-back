@@ -14,7 +14,7 @@ class DapiManager extends MigrateManager
 {
     public function saveData($options)
     {
-        $this->subject = new LegacyDapi($this->db);
+        $this->subject = new LegacyDapi();
         $this->updateData($options);
     }
     public function migrate($options)
@@ -27,12 +27,12 @@ class DapiManager extends MigrateManager
 
         try {
 
-            $fiche = new LegacyDapi($this->db);
-            $provider = new Provider($this->db);
-            $zone = new Area($this->db);
-            $group = new Group($this->db);
-            $filiale = new Beneficiary($this->db);
-            $sheetManager = new SheetManager($this->db);
+            $fiche = new LegacyDapi();
+            $provider = new Provider();
+            $zone = new Area();
+            $group = new Group();
+            $filiale = new Beneficiary();
+            $sheetManager = new SheetManager();
         
             foreach ($options['items'] as $id) {
                 $list = $fiche->get($id);

@@ -13,7 +13,7 @@ class DaitManager extends MigrateManager
 {
     public function saveData($options)
     {
-        $this->subject = new LegacyDait($this->db);
+        $this->subject = new LegacyDait();
         $this->updateData($options);
     }
 
@@ -24,11 +24,11 @@ class DaitManager extends MigrateManager
         $sourceDepDoc =  $migrateConfig['dait']['doc_dep'] . "Actifs/";
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
         try {
-            $fiche = new LegacyDait($this->db);
-            $provider = new Provider($this->db);
-            $zone = new Area($this->db);
-            $group = new Group($this->db);
-            $sheetManager = new SheetManager($this->db);
+            $fiche = new LegacyDait();
+            $provider = new Provider();
+            $zone = new Area();
+            $group = new Group();
+            $sheetManager = new SheetManager();
 
             foreach ($options['items'] as $id) {
                 $list = $fiche->get($id);

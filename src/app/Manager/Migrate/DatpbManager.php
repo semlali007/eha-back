@@ -8,7 +8,7 @@ class DatpbManager extends MigrateManager
 {
     public function saveData($options)
     {
-        $this->subject = new LegacyDatpb($this->db);
+        $this->subject = new LegacyDatpb();
         $this->updateData($options);
     }
 }

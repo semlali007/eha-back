@@ -16,7 +16,7 @@ class HotlineGroupManager extends AbstractManager
                 throw new Exception('id est obligatoire');
             }
 
-            $group = new HotlineGroup($this->db);
+            $group = new HotlineGroup();
             $group->update($options);
             return [
                 'status' => true,

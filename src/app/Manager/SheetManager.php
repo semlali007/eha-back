@@ -63,12 +63,12 @@ class SheetManager extends AbstractManager {
             $data['zones'] = $sheetData['zones'];
             $data['deleted_files'] = $sheetData['deletedFiles'];
             $data['options'] = $sheetData['options'];
-            $sheet = new Sheet($this->db);
+            $sheet = new Sheet();
             try {
                 $id = $data['id'];
                 $this->db->getPDO()->beginTransaction();
                 $sheet->update($data);
-                $sheetFile = new SheetFile($this->db);
+                $sheetFile = new SheetFile();
                 foreach ($data['files'] as $file) {
                     if (isset($file['file_name']) && isset($file['file_url'])) {
                         $sheetFile->add($id, $file);
@@ -79,8 +79,8 @@ class SheetManager extends AbstractManager {
                     $sheetFile->delete($deleted['file_id']);
                 }
 
-                $sheetContract = new SheetContract($this->db);
-                $sheetLot = new SheetLot($this->db);
+                $sheetContract = new SheetContract();
+                $sheetLot = new SheetLot();
                 $sheetContract->deleteContracts($id, $data['contracts']);
 
                 foreach ($data['contracts'] as $contract) {
@@ -95,7 +95,7 @@ class SheetManager extends AbstractManager {
                     $sheetLot->deleteContractLots($id, $contract['contract_code'], $lots);
                 }
 
-                $sheetFiliale = new SheetBeneficiary($this->db);
+                $sheetFiliale = new SheetBeneficiary();
                 $filialesId = [];
                 foreach ($data['filiales'] as $f) {
                     $filialesId[] = $f['id'];
@@ -103,14 +103,14 @@ class SheetManager extends AbstractManager {
                 }
                 $sheetFiliale->deleteFiliales($id, $filialesId);
 
-                $sheetProvider = new SheetProvider($this->db);
+                $sheetProvider = new SheetProvider();
                 $providers = [];
                 foreach ($data['providers'] as $p) {
                     $providers[] = $p['id'];
                     $sheetProvider->add($id, $p['id']);
                 }
                 $sheetProvider->deleteProviders($id, $providers);
-                $sheetGroup = new SheetGroup($this->db);
+                $sheetGroup = new SheetGroup();
                 $groups = [];
                 foreach ($data['groups'] as $p) {
                     $groups[] = $p['id'];
@@ -118,7 +118,7 @@ class SheetManager extends AbstractManager {
                 }
                 $sheetGroup->deleteGroups($id, $groups);
 
-                $sheetZone = new SheetArea($this->db);
+                $sheetZone = new SheetArea();
                 $zones = [];
                 foreach ($data['zones'] as $p) {
                     $zones[] = $p['id'];
@@ -134,7 +134,7 @@ class SheetManager extends AbstractManager {
 
                 $sheetLot->deleteLots($id, $lots);
 
-                $sheetOption = new SheetOption($this->db);
+                $sheetOption = new SheetOption();
                 $options = [];
                 foreach ($data['options'] as $option) {
                     if (isset($option['id'])) {
@@ -237,19 +237,19 @@ class SheetManager extends AbstractManager {
     }
 
     public function addSheet($data) {
-        $sheet = new Sheet($this->db);
+        $sheet = new Sheet();
         try {
             $this->db->getPDO()->beginTransaction();
             $id = $sheet->add($data);
-            $sheetFile = new SheetFile($this->db);
+            $sheetFile = new SheetFile();
             foreach ($data['files'] as $file) {
                 if (isset($file['file_name']) && isset($file['file_url'])) {
                     $sheetFile->add($id, $file);
                 }
             }
 
-            $sheetLot = new SheetLot($this->db);
-            $sheetContract = new SheetContract($this->db);
+            $sheetLot = new SheetLot();
+            $sheetContract = new SheetContract();
             foreach ($data['contracts'] as $contract) {
                 if (isset($contract['contract_code'])) {
                     $sheetContract->add($id, $contract);
@@ -259,28 +259,28 @@ class SheetManager extends AbstractManager {
                 }
             }
 
-            $sheetFiliale = new SheetBeneficiary($this->db);
+            $sheetFiliale = new SheetBeneficiary();
             foreach ($data['filiales'] as $filiale) {
                 if (isset($filiale['id'])) {
                     $sheetFiliale->add($id, $filiale['id']);
                 }
             }
 
-            $sheetProvider = new SheetProvider($this->db);
+            $sheetProvider = new SheetProvider();
             foreach ($data['providers'] as $provider) {
                 if (isset($provider['id'])) {
                     $sheetProvider->add($id, $provider['id']);
                 }
             }
 
-            $sheetZone = new SheetArea($this->db);
+            $sheetZone = new SheetArea();
             foreach ($data['zones'] as $zone) {
                 if (isset($zone['id'])) {
                     $sheetZone->add($id, $zone['id']);
                 }
             }
 
-            $sheetGroup = new SheetGroup($this->db);
+            $sheetGroup = new SheetGroup();
             foreach ($data['groups'] as $group) {
                 if (isset($group['id'])) {
                     $sheetGroup->add($id, $group['id']);
@@ -293,7 +293,7 @@ class SheetManager extends AbstractManager {
                 $sheetLot->add($id, $lot);
             }
 
-            $sheetOption = new SheetOption($this->db);
+            $sheetOption = new SheetOption();
             if (array_key_exists('options', $data)) {
                 foreach ($data['options'] as $option) {
                     $option['sheet_id'] = $id;

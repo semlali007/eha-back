@@ -15,7 +15,7 @@ class DatpaManager extends MigrateManager
 {
     public function saveData($options)
     {
-        $this->subject = new LegacyDatpa($this->db);
+        $this->subject = new LegacyDatpa();
         $this->updateData($options);
     }
 
@@ -28,12 +28,12 @@ class DatpaManager extends MigrateManager
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
 
         try {
-            $fiche = new LegacyDatpa($this->db);
-            $provider = new Provider($this->db);
-            $zone = new Area($this->db);
-            $group = new Group($this->db);
-            $filiale = new Beneficiary($this->db);
-            $sheetManager = new SheetManager($this->db);
+            $fiche = new LegacyDatpa();
+            $provider = new Provider();
+            $zone = new Area();
+            $group = new Group();
+            $filiale = new Beneficiary();
+            $sheetManager = new SheetManager();
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
 
@@ -208,7 +208,7 @@ class DatpaManager extends MigrateManager
                     }
 
 
-                    $ficheDatpb = new LegacyDatpb($this->db);
+                    $ficheDatpb = new LegacyDatpb();
                     $datpb = $ficheDatpb->get($id);
                     $data['contracts'] =  [];
                     $contenu = isset($datpb['contenu']) ? $datpb['contenu'] : '';

@@ -13,7 +13,7 @@ class AdministratorManager extends AbstractManager
             if (!isset($options['email']) || empty($options['email'])) {
                 throw new Exception('Email est obligatoire');
             }
-            $admin = new Administrator($this->db);
+            $admin = new Administrator();
             $admin->add($options['email']);
             return [
                 'status' => true,
@@ -32,7 +32,7 @@ class AdministratorManager extends AbstractManager
             if (!isset($email) || empty($email)) {
                 throw new Exception('Email est obligatoire');
             }
-            $admin = new Administrator($this->db);
+            $admin = new Administrator();
             $admin->delete($email);
             return [
                 'status' => true,
