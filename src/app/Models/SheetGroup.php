@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use PDO;
-use Database\DBConnection;
 use Exception;
 
 use App\Models\Group;
@@ -13,10 +12,10 @@ class SheetGroup extends Model
 {
     protected $tableName = 'sheet_groups';
     protected $groupTable;
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->groupTable = (new Group($this->db))->table;
+        parent::__construct();
+        $this->groupTable = (new Group())->table;
     }
     public function getBySheet($sheetId)
     {

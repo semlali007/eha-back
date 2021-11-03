@@ -4,17 +4,17 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use PDO;
-use Database\DBConnection;
+
 use Exception;
 use App\Models\Provider;
 class SheetProvider extends Model
 {
     protected $tableName = 'sheet_providers';
     protected $providerTable;
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->providerTable = (new Provider($this->db))->table;
+        parent::__construct();
+        $this->providerTable = (new Provider())->table;
     }
 
     public function getBySheet($sheetId)

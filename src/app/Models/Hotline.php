@@ -13,9 +13,9 @@ class Hotline extends Model {
     protected $tableName = 'hotline';
     protected $hotelineFileTable;
 
-    public function __construct(DBConnection $db) {
+    public function __construct() {
         parent::__construct($db);
-        $this->hotelineFileTable = (new HotlineFil($this->db))->table;
+        $this->hotelineFileTable = (new HotlineFil())->table;
     }
 
     public function getList($options) {
@@ -78,8 +78,8 @@ class Hotline extends Model {
                a.question,
                a.closed_at,
                a.closed_note FROM ' . $this->table . ' AS a 
-               LEFT JOIN ' . (new HotlineEmail($this->db))->table . ' AS b ON a.category_id = b.id 
-               LEFT JOIN ' . (new HotlineTheme($this->db))->table . ' AS c ON a.theme_id = c.id 
+               LEFT JOIN ' . (new HotlineEmail())->table . ' AS b ON a.category_id = b.id 
+               LEFT JOIN ' . (new HotlineTheme())->table . ' AS c ON a.theme_id = c.id 
                WHERE a.discussion = :id 
        ';
 
@@ -98,7 +98,7 @@ class Hotline extends Model {
             $query = '
             SELECT h.sha_demandeur, h.sha_hotline, he.groupe
             FROM ' . $this->table . ' AS h
-            LEFT JOIN ' . (new HotlineEmail($this->db))->table . ' AS he
+            LEFT JOIN ' . (new HotlineEmail())->table . ' AS he
             ON h.category_id = he.id
             WHERE h.discussion = :id AND h.closed_at IS NULL
         ';

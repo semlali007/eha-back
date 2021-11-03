@@ -14,10 +14,10 @@ class SheetContract extends Model
 
     protected $tableName = 'sheet_contracts';
     protected $contractTable;
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->contractTable = (new Contract($this->db))->table;
+        parent::__construct();
+        $this->contractTable = (new Contract())->table;
     }
 
 
