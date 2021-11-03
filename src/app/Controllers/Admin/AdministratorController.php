@@ -4,18 +4,17 @@ namespace App\Controllers\Admin;
 use App\Controllers\Controller;
 
 use App\Manager\AdministratorManager;
-use Database\DBConnection;
 use App\Repository\AdministratorRepository;
 
 class AdministratorController extends Controller
 {
     private  $administratorRepository;
     private  $administratorManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->administratorRepository = new AdministratorRepository($db);
-        $this->administratorManager = new AdministratorManager($db);
+        parent::__construct($roles);
+        $this->administratorRepository = new AdministratorRepository();
+        $this->administratorManager = new AdministratorManager();
     }
 
     public function index()

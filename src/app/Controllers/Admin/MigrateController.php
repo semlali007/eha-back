@@ -23,17 +23,17 @@ class MigrateController extends Controller
     private  $dapiRepository;
     private  $datpRepository;
 
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->daitManager = new DaitManager($db);
-        $this->dapiManager = new DapiManager($db);
-        $this->datpaManager = new DatpaManager($db);
-        $this->datpbManager = new DatpbManager($db);
+        parent::__construct($roles);
+        $this->daitManager = new DaitManager();
+        $this->dapiManager = new DapiManager();
+        $this->datpaManager = new DatpaManager();
+        $this->datpbManager = new DatpbManager();
 
-        $this->daitRepository = new DaitRepository($db);
-        $this->dapiRepository = new DapiRepository($db);
-        $this->datpRepository = new DatpRepository($db);
+        $this->daitRepository = new DaitRepository();
+        $this->dapiRepository = new DapiRepository();
+        $this->datpRepository = new DatpRepository();
     }
 
     public function index()

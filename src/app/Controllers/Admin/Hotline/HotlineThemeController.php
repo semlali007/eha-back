@@ -5,17 +5,17 @@ namespace App\Controllers\Admin\Hotline;
 use App\Controllers\Controller;
 use App\Manager\Hotline\HotlineThemeManager;
 use App\Repository\Hotline\HotlineThemeRepository;
-use Database\DBConnection;
+
 
 class HotlineThemeController extends Controller
 {
     private  $hotlineThemeRepository;
     private  $hotlineThemeManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->hotlineThemeRepository = new HotlineThemeRepository($db);
-        $this->hotlineThemeManager = new HotlineThemeManager($db);
+        parent::__construct( $roles);
+        $this->hotlineThemeRepository = new HotlineThemeRepository();
+        $this->hotlineThemeManager = new HotlineThemeManager();
     }
 
     public function index()

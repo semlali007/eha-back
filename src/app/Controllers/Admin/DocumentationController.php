@@ -3,7 +3,6 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\Controller;
-use Database\DBConnection;
 use App\Repository\DocumentationRepository;
 use Core\Http\Request ;
 
@@ -11,9 +10,9 @@ class DocumentationController extends Controller {
 
     private $documentationRepository;
 
-    public function __construct(DBConnection $db, $roles = []) {
-        parent::__construct($db, $roles);
-        $this->documentationRepository = new DocumentationRepository($db);
+    public function __construct($roles = []) {
+        parent::__construct($roles);
+        $this->documentationRepository = new DocumentationRepository();
     }
 
     /**
