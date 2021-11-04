@@ -171,8 +171,6 @@ class DaitManager extends MigrateManager
                                             $data['files'][] = ['file_name' => $destFileName, 'file_url' => $destFileName, 'file_size' => 12333, 'node_id' => null, 'type' => 2];
                                         } else {
                                             throw new Exception('erreur copy de fichier : ' . $path . '||' . $destinationMigrationPath . $destFileName);
-
-                                            $message .= 'erreur copy de fichier : ' . $path . '||' . $destinationMigrationPath . $destFileName;
                                             $status =  'warning';
                                         }
                                     }
