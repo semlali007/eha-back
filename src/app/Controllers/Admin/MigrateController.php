@@ -88,7 +88,6 @@ class MigrateController extends Controller
                     'status' => 403,
                     'message' => 'type de contact incunnu'
                 ]);
-                exit;
                 break;
         }
     }
@@ -112,7 +111,6 @@ class MigrateController extends Controller
                     'status' => 403,
                     'message' => 'type des données incunnu'
                 ]);
-                exit;
                 break;
         }
     }
