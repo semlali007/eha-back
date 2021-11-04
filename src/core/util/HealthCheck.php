@@ -19,7 +19,7 @@ class HealthCheck {
             if (@pg_connect("host={$dbHost} port={$port} dbname={$dbname} user={$dbuser} password={$dbPass}")) {
                 return true;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
            return false;
         }
         return false;
