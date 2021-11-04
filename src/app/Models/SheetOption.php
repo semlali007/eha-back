@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use PDO;
-use Database\DBConnection;
 use Exception;
 
 

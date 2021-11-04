@@ -5,7 +5,7 @@ namespace App\Controllers\Admin\Hotline;
 use App\Controllers\Controller;
 use App\Manager\Hotline\HotlineEmailManager;
 use App\Repository\Hotline\HotlineEmailRepository;
-use Database\DBConnection;
+
 
 class HotlineEmailController extends Controller
 {
@@ -22,11 +22,11 @@ class HotlineEmailController extends Controller
      * HotlineEmailController constructor.
      * @param DBConnection $db
      */
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->hotlineEmailRepository = new HotlineEmailRepository($db);
-        $this->hotlineEmailManager = new HotlineEmailManager($db);
+        parent::__construct($roles);
+        $this->hotlineEmailRepository = new HotlineEmailRepository();
+        $this->hotlineEmailManager = new HotlineEmailManager();
     }
 
     /**

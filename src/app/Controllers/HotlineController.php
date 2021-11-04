@@ -7,18 +7,17 @@ use App\Models\HotlineEmail;
 use App\Models\HotlineGroup;
 use App\Models\HotlineTheme;
 use App\Repository\Hotline\HotlineRepository;
-use Database\DBConnection;
 use Exception;
 
 class HotlineController extends Controller
 {
     private  $hotlineRepository;
     private  $hotlineManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->hotlineRepository = new HotlineRepository($db);
-        $this->hotlineManager = new HotlineManager($db);
+        parent::__construct($roles);
+        $this->hotlineRepository = new HotlineRepository();
+        $this->hotlineManager = new HotlineManager();
     }
 
     public function index()

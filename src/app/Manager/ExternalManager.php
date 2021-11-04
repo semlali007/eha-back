@@ -10,7 +10,7 @@ class ExternalManager extends AbstractManager
     public function create($options)
     {
         try {
-            $external = new External($this->db);
+            $external = new External();
             $external->add($options);
             return [
                 'status' => true,
@@ -30,7 +30,7 @@ class ExternalManager extends AbstractManager
             if (!isset($email) || empty($email)) {
                 throw new Exception('Email est obligatoire');
             }
-            $external = new External($this->db);
+            $external = new External();
             $external->delete($email);
             return [
                 'status' => true,

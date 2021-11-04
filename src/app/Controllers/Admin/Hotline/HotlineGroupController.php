@@ -5,17 +5,17 @@ namespace App\Controllers\Admin\Hotline;
 use App\Controllers\Controller;
 use App\Manager\Hotline\HotlineGroupManager;
 use App\Repository\Hotline\HotlineGroupRepository;
-use Database\DBConnection;
+
 
 class HotlineGroupController extends Controller
 {
     private  $hotlineGroupRepository;
     private  $hotlineGroupManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->hotlineGroupRepository = new HotlineGroupRepository($db);
-        $this->hotlineGroupManager = new HotlineGroupManager($db);
+        parent::__construct($roles);
+        $this->hotlineGroupRepository = new HotlineGroupRepository();
+        $this->hotlineGroupManager = new HotlineGroupManager();
     }
 
     public function index()

@@ -40,7 +40,7 @@ class HotlineManager extends AbstractManager
         $sha_hotline   = crypt($email . bin2hex(random_bytes(10)) . 'd');
         $post = $options['post'];
         $emailTo = null;
-        $hotlineEmail = new HotlineEmail($this->db);
+        $hotlineEmail = new HotlineEmail();
         $hotliner = $hotlineEmail->getHotlineInformations($category);
         if (!is_array($hotliner) || empty($hotliner) || !isset($hotliner['email'])) {
             throw new Exception('hotline.no_hotliner_found');
@@ -49,7 +49,7 @@ class HotlineManager extends AbstractManager
         $emailTo = $hotliner['email'];
         $categoryLabel = $hotliner['category'];
         if (!empty($emailTo)) {
-            $hotline = new Hotline($this->db);
+            $hotline = new Hotline();
             $id = $hotline->insertRequest([
                 'email' => $email,
                 'entity' => $entity,
@@ -60,7 +60,7 @@ class HotlineManager extends AbstractManager
                 'theme' => $theme
             ]);
 
-            $hotlineFilTime = new HotlineFil($this->db);
+            $hotlineFilTime = new HotlineFil();
             $hotlineFilTime->insert([
                 'discussion' => $id,
                 'nature' => 'O',
@@ -84,7 +84,7 @@ class HotlineManager extends AbstractManager
                 'config_domain' => CONFIG_DOMAIN
             ]);
 
-            $themeData = (new HotlineTheme($this->db))->get($theme);
+            $themeData = (new HotlineTheme())->get($theme);
             if (isset($themeData['label'])) {
                 EmailService::sendEmail('hotline_question_creation_to_hotliner', $emailTo, [
                     'id' => $id,
@@ -122,7 +122,7 @@ class HotlineManager extends AbstractManager
         $id = $options['id'];
         $sha = $options['sha'];
         $email = $options['email'];
-        $infos = (new Hotline($this->db))->getInfos($id, $sha);
+        $infos = (new Hotline())->getInfos($id, $sha);
         $groupe = $infos['groupe'];
         $isHotline = $infos['status'];
         if ($isHotline === null) {
@@ -130,7 +130,7 @@ class HotlineManager extends AbstractManager
             return $answer;
         }
 
-        $hotlineFilTime = new HotlineFil($this->db);
+        $hotlineFilTime = new HotlineFil();
         $lastId = $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'F',
@@ -193,7 +193,7 @@ class HotlineManager extends AbstractManager
         $id = $options['id'];
         $sha = $options['sha'];
         $post = $options['post'];
-        $infos = (new Hotline($this->db))->getInfos($id, $sha);
+        $infos = (new Hotline())->getInfos($id, $sha);
         if ($infos['status'] === null) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
             return $answer;
@@ -201,7 +201,7 @@ class HotlineManager extends AbstractManager
 
         $groupe = $infos['groupe'];
         $isHotline = $infos['status'];
-        $hotlineFilTime = new HotlineFil($this->db);
+        $hotlineFilTime = new HotlineFil();
         $lastId = $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'P',
@@ -217,7 +217,7 @@ class HotlineManager extends AbstractManager
 
         $answer['status'] = true;
         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['25'] . '</p>';
-        $email = (new Hotline($this->db))->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
+        $email = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
 
         if (empty($email)) {
             return $answer;

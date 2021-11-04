@@ -10,7 +10,6 @@ use App\Manager\Migrate\DatpbManager;
 use App\Repository\Migrate\DaitRepository;
 use App\Repository\Migrate\DapiRepository;
 use App\Repository\Migrate\DatpRepository;
-use Database\DBConnection;
 use Exception;
 
 class MigrateController extends Controller
@@ -23,17 +22,16 @@ class MigrateController extends Controller
     private  $dapiRepository;
     private  $datpRepository;
 
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->daitManager = new DaitManager($db);
-        $this->dapiManager = new DapiManager($db);
-        $this->datpaManager = new DatpaManager($db);
-        $this->datpbManager = new DatpbManager($db);
-
-        $this->daitRepository = new DaitRepository($db);
-        $this->dapiRepository = new DapiRepository($db);
-        $this->datpRepository = new DatpRepository($db);
+        parent::__construct($roles);
+        $this->daitManager = new DaitManager();
+        $this->dapiManager = new DapiManager();
+        $this->datpaManager = new DatpaManager();
+        $this->datpbManager = new DatpbManager();
+        $this->daitRepository = new DaitRepository();
+        $this->dapiRepository = new DapiRepository();
+        $this->datpRepository = new DatpRepository();
     }
 
     public function index()

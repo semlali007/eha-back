@@ -18,7 +18,7 @@ class HotlineEmailManager extends AbstractManager
                 throw new Exception('email est obligatoire');
             }
 
-            $email = new HotlineEmail($this->db);
+            $email = new HotlineEmail();
             $email->update($options);
             return [
                 'status' => true,
@@ -39,7 +39,7 @@ class HotlineEmailManager extends AbstractManager
                 throw new Exception('id est obligatoire');
             }
 
-            $email = new HotlineEmail($this->db);
+            $email = new HotlineEmail();
             $email->livingUpdate($options['id']);
             return [
                 'status' => true,

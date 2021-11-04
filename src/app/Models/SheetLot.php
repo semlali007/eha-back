@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use PDO;
-use Database\DBConnection;
 use Exception;
 use App\Models\SheetContractLot;
 
@@ -13,10 +12,10 @@ class SheetLot extends Model
 {
     protected $tableName = 'sheet_lot';
     protected $contractLotTable;
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->contractLotTable = (new SheetContractLot($this->db))->table;
+        parent::__construct();
+        $this->contractLotTable = (new SheetContractLot())->table;
     }
 
     public function add($sheetId, $options)

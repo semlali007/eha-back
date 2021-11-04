@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use PDO;
-use Database\DBConnection;
 use Exception;
 use App\Models\Area;
 
@@ -13,10 +12,10 @@ class SheetArea extends Model
 {
     protected $tableName = 'sheet_zones';
     protected $areaTable;
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->areaTable = (new Area($this->db))->table;
+        parent::__construct();
+        $this->areaTable = (new Area())->table;
     }
 
 

@@ -9,7 +9,7 @@ class HotlineThemeRepository extends AbstractRepository
 {
     public function getList()
     {
-        $group = new HotlineGroup($this->db);
+        $group = new HotlineGroup();
         return $group->getAll();
     }
 }

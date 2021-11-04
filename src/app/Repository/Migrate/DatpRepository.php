@@ -10,8 +10,8 @@ class DatpRepository extends AbstractRepository
 {
     public function getList()
     {
-        $datpa = new LegacyDatpa($this->db);
-        $datpb = new LegacyDatpb($this->db);
+        $datpa = new LegacyDatpa();
+        $datpb = new LegacyDatpb();
         $list = $datpa->getList();
         foreach ($list as $key => $datpaItem) {
             $list[$key]['datpb'] = $datpb->get($datpaItem['id']);

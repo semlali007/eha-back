@@ -3,18 +3,17 @@
 namespace App\Controllers;
 
 use App\Manager\BeneficiaryManager;
-use Database\DBConnection;
 use App\Repository\BeneficiaryRepository;
 
 class BeneficiaryController extends Controller
 {
     private  $beneficiaryRepository;
     private  $beneficiaryManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->beneficiaryRepository = new BeneficiaryRepository($db);
-        $this->beneficiaryManager = new BeneficiaryManager($db);
+        parent::__construct($roles);
+        $this->beneficiaryRepository = new BeneficiaryRepository();
+        $this->beneficiaryManager = new BeneficiaryManager();
     }
 
     public function autocomplete($word)

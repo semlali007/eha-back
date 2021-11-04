@@ -13,7 +13,7 @@ class BeneficiaryManager extends AbstractManager
             if (!isset($options['name']) || empty($options['name'])) {
                 throw new Exception('Le nom est obligatoire');
             }
-            $beneficiary = new Beneficiary($this->db);
+            $beneficiary = new Beneficiary();
             $id =  $beneficiary->add($options);
             return [
                 'status' => true,

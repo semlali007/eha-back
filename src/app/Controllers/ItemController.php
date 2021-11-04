@@ -2,14 +2,10 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection;
 use App\Services\HttpClientService as httpClient;
 
 class ItemController extends Controller {
 
-    public function __construct(DBConnection $db, $roles = []) {
-        parent::__construct($db, $roles);
-    }
 
     /**
      * Exemple appel: http://localhost:8000?url=/items/search/open-source

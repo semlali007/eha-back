@@ -2,14 +2,14 @@
 
 namespace App\Manager;
 
-use Database\DBConnection;
+use Core\Database\DBConnection;
 
 abstract class AbstractManager {
 
     protected $db;
 
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        $this->db = $db;
+        $this->db = DBConnection::getInstance();
     }
 }

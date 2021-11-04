@@ -8,7 +8,7 @@ class AdministratorRepository extends AbstractRepository
 {
     public function getList()
     {
-        $admin = new Administrator($this->db);
+        $admin = new Administrator();
         return $admin->getList();
     }
 }

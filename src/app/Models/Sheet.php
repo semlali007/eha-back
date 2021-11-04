@@ -10,7 +10,6 @@ use App\Models\SheetArea;
 use App\Models\SheetProvider;
 use App\Models\SheetGroup;
 use App\Models\SheetBeneficiary;
-use Database\DBConnection;
 use Exception;
 use PDO;
 
@@ -27,17 +26,17 @@ class Sheet extends Model
     protected $sheetGroupTable;
     protected $searchCondition;
 
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->beneficiaryTable = (new Beneficiary($this->db))->table;
-        $this->areaTable = (new Area($this->db))->table;
-        $this->groupTable = (new Group($this->db))->table;
-        $this->providerTable = (new Provider($this->db))->table;
-        $this->sheetBeneficiaryTable = (new SheetBeneficiary($this->db))->table;
-        $this->sheetAreaTable = (new SheetArea($this->db))->table;
-        $this->sheetProviderTable = (new SheetProvider($this->db))->table;
-        $this->sheetGroupTable = (new SheetGroup($this->db))->table;
+        parent::__construct();
+        $this->beneficiaryTable = (new Beneficiary())->table;
+        $this->areaTable = (new Area())->table;
+        $this->groupTable = (new Group())->table;
+        $this->providerTable = (new Provider())->table;
+        $this->sheetBeneficiaryTable = (new SheetBeneficiary())->table;
+        $this->sheetAreaTable = (new SheetArea())->table;
+        $this->sheetProviderTable = (new SheetProvider())->table;
+        $this->sheetGroupTable = (new SheetGroup())->table;
         $this->searchCondition = null;
     }
 

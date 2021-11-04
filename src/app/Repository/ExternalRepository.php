@@ -8,7 +8,7 @@ class ExternalRepository extends AbstractRepository
 {
     public function getList()
     {
-        $external = new External($this->db);
+        $external = new External();
         return $external->getList();
     }
 }

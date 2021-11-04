@@ -2,18 +2,17 @@
 
 namespace App\Controllers;
 use App\Manager\GroupManager;
-use Database\DBConnection;
 use App\Repository\GroupRepository;
 
 class GroupController extends Controller
 {
     private  $groupRepository;
     private  $groupManager;
-    public function __construct(DBConnection $db, $roles = [])
+    
+    public function __construct()
     {
-        parent::__construct($db, $roles);
-        $this->groupRepository = new GroupRepository($db);
-        $this->groupManager = new GroupManager($db);
+        $this->groupRepository = new GroupRepository();
+        $this->groupManager = new GroupManager();
     }
 
     public function autocomplete($word)

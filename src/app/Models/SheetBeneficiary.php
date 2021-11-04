@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
-use Database\DBConnection;
 use Exception;
 use PDO;
 
@@ -12,10 +11,10 @@ class SheetBeneficiary extends Model
     protected $tableName = 'sheet_filiales';
     protected $beneficiaryTable;
 
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        parent::__construct($db);
-        $this->beneficiaryTable = (new Beneficiary($this->db))->table;
+        parent::__construct();
+        $this->beneficiaryTable = (new Beneficiary())->table;
     }
 
     public function add($sheetId, $filialeId)

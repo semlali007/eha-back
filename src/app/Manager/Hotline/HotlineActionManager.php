@@ -25,7 +25,7 @@ class HotlineActionManager extends AbstractManager
         $id = $options['id'];
         $sha = $options['sha'];
         $name = $options['name'];
-        $infos = (new Hotline($this->db))->getInfos($id, $sha);
+        $infos = (new Hotline())->getInfos($id, $sha);
         $isHotline = $infos['status'];
         if ($infos['status'] === null) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
@@ -55,7 +55,7 @@ class HotlineActionManager extends AbstractManager
         }
 
         $msg = $filename . ':' . $name;
-        $hotlineFilTime = new HotlineFil($this->db);
+        $hotlineFilTime = new HotlineFil();
         $lastId = $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'U',
@@ -64,7 +64,7 @@ class HotlineActionManager extends AbstractManager
             'message' => $msg,
         ]);
 
-        (new HotlineFile($this->db))->insert([
+        (new HotlineFile())->insert([
             'discussion' => $id,
             'file_code' => $filename,
             'file_name' => $name
@@ -72,7 +72,7 @@ class HotlineActionManager extends AbstractManager
 
         $answer['status'] = true;
         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['34'] . '</p>';
-        $email = (new Hotline($this->db))->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
+        $email = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
 
         if (empty($email)) {
             return $answer;

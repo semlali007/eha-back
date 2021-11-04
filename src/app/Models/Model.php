@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use PDO;
-use Database\DBConnection;
+use Core\Database\DBConnection;
 
 abstract class Model {
 
@@ -11,9 +11,9 @@ abstract class Model {
     protected $tableName;
     protected $table;
 
-    public function __construct(DBConnection $db)
+    public function __construct()
     {
-        $this->db = $db;
-        $this->table = $db->getSchema().$this->tableName;
+        $this->db = DBConnection::getInstance();
+        $this->table = $this->db->getSchema().$this->tableName;
     }
 }

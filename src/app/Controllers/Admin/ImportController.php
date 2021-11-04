@@ -3,13 +3,12 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\Controller;
-use Database\DBConnection;
 
 class ImportController extends Controller
 {
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct( $roles = [])
     {
-        parent::__construct($db, $roles);
+        parent::__construct($roles);
     }
 
     public function upload()

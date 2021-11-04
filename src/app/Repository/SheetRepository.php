@@ -17,7 +17,7 @@ use Exception;
 class SheetRepository extends AbstractRepository {
 
     public function search($options) {
-        $sheet = new Sheet($this->db);
+        $sheet = new Sheet();
         $sheet->initSearchCondition($options);
         return
                 [
@@ -40,36 +40,36 @@ class SheetRepository extends AbstractRepository {
 
     public function getDetails($id) {
         try {
-            $details = (new Sheet($this->db))->get($id);
+            $details = (new Sheet())->get($id);
 
-            $committee = new Committee($this->db);
+            $committee = new Committee();
             $committetSheet = $committee->getByCode($details['committee']);
             if (!is_array($committetSheet)) {
                 $committetSheet = [];
             }
 
             $details['committee'] = $committetSheet;
-            $sheetContract = new SheetContract($this->db);
+            $sheetContract = new SheetContract();
             $details['contracts'] = $sheetContract->getBySheet($id);
-            $sheetFiliale = new SheetBeneficiary($this->db);
+            $sheetFiliale = new SheetBeneficiary();
             $details['filiales'] = $sheetFiliale->getBySheet($id);
-            $sheetProvider = new SheetProvider($this->db);
+            $sheetProvider = new SheetProvider();
             $details['providers'] = $sheetProvider->getBySheet($id);
-            $sheetZone = new SheetArea($this->db);
+            $sheetZone = new SheetArea();
             $details['zones'] = $sheetZone->getBySheet($id);
-            $sheetGroup = new SheetGroup($this->db);
+            $sheetGroup = new SheetGroup();
             $details['groups'] = $sheetGroup->getBySheet($id);
-            $sheetLot = new SheetLot($this->db);
+            $sheetLot = new SheetLot();
             $details['lots'] = $sheetLot->getBySheet($id);
             foreach ($details['contracts'] as $k => $c) {
                 $details['contracts'][$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
             }
 
-            $sheetFile = new SheetFile($this->db);
+            $sheetFile = new SheetFile();
             $documents = $sheetFile->getBySheet($id);
             $details['documents'] = $documents;
 
-            $sheetOption = new SheetOption($this->db);
+            $sheetOption = new SheetOption();
             $details['options'] = $sheetOption->getBySheet($id);
 
             return $details;
@@ -80,14 +80,14 @@ class SheetRepository extends AbstractRepository {
 
     public function export($options) {
         $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
-        $sheet = new Sheet($this->db);
+        $sheet = new Sheet();
         $answer = [];
-        $sheetProvider = new SheetProvider($this->db);
-        $sheetFiliale = new SheetBeneficiary($this->db);
-        $sheetZone = new SheetArea($this->db);
-        $sheetGroup = new SheetGroup($this->db);
-        $committee = new Committee($this->db);
-        $sheetContract = new SheetContract($this->db);
+        $sheetProvider = new SheetProvider();
+        $sheetFiliale = new SheetBeneficiary();
+        $sheetZone = new SheetArea();
+        $sheetGroup = new SheetGroup();
+        $committee = new Committee();
+        $sheetContract = new SheetContract();
         $sheet->initSearchCondition($options);
         $result = $sheet->searchWithoutPagination($options);
         $header = [

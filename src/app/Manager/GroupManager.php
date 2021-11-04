@@ -14,7 +14,7 @@ class GroupManager extends AbstractManager
                 throw new Exception('Le nom est obligatoire');
             }
             
-            $group = new Group($this->db);
+            $group = new Group();
             $id =  $group->add($options);
             return [
                 'status' => true,

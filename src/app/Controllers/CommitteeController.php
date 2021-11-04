@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection;
 use App\Repository\CommitteeRepository;
 use Exception;
 
@@ -11,10 +10,10 @@ class CommitteeController extends Controller
     private  $committeeRepository;
 
 
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->committeeRepository = new CommitteeRepository($db);
+        parent::__construct($roles);
+        $this->committeeRepository = new CommitteeRepository();
     }
 
 

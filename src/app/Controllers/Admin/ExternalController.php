@@ -5,7 +5,6 @@ namespace App\Controllers\Admin;
 use App\Controllers\Controller;
 
 use App\Manager\ExternalManager;
-use Database\DBConnection;
 use App\Repository\ExternalRepository;
 use Exception;
 
@@ -13,11 +12,11 @@ class ExternalController extends Controller
 {
     private  $externalRepository;
     private  $externalManager;
-    public function __construct(DBConnection $db, $roles = [])
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->externalRepository = new ExternalRepository($db);
-        $this->externalManager = new ExternalManager($db);
+        parent::__construct($roles);
+        $this->externalRepository = new ExternalRepository();
+        $this->externalManager = new ExternalManager();
     }
 
     public function index()

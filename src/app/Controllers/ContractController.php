@@ -2,16 +2,16 @@
 
 namespace App\Controllers;
 
-use Database\DBConnection;
 use App\Repository\ContractRepository;
 
 class ContractController extends Controller
 {
     private  $contractRepository;
-    public function __construct(DBConnection $db, $roles = [])
+    
+    public function __construct($roles = [])
     {
-        parent::__construct($db, $roles);
-        $this->contractRepository = new ContractRepository($db);
+        parent::__construct($roles);
+        $this->contractRepository = new ContractRepository();
     }
 
     /**

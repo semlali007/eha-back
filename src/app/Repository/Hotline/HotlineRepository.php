@@ -24,7 +24,7 @@ class HotlineRepository extends AbstractRepository
             throw (new InvalidParameterException())->setErrors($errors);
         }
 
-        $hotline = new Hotline($this->db);
+        $hotline = new Hotline();
         $dateMin = date('Y-m-d');
         $dateMin = explode('-', $dateMin);
         $options['date'] = ($dateMin[0] - 1) . '-' . $dateMin[1] . '-' . $dateMin[2];
@@ -69,12 +69,12 @@ class HotlineRepository extends AbstractRepository
             throw (new InvalidParameterException())->setErrors($errors);
         }
 
-        $question = (new Hotline($this->db))->getHotline($id);
+        $question = (new Hotline())->getHotline($id);
         if ($errors) {
             throw (new Exception('hotline.discussion_not_found'));
         }
 
-        $timeline = (new HotlineFil($this->db))->getTimeLineByQuestion($id);
+        $timeline = (new HotlineFil())->getTimeLineByQuestion($id);
        
         $answer['data'] = array(
             'info' => $question,
@@ -87,7 +87,7 @@ class HotlineRepository extends AbstractRepository
         $isHotliner = false;
         if (isset($options['sha']) && !empty($options['sha'])) {
             $sha = $options['sha'];
-            $infos = (new Hotline($this->db))->getInfos($id, $sha);
+            $infos = (new Hotline())->getInfos($id, $sha);
             $isHotliner = $infos['status'];
             if ($isHotliner === false) {
                 $answer['data']['isRequester'] = true;

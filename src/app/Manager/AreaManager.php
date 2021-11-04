@@ -14,7 +14,7 @@ class AreaManager extends AbstractManager
                 throw new Exception('Le nom est obligatoire');
             }
             
-            $area = new Area($this->db);
+            $area = new Area();
             $id =  $area->add($options);
             return [
                 'status' => true,

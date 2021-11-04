@@ -20,7 +20,7 @@ class DocumentationRepository extends AbstractRepository {
     public function add() {
         try {
             return [
-                'id' =>(new Documentation($this->db))->add(\Core\Http\Request::input())
+                'id' =>(new Documentation())->add(\Core\Http\Request::input())
             ];
         } catch (Exception $ex) {
             http_response_code(500);
@@ -36,7 +36,7 @@ class DocumentationRepository extends AbstractRepository {
      * @return array|null
      */
     public function getList(int $parent = 0): ?array {
-        return (new Documentation($this->db))->getByParentId($parent);
+        return (new Documentation())->getByParentId($parent);
     }
 
     /**
@@ -46,7 +46,7 @@ class DocumentationRepository extends AbstractRepository {
      */
     public function edit(array $options = []): void {
         try {
-            (new Documentation($this->db))->update($options);
+            (new Documentation())->update($options);
         } catch (Exception $ex) {
             http_response_code(500);
             echo json_encode([
@@ -63,7 +63,7 @@ class DocumentationRepository extends AbstractRepository {
      */
     public function delete(int $id) {
 
-        return (new Documentation($this->db))->delete($id);
+        return (new Documentation())->delete($id);
     }
     
      /**
@@ -73,7 +73,7 @@ class DocumentationRepository extends AbstractRepository {
      */
     public function details(int $id) {
 
-        return (new Documentation($this->db))->details($id);
+        return (new Documentation())->details($id);
     }
 
 
@@ -85,7 +85,7 @@ class DocumentationRepository extends AbstractRepository {
     public function sort(array $options = []): void
     {
         try {
-            $documentation = new Documentation($this->db);
+            $documentation = new Documentation();
             foreach ($options['items'] as $item) {
                 $documentation->updatePosition($item['id'], $item['position']);
             }
