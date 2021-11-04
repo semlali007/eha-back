@@ -19,7 +19,7 @@ use App\Security\User;
 
 class SheetManager extends AbstractManager {
 
-    public function update($sheetData) {
+    public function update($user, $sheetData) {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
         try {
             $data['id'] = $sheetData['id'];

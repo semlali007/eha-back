@@ -14,7 +14,7 @@ class Hotline extends Model {
     protected $hotelineFileTable;
 
     public function __construct() {
-        parent::__construct($db);
+        parent::__construct();
         $this->hotelineFileTable = (new HotlineFil())->table;
     }
 

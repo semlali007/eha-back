@@ -14,7 +14,7 @@ class SheetLot extends Model
     protected $contractLotTable;
     public function __construct()
     {
-        parent::__construct($db);
+        parent::__construct();
         $this->contractLotTable = (new SheetContractLot())->table;
     }
 
