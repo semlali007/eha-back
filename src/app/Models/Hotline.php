@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use App\Models\HotlineFil;
-use Database\DBConnection;
 use Exception;
 use PDO;
 
