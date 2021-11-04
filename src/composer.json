@@ -16,8 +16,7 @@
     "autoload": {
         "psr-4": {
             "Core\\": "core/",
-            "App\\": "app/",
-            "Database\\": "database/"
+            "App\\": "app/"
         }
     },
     "require": {
