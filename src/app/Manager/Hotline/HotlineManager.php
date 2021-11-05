@@ -36,8 +36,8 @@ class HotlineManager extends AbstractManager
         $email = $user['email'];
         $category = $options['category'];
         $theme = $options['theme'];
-        $sha_demandeur = crypt($email . bin2hex(random_bytes(10)) . 'h');
-        $sha_hotline   = crypt($email . bin2hex(random_bytes(10)) . 'd');
+        $sha_demandeur = base64_encode($email . bin2hex(random_bytes(10)) . 'h');
+        $sha_hotline   = base64_encode($email . bin2hex(random_bytes(10)) . 'd');
         $post = $options['post'];
         $emailTo = null;
         $hotlineEmail = new HotlineEmail();
