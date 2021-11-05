@@ -55,7 +55,6 @@ class SheetManager extends AbstractManager {
                 'size' => 2100000
             ]);
 
-            $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
             $data['filiales'] = $sheetData['filiales'] ?? [];
             $data['providers'] = $sheetData['providers'] ?? [];
