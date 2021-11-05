@@ -1,8 +1,16 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 12.4
+-- Dumped by pg_dump version 12.4
+
+-- Started on 2021-11-05 14:43:26
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'WIN1252';
+SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
@@ -18,11 +26,12 @@ SET row_security = off;
 CREATE DATABASE postgres WITH TEMPLATE = template0 ENCODING = 'WIN1252' LC_COLLATE = 'Spanish_Colombia.1252' LC_CTYPE = 'Spanish_Colombia.1252';
 
 
+\connect postgres
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'WIN1252';
+SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
@@ -1685,7 +1694,7 @@ ALTER TABLE ONLY public.sheet_files
     ADD CONSTRAINT fk_sheet_id FOREIGN KEY (sheet_id) REFERENCES public.sheet_headers(id);
 
 
--- Completed on 2021-11-05 14:32:14
+-- Completed on 2021-11-05 14:43:27
 
 --
 -- PostgreSQL database dump complete
