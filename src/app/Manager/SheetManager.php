@@ -55,14 +55,14 @@ class SheetManager extends AbstractManager {
                 'size' => 2100000
             ]);
 
-            $data['contracts'] = $sheetData['contracts'];
-            $data['lots'] = $sheetData['lots'];
-            $data['filiales'] = $sheetData['filiales'];
-            $data['providers'] = $sheetData['providers'];
-            $data['groups'] = $sheetData['groups'];
-            $data['zones'] = $sheetData['zones'];
-            $data['deleted_files'] = $sheetData['deletedFiles'];
-            $data['options'] = $sheetData['options'];
+            $data['lots'] = $sheetData['lots'] ?? [];
+            $data['filiales'] = $sheetData['filiales'] ?? [];
+            $data['providers'] = $sheetData['providers'] ?? [];
+            $data['groups'] = $sheetData['groups'] ?? [];
+            $data['zones'] = $sheetData['zones'] ?? [];
+            $data['deleted_files'] = $sheetData['deletedFiles'] ?? [];
+            $data['options'] = $sheetData['options'] ?? [];
+
             $sheet = new Sheet();
             try {
                 $id = $data['id'];

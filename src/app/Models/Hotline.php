@@ -162,7 +162,7 @@ class Hotline extends Model {
                 $sth = $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
                 $sth->bindParam(':discussion', $options['id'], PDO::PARAM_INT);
-            } catch (PDOException $Exception) {
+            } catch (\PDOException $Exception) {
                 // PHP Fatal Error. Second Argument Has To Be An Integer, But PDOException::getCode Returns A
                 // String.
                 throw new MyDatabaseException($Exception->getMessage(), $Exception->getCode());
@@ -175,7 +175,7 @@ class Hotline extends Model {
             ";
                 $sth = $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
-            } catch (PDOException $Exception) {
+            } catch (\PDOException $Exception) {
                 // PHP Fatal Error. Second Argument Has To Be An Integer, But PDOException::getCode Returns A
                 // String.
                 throw new MyDatabaseException($Exception->getMessage(), $Exception->getCode());
