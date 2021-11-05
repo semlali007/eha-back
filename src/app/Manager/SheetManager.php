@@ -55,15 +55,15 @@ class SheetManager extends AbstractManager {
                 'size' => 2100000
             ]);
 
-            $data['contracts'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['contracts'] : [];
-            $data['lots'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['lots'] : [];
-            $data['filiales'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['filiales'] : [];
-            $data['providers'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['providers'] : [];
-            $data['groups'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['groups'] : [];
-            $data['zones'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['zones'] : [];
-            $data['deleted_files'] =  (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['deletedFiles'] : [];
-            $data['options'] = (is_array($sheetData) && array_key_exists('contracts', $sheetData)) ? $sheetData['options'] : [];
-            
+            $data['contracts'] = $sheetData['contracts'] ?? [];
+            $data['lots'] = $sheetData['lots'] ?? [];
+            $data['filiales'] = $sheetData['filiales'] ?? [];
+            $data['providers'] = $sheetData['providers'] ?? [];
+            $data['groups'] = $sheetData['groups'] ?? [];
+            $data['zones'] = $sheetData['zones'] ?? [];
+            $data['deleted_files'] = $sheetData['deletedFiles'] ?? [];
+            $data['options'] = $sheetData['options'] ?? [];
+
             $sheet = new Sheet();
             try {
                 $id = $data['id'];
