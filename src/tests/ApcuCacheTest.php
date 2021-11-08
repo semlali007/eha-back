@@ -44,6 +44,7 @@ final class ApcuCacheTest extends TestCase
     }
 
     /**
+     * @covers
      * @dataProvider dataProvider
      *
      * @param $key
@@ -59,6 +60,7 @@ final class ApcuCacheTest extends TestCase
     }
 
     /**
+     * @covers
      * @dataProvider dataProvider
      *
      * @param $key
