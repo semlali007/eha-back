@@ -23,4 +23,33 @@ class NewsRepository extends AbstractRepository
         $userNews = new UserNews($this->db);
         return $userNews->insertUserNews($id,$monNNI);
     }
+
+    public function getList()
+    {
+        $news = new News($this->db);
+        return $news->getNews();
+    }
+    public function add($data)
+    {
+        $news = new News($this->db);
+        return $news->addNews($data);
+    }
+
+    public function update($data)
+    {
+        $news = new News($this->db);
+        return $news->updateNews($data);
+    }
+
+    public function delete($id) {
+
+        $news = new News($this->db);
+        return $news->deleteNews($id);
+    }
+
+    public function getElement($id)
+    {
+        $news = new News($this->db);
+        return $news->getElement($id);
+    }
 }

@@ -29,7 +29,7 @@ abstract class Controller
     public function __construct(DBConnection $db, $roles = [])
     {
         $this->db = $db;
-        $this->roles = $roles;
+        $this->roles = []; //$roles;
         $this->checkUserAuthorization($roles);
     }
 
