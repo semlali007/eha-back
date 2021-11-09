@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
-use Exception;
 use PDO;
 
 class News extends Model
@@ -63,10 +62,10 @@ class News extends Model
                 $sth->bindParam(':id', $data['id'], PDO::PARAM_INT);
                 $sth->execute();
             } catch (\Exception $e) {
-                throw new Exception('erreur de modification de contact' . $e->getMessage());
+                throw new \Exception('erreur de modification de contact' . $e->getMessage());
             }
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 
@@ -82,7 +81,7 @@ class News extends Model
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
-            throw new Exception('erreur de suppression de contact');
+            throw new \Exception('erreur de suppression de contact');
         }
     }
 
@@ -99,7 +98,7 @@ class News extends Model
             $sth->execute();
             return $sth->fetch(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 
