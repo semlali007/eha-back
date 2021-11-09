@@ -6,8 +6,8 @@ $router->post('/authentication/login', 'App\Controllers\AuthenticationController
 $router->get('/authentication/logout', 'App\Controllers\AuthenticationController@logout');
 
 ## Modal home ##
-$router->get('/config/news', 'App\Controllers\NewsController@getNews',['USER']);
-$router->post('/config/create-user-news', 'App\Controllers\NewsController@createUserNews',['USER']);
+$router->get('/config/news', 'App\Controllers\Admin\NewsController@getNews',['USER']);
+$router->post('/config/create-user-news', 'App\Controllers\Admin\NewsController@createUserNews',['USER']);
 $router->get('/config/news/list', 'App\Controllers\Admin\NewsController@getList',['USER']);
 $router->post('/config/news/add', 'App\Controllers\Admin\NewsController@add',['USER']);
 $router->get('/config/news/edit/:id', 'App\Controllers\Admin\NewsController@getElement',['USER']);

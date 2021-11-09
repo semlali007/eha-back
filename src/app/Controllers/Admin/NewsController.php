@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
 use App\Repository\NewsRepository;
 use Core\Http\Request ;
+use App\Controllers\Controller;
 
 class NewsController extends Controller
 {
