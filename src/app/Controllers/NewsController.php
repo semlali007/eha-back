@@ -31,7 +31,7 @@ class NewsController extends Controller
         foreach ($test as $n) {
             if ($this->newsRepository->checkNni($n['id'], $this->currentNni) <= 0) {
                 $result[] = $n;
-            };
+            }
         }
         return $this->response($result);
     }
@@ -48,5 +48,55 @@ class NewsController extends Controller
         return  $this->response($response);
     }
 
-   
+   /**
+     * 
+     * @return mixed
+     */
+    public function getList():mixed {
+        
+        $list = $this->newsRepository->getList();
+        return $this->response($list);
+    }
+
+     /**
+     * 
+     * @return mixed
+     */
+    public function add():mixed {
+        
+        $list = $this->newsRepository->add(Request::input());
+        return $this->response($list);
+    }
+    
+    /**
+     * 
+     * @return mixed
+     */
+    public function update():mixed {
+        
+        $list = $this->newsRepository->update(Request::input());
+        return $this->response($list);
+    }
+
+    /**
+     * 
+     * @param int $id
+     * @return mixed
+     */
+    public function delete($id):mixed {
+        
+        $list = $this->newsRepository->delete($id);
+        return $this->response($list);
+    }
+
+    /**
+     * 
+     * @param type $id
+     * @return type
+     */
+    public function getElement($id)
+    {
+        return $this->response($this->newsRepository->getElement($id));
+    }
+
 }
