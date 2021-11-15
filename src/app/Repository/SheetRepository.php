@@ -38,6 +38,39 @@ class SheetRepository extends AbstractRepository {
         ];
     }
 
+    /**
+     * 
+     * @param int $id
+     * @return mixed
+     */
+    public function findById(int $id): mixed {
+        return (new Sheet())->get($id);
+    }
+
+    
+    /**
+     * 
+     * @param int $days , default = 30
+     * @return array|null
+     */
+    public function findByEndDatePlus(int $days = 30): ?array {
+        // Generer le jour Datetime format + 30 (exemple)
+        $today = (new \DateTimeImmutable())->modify("+{$days} day");
+        return (new Sheet())
+                        ->findByEndDate($today->format('d-m-Y'));
+    }
+    
+    /**
+     * 
+     * @param int $days
+     * @return int|null
+     */
+    public function archiverByEndDatePlus(int $days = 30):?int{
+        // Generer le jour Datetime format + 30 (exemple)
+        $today = (new \DateTimeImmutable())->modify("+{$days} day");
+        return (new Sheet())->archiverFichesByDate($today->format('d-m-Y'));
+    }
+
     public function getDetails($id) {
         try {
             $details = (new Sheet())->get($id);
@@ -197,6 +230,5 @@ class SheetRepository extends AbstractRepository {
 
         return $str;
     }
-
 
 }
