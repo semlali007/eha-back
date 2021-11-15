@@ -8,6 +8,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle as style;
+use Symfony\Component\Console\Input\InputArgument ;
 use App\Repository\SheetRepository;
 
 /**
@@ -44,7 +45,8 @@ class ArchivageFicheMarche extends Command {
         $this
                 ->setDescription('Cette commande permet d\'archiver les fiches marchés')
                 ->setHelp('Cette commande permet d\'archiver automatiquement pour les supprimer de la vue utilisateur et la basculer en Archive')
-        ;
+                ->addArgument('nbr_jours', InputArgument::OPTIONAL, 'Le nombre de jours de décalage svp ?')
+                ;
     }
 
     /**
@@ -57,8 +59,14 @@ class ArchivageFicheMarche extends Command {
         $io = new style($input, $output);
         $io->title('Archivage en cours ... ');
         
+        $nbrJours = intval($input->getArgument("nbr_jours"));
+
+        if (!$nbrJours):
+            $nbrJours = 30;
+        endif;
+        
         // le chargement de la mise a jour des fiches marché
-        $nbrFicheArchive = $this->sheetRepository->archiverByEndDatePlus(); // Récupérer les ids et les dates des fiches 
+        $nbrFicheArchive = $this->sheetRepository->archiverByEndDatePlus($nbrJours); // Récupérer les ids et les dates des fiches
         $io->success("Archivage terminé !") ;
         
         $output->writeln([
@@ -66,7 +74,7 @@ class ArchivageFicheMarche extends Command {
             "<info>{$nbrFicheArchive} fichier(s) archivé(s)!</>",
         ]);
         
-        // Retourné la resultat
+        // Retourné l'etat de la commande
         return Command::SUCCESS  ;
     }
 
