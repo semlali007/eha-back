@@ -1,0 +1,8 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__.'/../vendor/autoload.php'; // charger le vendor
+use Core\Util\DotEnv ;
+
+(new DotEnv(__DIR__ . '/../.env'))->load(); // Charger le dotenv module
+(new App\Command\Bootsrap())->init(); // initialiser les commandes
