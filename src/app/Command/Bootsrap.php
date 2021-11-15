@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use Symfony\Component\Console\Application;
-use App\Command\Command\CreateUserCommand;
+use App\Command\Command\ArchivageFicheMarche;
 
 /**
  * @author HGDDEDBN
@@ -23,15 +23,20 @@ class Bootsrap {
      */
     private static $_instance = null;
     
-    private array $commands = [
-        CreateUserCommand
-    ];
+    /**
+     * 
+     * @var array
+     */
+    private array $commands =[] ;
 
     /**
      * Constructeur
      */
     public function __construct() {
         $this->application = new Application();
+        $this->commands = [
+            new ArchivageFicheMarche()
+        ] ;
     }
 
     /**
