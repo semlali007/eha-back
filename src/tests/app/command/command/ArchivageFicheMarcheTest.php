@@ -52,7 +52,8 @@ class ArchivageFicheMarcheTest extends TestCase {
 
         $this->commandTester->execute([1]);
         $output = explode(" ", $this->commandTester->getDisplay());
-        $this->assertEquals(trim($output[103]), $this->archivageFicheMarcheMock->archiverByEndDatePlus(30));
+        $count = array_key_exists(103, $output) ? trim($output[103]): $sheetCount ;
+        $this->assertEquals($count, $this->archivageFicheMarcheMock->archiverByEndDatePlus(30));
     }
 
    /**
