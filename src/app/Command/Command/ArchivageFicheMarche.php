@@ -64,8 +64,8 @@ class ArchivageFicheMarche extends Command {
         
         $nbrJours = intval($input->getArgument("nbr_jours"));
 
-        if (!$nbrJours):
-            $nbrJours = 30;
+        if (!$nbrJours): // Si le nombre des jours n'est pas mis en paramteres
+            $nbrJours = 30; // Affecter 30 par defaut
         endif;
         
         // le chargement de la mise a jour des fiches marché

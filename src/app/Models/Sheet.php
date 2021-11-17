@@ -338,9 +338,13 @@ class Sheet extends Model
         return $this;
     }
 
-
-    public function get($id)
-    {
+    /**
+     * 
+     * @param int $id
+     * @return type
+     * @throws InternalServerException
+     */
+    public function get(int $id) {
         try {
             $query = 'SELECT * FROM ' . $this->table . ' WHERE id=:id';
             $sth = $this->db->getPDO()->prepare($query);
@@ -348,10 +352,10 @@ class Sheet extends Model
             $sth->execute();
             return $sth->fetch(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            throw new InternalServerException();
+            throw new InternalServerException($e->getMessage());
         }
     }
-    
+
     /**
      * Archiver les fiches marchés
      * 
@@ -362,6 +366,24 @@ class Sheet extends Model
         
         $sth = $this->db->getPDO() // Execution de la requete
                 ->prepare('UPDATE ' . $this->table . ' SET status=\'-1\' WHERE end_date>=:endDate and status=1');
+         // Bind params
+        $sth->bindParam(':endDate', $date, PDO::PARAM_INT);
+        $sth->execute(); // Lancer la requete
+        
+        // si plusieurs row sont affectés
+        return $sth->rowCount();
+    }
+    
+        /**
+     * Archiver les fiches marchés
+     * 
+     * @param string $date format (dd-mm-yyyy) exemple: 10/02/2022
+     * @return int|null
+     */
+    public function desarchiverFichesByDate(string $date):?int {
+        
+        $sth = $this->db->getPDO() // Execution de la requete
+                ->prepare('UPDATE ' . $this->table . ' SET status=\'1\' WHERE end_date>=:endDate and status=-1');
          // Bind params
         $sth->bindParam(':endDate', $date, PDO::PARAM_INT);
         $sth->execute(); // Lancer la requete
@@ -443,7 +465,7 @@ class Sheet extends Model
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
-            throw new InternalServerException();
+            throw new Exception($e->getMessage());
         }
     }
 }
