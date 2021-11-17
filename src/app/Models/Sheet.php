@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
+use App\Exceptions\SheetException;
 use App\Models\Beneficiary;
 use App\Models\Area;
 use App\Models\Group;
@@ -132,7 +133,7 @@ class Sheet extends Model
 
         $search_input = strtolower($options['searchText'] ?? "");
         $searchProvider = strtolower($options['searchProvider'] ?? "");
-       
+
         if (($searchProvider != '')) {
             $searchProvider = strtolower($searchProvider);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  lower(provider_label) LIKE '%$searchProvider%' ) ";
@@ -444,6 +445,49 @@ class Sheet extends Model
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
             throw new InternalServerException();
+        }
+    }
+
+    public function deleteSheet($id)
+    {
+        try {
+            $this->db->getPDO()->beginTransaction();
+            (new SheetFile())->deleteBySheet($id);
+            (new SheetContract)->deleteBySheet($id);
+            (new SheetLot())->deleteLots($id, []);
+            (new SheetBeneficiary)->deleteFiliales($id, []);
+            (new SheetProvider)->deleteProviders($id, []);
+            (new SheetArea)->deleteZones($id, []);
+            (new SheetGroup)->deleteGroups($id, []);
+            $this->delete($id);
+            $this->db->getPDO()->commit();
+        } catch (\Exception $e) {
+            if ($this->db->getPDO()->inTransaction()) {
+                $this->db->getPDO()->rollback();
+            }
+            throw SheetException::forSheetRemove($e->getMessage());
+        }
+    }
+    
+    /**
+     * delete
+     *
+     * @param  mixed $id
+     * @return void
+     */
+    private function delete(int $id)
+    {
+        if(!is_numeric($id)){
+            throw new Exception('id est obligatoire');
+        }
+
+        try {
+            $query = 'DELETE FROM ' . $this->table . ' WHERE id = :id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new Exception('erreur de suppression de sheet_headers');
         }
     }
 }

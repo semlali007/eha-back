@@ -312,4 +312,14 @@ class SheetManager extends AbstractManager {
         }
     }
 
+    
+    /**
+     * remove
+     *
+     * @param  mixed $id
+     * @return void
+     */
+    function remove($id){
+        return (new Sheet())->deleteSheet($id); 
+    }
 }

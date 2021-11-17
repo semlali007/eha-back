@@ -43,6 +43,7 @@ $router->post('/sheets/export', 'App\Controllers\SheetController@export', ['USER
 $router->post('/sheets/add', 'App\Controllers\SheetController@add', ['ADMIN']);
 $router->post('/sheets/save', 'App\Controllers\SheetController@update', ['ADMIN']);
 $router->post('/sheets/download', 'App\Controllers\SheetController@download', ['USER']);
+$router->get('/sheets/remove/:id', 'App\Controllers\SheetController@remove', ['ADMIN']);
 
 $router->get('/committees', 'App\Controllers\CommitteeController@index', ['USER']);
 $router->get('/providers/autocomplete/:word', 'App\Controllers\ProviderController@autocomplete', ['USER']);

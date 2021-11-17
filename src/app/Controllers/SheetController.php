@@ -47,5 +47,15 @@ class SheetController extends Controller {
         $options = $this->decode(file_get_contents("php://input"));
         return FileService::download($options);
     }
+    
+    /**
+     * remove
+     *
+     * @param  mixed $id
+     * @return void
+     */
+    public function remove(int $id) {
+        return $this->response($this->sheetManager->remove($id));
+    }
 
 }
