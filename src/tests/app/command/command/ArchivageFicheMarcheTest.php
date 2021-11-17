@@ -1,4 +1,5 @@
 <?php
+namespace Tests\App\Command\Command; 
 
 use App\Command\Command\ArchivageFicheMarche;
 use Core\Util\Date;

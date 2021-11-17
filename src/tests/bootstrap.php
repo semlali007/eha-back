@@ -3,5 +3,6 @@
 // charger le vendor
 require __DIR__.'/../vendor/autoload.php'; 
 
+use Core\Util\DotEnv ;
 // Charger le dotenv module
-(new \Core\Util\DotEnv(__DIR__ . '/../.env'))->load(); 
+(new DotEnv(__DIR__ . '/../.env'))->load(); 
