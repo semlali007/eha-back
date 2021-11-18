@@ -52,5 +52,5 @@ Le chargement automatique est automatiquement activé via le fichier vendor/auto
 
 -   Pour lancer les tests il faut executer cette commande : 
 ```
-php ./vendor/bin/phpunit
+./vendor/bin/phpunit
 ```
