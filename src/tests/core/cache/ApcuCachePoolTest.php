@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-namespace Tests ;
+namespace Tests\App\Core\Cache ;
 
 use PHPUnit\Framework\TestCase ;
 use stdClass;

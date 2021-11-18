@@ -12,6 +12,7 @@ use App\Models\SheetGroup;
 use App\Models\SheetLot;
 use App\Models\SheetOption;
 use App\Models\SheetProvider;
+use Core\Util\Date ;
 use Exception;
 
 class SheetRepository extends AbstractRepository {
@@ -55,9 +56,7 @@ class SheetRepository extends AbstractRepository {
      */
     public function findByEndDatePlus(int $days = 30): ?array {
         // Generer le jour Datetime format + 30 (exemple)
-        $today = (new \DateTimeImmutable())->modify("+{$days} day");
-        return (new Sheet())
-                        ->findByEndDate($today->format('d-m-Y'));
+        return (new Sheet())->findByEndDate(Date::generateDatePlus($days));
     }
     
     /**
