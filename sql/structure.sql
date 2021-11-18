@@ -23,10 +23,7 @@ SET row_security = off;
 -- Name: postgres; Type: DATABASE; Schema: -; Owner: -
 --
 
-CREATE DATABASE postgres WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'fr_FR.utf8' LC_CTYPE = 'fr_FR.utf8';
-
-
-\connect postgres
+\connect EHA
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -45,7 +42,7 @@ SET row_security = off;
 -- Name: DATABASE postgres; Type: COMMENT; Schema: -; Owner: -
 --
 
-COMMENT ON DATABASE postgres IS 'default administrative connection database';
+COMMENT ON DATABASE EHA IS 'default administrative connection database';
 
 
 SET default_tablespace = '';
