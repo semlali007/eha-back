@@ -12,13 +12,29 @@ Pour utiliser le mailer dans l'application, il faut faire  un appel au builder q
 ```php
 use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
 
+ $key_binding = ["key"=>" garfi hamdi"];
+
  (new Builder()) // instancier le builder
                 ->setSubject("test subject") // mettre le sujet
                 ->setFrom("loremipsum@edf.fr","Lorem Ipsum") 
                 ->setRecepients(["reception@edf.fr" => "hamdi GARFI"]) // Recepteur
-                ->renderHtml("mail/auto_notif_archivage.html",["key"=>" garfi hamdi"]) // appeler le template HTML
+                ->renderHtml(<PATH_TO_TEMPLATE>, $key_binding) // appeler le template HTML
                 ->send() // Envoyer l'email
                 ;
+```
+
+Exemple de template (path: RACINE_REPO/src/templates/mail):
+```
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>Hello Email Archivage <strong>##key##</strong></div>
+    </body>
+</html>
 ```
 
 
