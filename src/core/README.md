@@ -22,9 +22,8 @@ use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
 ```
 
 
-
 * Par defaut le mailer prend les parametres par defaut du serveur.
-* Pour changer les parametres il faut modifier les modifier dans le fichier .env situé dans la racine du projet: 
+* Pour changer les parametres il faut les modifier dans le fichier .env dans la racine du projet: 
 
 ```
 ### SMTP SERVER ###
