@@ -7,7 +7,7 @@ Est Le core de l'appliction qui contient la partie technique de l'application
 Pour utiliser le mailer dans l'application, il faut faire  un appel au builder qui va construire toutes les instances d'emailing
 
 
-** Exemple code  : **
+**Exemple code :**
 
 ```php
 use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
