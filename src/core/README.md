@@ -14,8 +14,8 @@ use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
 
  (new Builder()) // instancier le builder
                 ->setSubject("test subject") // mettre le sujet
-                ->setFrom("hamdi.garfi@gmail.com","hamdi GARFI") // emmetteur 
-                ->setRecepients(["hamdi-externe.garfi@edf.fr" => "hamdi GARFI"]) // Recepteur
+                ->setFrom("loremipsum@edf.fr","Lorem Ipsum") 
+                ->setRecepients(["reception@edf.fr" => "hamdi GARFI"]) // Recepteur
                 ->renderHtml("mail/auto_notif_archivage.html",["key"=>" garfi hamdi"]) // appeler le template HTML
                 ->send() // Envoyer l'email
                 ;
