@@ -5,9 +5,9 @@ Est Le core de l'appliction qui contient la partie technique de l'application
 
 ### Usage:
 Pour utiliser le mailer dans l'application, il faut faire  un appel au builder qui va construire toutes les instances d'emailing
-par exemple dans un service:
 
-Exemple code : 
+
+** Exemple code  : **
 
 ```php
 use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
@@ -19,6 +19,21 @@ use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
                 ->renderHtml("mail/auto_notif_archivage.html",["key"=>" garfi hamdi"]) // appeler le template HTML
                 ->send() // Envoyer l'email
                 ;
+```
+
+
+
+Par defaut le mailer prend les parametres par defaut du serveur. 
+Pour changer les parametres par defaut il faut les changer dans le fichier .env situé dans la racien du projet: 
+
+```
+### SMTP SERVER ###
+ENABLE_CUSTOM_CONF=false
+SMTP_HOST=NULL
+SMTP_AUTH=true
+SMTP_USERNAME=NULL
+SMTP_PWD=secret
+SMTP_PORT=465
 ```
 
 
