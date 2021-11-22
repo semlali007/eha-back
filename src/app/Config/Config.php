@@ -2,8 +2,8 @@
 
 $configuration = [
     'hlk' => [
-        "pwd" => getenv("HLK_API_PROD_PASS"), // Token Password 
-        "url" => getenv("HLK_API_PROD_URL"),
+        "pwd" => getenv("HLK_API_PASS"), // Token Password 
+        "url" => getenv("HLK_API_URL"),
         "limit" => 20,
         "actions" =>
         [
