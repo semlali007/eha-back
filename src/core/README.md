@@ -13,12 +13,12 @@ Pour utiliser le mailer dans l'application, il faut faire  un appel au builder q
 use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
 
  $key_binding = ["key"=>" garfi hamdi"]; //Va chercher une variable dans le template de type ##key## (delimiter ##VARIABLE##)
- $pathTemplate = "templates/".<PATH_TO_TEMPLATE> ;
+ $pathTemplate = <PATH_TO_TEMPLATE> ; // le fichier doit etre dans le dossier /templates 
  (new Builder()) // instancier le builder
                 ->setSubject("test subject") // mettre le sujet
                 ->setFrom("loremipsum@edf.fr","Lorem Ipsum") 
                 ->setRecepients(["reception@edf.fr" => "hamdi GARFI"]) // Recepteur
-                ->renderHtml(<PATH_TO_TEMPLATE>, $key_binding) // appeler le template HTML
+                ->renderHtml($pathTemplate, $key_binding) // appeler le template HTML
                 ->send() // Envoyer l'email
                 ;
 ```
