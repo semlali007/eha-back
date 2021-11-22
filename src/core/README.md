@@ -12,7 +12,7 @@ Pour utiliser le mailer dans l'application, il faut faire  un appel au builder q
 ```php
 use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
 
- $key_binding = ["key"=>" garfi hamdi"];
+ $key_binding = ["key"=>" garfi hamdi"]; //Va chercher une variable dans le template de type ##key## (delimiter ##VARIABLE##)
 
  (new Builder()) // instancier le builder
                 ->setSubject("test subject") // mettre le sujet
