@@ -24,7 +24,8 @@ use Core\Mailer\Builder ; // appel de la classe Builder du module Mailer
 ```
 
 Exemple de template (path: RACINE_REPO/src/templates/mail):
-```
+
+```html
 <html>
     <head>
         <title>TODO supply a title</title>
