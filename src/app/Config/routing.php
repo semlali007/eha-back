@@ -106,6 +106,9 @@ $router->post('/migration/save', 'App\Controllers\Admin\MigrateController@saveDa
 $router->post('/migration/migrate', 'App\Controllers\Admin\MigrateController@migrate', ['ADMIN']);
 $router->post('/migration/list', 'App\Controllers\Admin\MigrateController@index', ['ADMIN']);
 
+$router->post('/purchases/search', 'App\Controllers\PurchaseController@search', ['USER']);
+
+
 //try {
 $data = $router->run();
 if (is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE)):
