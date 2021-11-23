@@ -35,7 +35,8 @@ class Bootsrap {
     public function __construct() {
         $this->application = new Application();
         $this->commands = [
-            new ArchivageFicheMarche()
+            new ArchivageFicheMarche(),
+            new AutoNotifArchivageFiche()
         ] ;
     }
 
