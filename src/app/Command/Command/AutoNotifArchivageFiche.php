@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Command\Command;
 
+use App\Services\ArchivageService ;
 use App\Repository\SheetRepository;
 use Symfony\Component\Console\{
+    Helper\Table,
     Command\Command,
     Input\InputInterface,
+    Input\InputOption,
     Output\OutputInterface,
     Style\SymfonyStyle as style,
-    Input\InputArgument
 } ;
-
 
 /**
  * Cette commande permet d'archiver automatiquement 
@@ -20,12 +21,16 @@ use Symfony\Component\Console\{
  *
  * @author HGDDEDBN
  */
-class ArchivageFicheMarche extends Command {
+class AutoNotifArchivageFiche extends Command {
 
     // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:archivage:start';
-    private $sheetRepository;
-
+    protected static $defaultName = 'app:notif:start'; 
+    private SheetRepository $sheetRepository;
+    private ArchivageService $archivageService ;
+    
+    const DEFAULT_END_DAYS = 30 ;
+    const DEFAULT_start_DAYS = 0 ;
+    
     /**
      * Initializes the command after the input has been bound and before the input
      * is validated.
@@ -38,6 +43,7 @@ class ArchivageFicheMarche extends Command {
      */
     protected function initialize(InputInterface $input, OutputInterface $output) {
         $this->sheetRepository = new SheetRepository();
+        $this->archivageService = new ArchivageService();
     }
 
     /**
@@ -46,10 +52,16 @@ class ArchivageFicheMarche extends Command {
      */
     protected function configure(): void {
         $this
-                ->setDescription('Cette commande permet d\'archiver les fiches marchés')
-                ->setHelp('Cette commande permet d\'archiver automatiquement pour les supprimer de la vue utilisateur et la basculer en Archive')
-                ->addArgument('nbr_jours', InputArgument::OPTIONAL, 'Le nombre de jours de décalage svp ?')
-                ;
+                ->setDescription('Cette commande permet d\'alerter les utilisateurs avant la fin de validité des fiches marchés')
+                ->setHelp('Cette commande permet d\'alerter les utilisateurs avant la fin de validité des fiches marchés')
+                ->addOption(
+                        'nbr',
+                        null,
+                        InputOption::VALUE_OPTIONAL,
+                        'Le nombre de jours aprés la date de fin des fiches marchés',
+                        self::DEFAULT_END_DAYS // this is the new default value, instead of null
+                )
+        ;
     }
 
     /**
@@ -60,25 +72,40 @@ class ArchivageFicheMarche extends Command {
      */
     protected function execute(InputInterface $input, OutputInterface $output): int {
         $io = new style($input, $output);
-        $io->title('Archivage en cours ... ');
-        
-        $nbrJours = intval($input->getArgument("nbr_jours"));
+        $io->title('Recherche des fiches non archivés en cours ... ');
 
-        if (!$nbrJours): // Si le nombre des jours n'est pas mis en paramteres
-            $nbrJours = 30; // Affecter 30 par defaut
-        endif;
-        
+        $nombre = intval($input->getOption("nbr")); // Option 1: nombre de date DateFin - (J)
+       
         // le chargement de la mise a jour des fiches marché
-        $nbrFicheArchive = $this->sheetRepository->archiverByEndDatePlus($nbrJours); // Récupérer les ids et les dates des fiches
-        $io->success("Archivage terminé !") ;
+        $fiches = $this->sheetRepository->findByEndDateWithIn($nombre) ;
+        $nbrFiches = count($fiches); // Récupérer les ids et les dates des fiches
+        
+        $io->success("Analyse des fiches marchés terminé !");
+        // Affichage de la liste
+        $this->displayTable($output,$fiches) ; 
+        // Envoie d'un mail qui contient les fiches
+        $this->archivageService->sendMailNotification($fiches) ; 
         
         $output->writeln([
             "",
-            "<info>{$nbrFicheArchive} fichier(s) archivé(s)!</>",
+            "<info>{$nbrFiches} fiche(s) identifiée(s)!</>",
         ]);
-        
+
         // Retourné l'etat de la commande
-        return Command::SUCCESS  ;
+        return Command::SUCCESS;
+    }
+    
+    /**
+     * 
+     * @param OutputInterface $output
+     * @param array $data
+     * @return void
+     */
+    public function displayTable(OutputInterface $output,array $data = []): void {
+        (new Table($output))
+                ->setHeaders(['Identifiant', 'Titre', 'Date de début', 'Date d\'expiration'])
+                ->setRows($data)
+                ->render() ;
     }
 
 }
