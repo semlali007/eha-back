@@ -2,6 +2,7 @@
 
 namespace Core\Mailer;
 
+use Twig\{Loader\FilesystemLoader, Environment};
 use Core\Mailer\{
     Mailer,
     SMTP
@@ -13,18 +14,28 @@ use Core\Mailer\{
  * @author HGDDEDBN
  */
 class Builder {
+    
+    const PATH_TEMPLATING = "templates" ;
 
     /**
      * 
      * @var string
      */
     public Mailer $mail;
+    
+      /**
+     * 
+     * @var string
+     */
+    public $twig;
 
     /**
      * Constructeur
      * @param bool $enbaleException
      */
     public function __construct(bool $enbaleException = true) {
+        $path = $_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR .self::PATH_TEMPLATING . DIRECTORY_SEPARATOR;
+        $this->twig = new Environment(new FilesystemLoader($path));
         $this->mail = new Mailer($enbaleException); // Mailer
         if (filter_var(getenv("ENABLE_CUSTOM_CONF"), FILTER_VALIDATE_BOOLEAN)) {
             $this->enableCustomSettings();
@@ -73,10 +84,15 @@ class Builder {
      * @param array $recepients
      * @return void
      */
-    public function setRecepients(array $recepients): self {
-        foreach ($recepients as $email => $name) {
-            $this->mail->addAddress($email, $name);     //Add a recipient
+    public function setRecepients(mixed $recepients): self {
+        if (is_array($recepients)) {
+            foreach ($recepients as $email => $name) {
+                $this->mail->addAddress($email, $name);     //Add a recipient
+            }
+        }elseif(is_string($recepients)){
+             $this->mail->addAddress($recepients);
         }
+        
         return $this;
     }
 
@@ -128,8 +144,9 @@ class Builder {
      * @param array $params
      * @return void
      */
-    public function renderHtml(string $pathFileHtml, array $params = []): self {
+    public function html(string $pathFileHtml, array $params = []): self {
         $html = $this->render($pathFileHtml, $params);
+        var_dump($html) ;die ;
         $this->mail->msgHTML($html, __DIR__);
         return $this;
     }
@@ -151,12 +168,11 @@ class Builder {
      * @return string
      */
     public function render(string $pathFileHtml, array $params, string $folder = "templates"): string {
-        $output = file_get_contents($_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . "" . $folder . DIRECTORY_SEPARATOR . $pathFileHtml);
-        foreach ($params as $key => $value) {
-            $tagToReplace = "##$key##";
-            $output = str_replace($tagToReplace, $value, $output);
-        }
-        return $output;
+       // $output = file_get_contents($_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . "" . $folder . DIRECTORY_SEPARATOR . $pathFileHtml);
+         return $this->twig->render(
+                $pathFileHtml,
+               $params
+        );
     }
 
     /**
@@ -165,5 +181,12 @@ class Builder {
     public function send() {
         $this->mail->send();
     }
-
+    
+    /**
+     * 
+     * @return mixed
+     */
+    public function getErrorInfo():mixed{
+        return $this->mail->ErrorInfo ;
+    }
 }
