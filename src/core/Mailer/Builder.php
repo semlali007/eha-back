@@ -146,7 +146,6 @@ class Builder {
      */
     public function html(string $pathFileHtml, array $params = []): self {
         $html = $this->render($pathFileHtml, $params);
-        var_dump($html) ;die ;
         $this->mail->msgHTML($html, __DIR__);
         return $this;
     }
