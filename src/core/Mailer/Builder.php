@@ -34,13 +34,13 @@ class Builder {
      * @param bool $enbaleException
      */
     public function __construct(bool $enbaleException = true) {
-        $path = dirname(__DIR__) . '/../'.self::PATH_TEMPLATING;
-        // $path = $_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR .self::PATH_TEMPLATING . DIRECTORY_SEPARATOR;
-        $this->twig = new Environment(new FilesystemLoader($path));
+        $templateBasePath = dirname(__DIR__). '/../' . self::PATH_TEMPLATING ;
+        $this->twig = new Environment(new FilesystemLoader($templateBasePath)); // Templating
         $this->mail = new Mailer($enbaleException); // Mailer
-        if (filter_var(getenv("ENABLE_CUSTOM_CONF"), FILTER_VALIDATE_BOOLEAN)) {
+        // Charger les prametres personnalisés
+        if (filter_var(getenv("ENABLE_CUSTOM_CONF"), FILTER_VALIDATE_BOOLEAN)) :
             $this->enableCustomSettings();
-        }
+        endif;
     }
 
     /**
