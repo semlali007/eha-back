@@ -47,7 +47,17 @@ class SheetRepository extends AbstractRepository {
     public function findById(int $id): mixed {
         return (new Sheet())->get($id);
     }
-
+    
+    /**
+     * 
+     * @param int $endDays , default = 15
+     * @return array|null
+     */
+    public function findByEndDateWithIn( int $endDays = 15): ?array {
+        $endDate = Date::generateDateMoins($endDays) ;
+        return (new Sheet()) // Generer le jour Datetime format + 30 (exemple)
+                ->findByEndDateWithIn($endDate); 
+    }
     
     /**
      * 
@@ -56,7 +66,7 @@ class SheetRepository extends AbstractRepository {
      */
     public function findByEndDatePlus(int $days = 30): ?array {
         // Generer le jour Datetime format + 30 (exemple)
-        return (new Sheet())->findByEndDate(Date::generateDatePlus($days));
+        return (new Sheet())->findByEndDate(Date::generateDateMoins($days));
     }
     
     /**
@@ -66,8 +76,7 @@ class SheetRepository extends AbstractRepository {
      */
     public function archiverByEndDatePlus(int $days = 30):?int{
         // Generer le jour Datetime format + 30 (exemple)
-        $today = (new \DateTimeImmutable())->modify("+{$days} day");
-        return (new Sheet())->archiverFichesByDate($today->format('d-m-Y'));
+        return (new Sheet())->archiverFichesByDate(Date::generateDateMoins($days));
     }
 
     public function getDetails($id) {

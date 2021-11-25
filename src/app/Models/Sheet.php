@@ -366,7 +366,24 @@ class Sheet extends Model
     public function archiverFichesByDate(string $date):?int {
         
         $sth = $this->db->getPDO() // Execution de la requete
-                ->prepare('UPDATE ' . $this->table . ' SET status=\'-1\' WHERE end_date>=:endDate and status=1');
+                ->prepare('UPDATE ' . $this->table . ' SET status=\'-1\' WHERE end_date<=:endDate and (status=1 or status=0)');
+         // Bind params
+        $sth->bindParam(':endDate', $date, PDO::PARAM_INT);
+        $sth->execute(); // Lancer la requete
+        // si plusieurs row sont affectés
+        return $sth->rowCount();
+    }
+    
+    /**
+     * Archiver les fiches marchés
+     * 
+     * @param string $date format (dd-mm-yyyy) exemple: 10/02/2022
+     * @return int|null
+     */
+    public function desarchiverFichesByDate(string $date):?int {
+        
+        $sth = $this->db->getPDO() // Execution de la requete
+                ->prepare('UPDATE ' . $this->table . ' SET status=\'1\' WHERE end_date>=:endDate');
          // Bind params
         $sth->bindParam(':endDate', $date, PDO::PARAM_INT);
         $sth->execute(); // Lancer la requete
@@ -376,21 +393,18 @@ class Sheet extends Model
     }
     
         /**
-     * Archiver les fiches marchés
      * 
-     * @param string $date format (dd-mm-yyyy) exemple: 10/02/2022
-     * @return int|null
+     * @param string $endDate
+     * @return mixed
      */
-    public function desarchiverFichesByDate(string $date):?int {
-        
+    public function findByEndDateWithIn(string $endDate): mixed 
+    { 
         $sth = $this->db->getPDO() // Execution de la requete
-                ->prepare('UPDATE ' . $this->table . ' SET status=\'1\' WHERE end_date>=:endDate and status=-1');
-         // Bind params
-        $sth->bindParam(':endDate', $date, PDO::PARAM_INT);
+                ->prepare('SELECT id, label, start_date, end_date FROM ' . $this->table . ' WHERE end_date<=:endDate and status != -1'); 
+        $sth->bindParam(':endDate', $endDate, PDO::PARAM_STR); // Bind params
         $sth->execute(); // Lancer la requete
         
-        // si plusieurs row sont affectés
-        return $sth->rowCount();
+        return $sth->fetchAll(\PDO::FETCH_ASSOC); // Recupérer les infos sous forme une table
     }
 
     /**
@@ -401,8 +415,8 @@ class Sheet extends Model
     public function findByEndDate(string $date): mixed 
     {
         $sth = $this->db->getPDO() // Execution de la requete
-                ->prepare('SELECT id,end_date FROM ' . $this->table . ' WHERE end_date>=:endDate and status=1'); 
-        $sth->bindParam(':endDate', $date, PDO::PARAM_INT); // Bind params
+                ->prepare('SELECT id,end_date FROM ' . $this->table . ' WHERE end_date<=:endDate and status!=-1'); 
+        $sth->bindParam(':endDate', $date, PDO::PARAM_STR); // Bind params
         $sth->execute(); // Lancer la requete
         
         return $sth->fetchAll(\PDO::FETCH_ASSOC); // Recupérer les infos sous forme une table
