@@ -15,7 +15,7 @@ use Core\Mailer\{
  */
 class Builder {
     
-    const PATH_TEMPLATING = "templates" ;
+    const PATH_TEMPLATING = "templates/" ;
 
     /**
      * 
@@ -34,12 +34,13 @@ class Builder {
      * @param bool $enbaleException
      */
     public function __construct(bool $enbaleException = true) {
-        $path = $_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR .self::PATH_TEMPLATING . DIRECTORY_SEPARATOR;
-        $this->twig = new Environment(new FilesystemLoader($path));
+        $templateBasePath = dirname(__DIR__). '/../' . self::PATH_TEMPLATING ;
+        $this->twig = new Environment(new FilesystemLoader($templateBasePath)); // Templating
         $this->mail = new Mailer($enbaleException); // Mailer
-        if (filter_var(getenv("ENABLE_CUSTOM_CONF"), FILTER_VALIDATE_BOOLEAN)) {
+        // Charger les prametres personnalisés
+        if (filter_var(getenv("ENABLE_CUSTOM_CONF"), FILTER_VALIDATE_BOOLEAN)) :
             $this->enableCustomSettings();
-        }
+        endif;
     }
 
     /**
@@ -149,6 +150,15 @@ class Builder {
         $this->mail->msgHTML($html, __DIR__);
         return $this;
     }
+    /**
+     * 
+     * @param string $pathFileHtml
+     * @param array $params
+     * @return void
+     */
+    public function viewHtml(string $pathFileHtml, array $params = []):void{
+         echo $this->render($pathFileHtml, $params);
+    }
 
     /**
      * 
@@ -166,8 +176,7 @@ class Builder {
      * @param string $pathFileHtml
      * @return string
      */
-    public function render(string $pathFileHtml, array $params, string $folder = "templates"): string {
-       // $output = file_get_contents($_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . "" . $folder . DIRECTORY_SEPARATOR . $pathFileHtml);
+    public function render(string $pathFileHtml, array $params): string {
          return $this->twig->render(
                 $pathFileHtml,
                $params

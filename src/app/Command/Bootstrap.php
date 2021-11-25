@@ -3,12 +3,14 @@
 namespace App\Command;
 
 use Symfony\Component\Console\Application;
-use App\Command\Command\ArchivageFicheMarche;
+use App\Command\Command\{ArchivageFicheMarche,AutoNotifArchivageFiche};
+
+
 
 /**
  * @author HGDDEDBN
  */
-class Bootsrap {
+class Bootstrap {
 
     /**
      * 
@@ -17,7 +19,7 @@ class Bootsrap {
     private Application $application;
 
     /**
-     * @var LoggerHandler
+     * @var Bootstrap
      * @access private
      * @static
      */
@@ -35,7 +37,8 @@ class Bootsrap {
     public function __construct() {
         $this->application = new Application();
         $this->commands = [
-            new ArchivageFicheMarche()
+            new ArchivageFicheMarche(),
+            new AutoNotifArchivageFiche()
         ] ;
     }
 
@@ -46,7 +49,7 @@ class Bootsrap {
     public static function getInstance(): ?self {
 
         if (is_null(self::$_instance)) {
-            self::$_instance = new Bootsrap();
+            self::$_instance = new Bootstrap();
         }
 
         return self::$_instance;
