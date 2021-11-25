@@ -42,10 +42,7 @@ SET row_security = off;
 -- Name: DATABASE postgres; Type: COMMENT; Schema: -; Owner: -
 --
 
-COMMENT ON DATABASE EHA IS 'default administrative connection database';
-
-
-SET default_tablespace = '';
+COMMENT ON DATABASE "EHA" IS 'default administrative connection database';
 
 SET default_table_access_method = heap;
 
@@ -54,7 +51,7 @@ SET default_table_access_method = heap;
 -- Name: administrators; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.administrators (
+CREATE TABLE "EHA".administrators (
     email character varying(100) NOT NULL,
     living boolean NOT NULL
 );
@@ -65,7 +62,7 @@ CREATE TABLE public.administrators (
 -- Name: committee; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.committee (
+CREATE TABLE "EHA".committee (
     code integer NOT NULL,
     label text
 );
@@ -76,7 +73,7 @@ CREATE TABLE public.committee (
 -- Name: committee_code_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.committee_code_seq
+CREATE SEQUENCE "EHA".committee_code_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -91,7 +88,7 @@ CREATE SEQUENCE public.committee_code_seq
 -- Name: committee_code_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.committee_code_seq OWNED BY public.committee.code;
+ALTER SEQUENCE "EHA".committee_code_seq OWNED BY "EHA".committee.code;
 
 
 --
@@ -99,7 +96,7 @@ ALTER SEQUENCE public.committee_code_seq OWNED BY public.committee.code;
 -- Name: contract; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.contract (
+CREATE TABLE "EHA".contract (
     contract_system character varying(2) NOT NULL,
     contract_system_label character varying(50) NOT NULL,
     contract_code character varying(20) NOT NULL,
@@ -130,7 +127,7 @@ CREATE TABLE public.contract (
 -- Name: dauphin; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.dauphin (
+CREATE TABLE "EHA".dauphin (
     code integer NOT NULL,
     url character varying(200) NOT NULL,
     label character varying(5000) NOT NULL,
@@ -146,7 +143,7 @@ CREATE TABLE public.dauphin (
 -- Name: externes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.externes (
+CREATE TABLE "EHA".externes (
     externe_email character varying(100) NOT NULL,
     demandeur_email character varying(100) NOT NULL,
     date_fin date NOT NULL
@@ -158,7 +155,7 @@ CREATE TABLE public.externes (
 -- Name: fiche_dait; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.fiche_dait (
+CREATE TABLE "EHA".fiche_dait (
     etat_approbation text,
     application_creee_par text,
     application_modifiee_par text,
@@ -205,7 +202,7 @@ CREATE TABLE public.fiche_dait (
 -- Name: fiche_dapi; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.fiche_dapi (
+CREATE TABLE "EHA".fiche_dapi (
     etat_approbation text,
     id text,
     application_creee_par text,
@@ -253,7 +250,7 @@ CREATE TABLE public.fiche_dapi (
 -- Name: fiche_datpa; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.fiche_datpa (
+CREATE TABLE "EHA".fiche_datpa (
     id text,
     titre text,
     etat_approbation text,
@@ -290,7 +287,7 @@ CREATE TABLE public.fiche_datpa (
 -- Name: fiche_datpb; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.fiche_datpb (
+CREATE TABLE "EHA".fiche_datpb (
     id text,
     application_creee_par text,
     application_modifiee_par text,
@@ -321,7 +318,7 @@ CREATE TABLE public.fiche_datpb (
 -- Name: filiale; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.filiale (
+CREATE TABLE "EHA".filiale (
     id integer NOT NULL,
     name text NOT NULL
 );
@@ -332,7 +329,7 @@ CREATE TABLE public.filiale (
 -- Name: filiale_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.filiale_id_seq
+CREATE SEQUENCE "EHA".filiale_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -347,7 +344,7 @@ CREATE SEQUENCE public.filiale_id_seq
 -- Name: filiale_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.filiale_id_seq OWNED BY public.filiale.id;
+ALTER SEQUENCE "EHA".filiale_id_seq OWNED BY "EHA".filiale.id;
 
 
 --
@@ -355,7 +352,7 @@ ALTER SEQUENCE public.filiale_id_seq OWNED BY public.filiale.id;
 -- Name: french_cities; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.french_cities (
+CREATE TABLE "EHA".french_cities (
     id_city integer NOT NULL,
     zipcode character varying(20) NOT NULL,
     latitude double precision NOT NULL,
@@ -370,7 +367,7 @@ CREATE TABLE public.french_cities (
 -- Name: french_cities_id_city_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.french_cities_id_city_seq
+CREATE SEQUENCE "EHA".french_cities_id_city_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -385,7 +382,7 @@ CREATE SEQUENCE public.french_cities_id_city_seq
 -- Name: french_cities_id_city_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.french_cities_id_city_seq OWNED BY public.french_cities.id_city;
+ALTER SEQUENCE "EHA".french_cities_id_city_seq OWNED BY "EHA".french_cities.id_city;
 
 
 --
@@ -393,7 +390,7 @@ ALTER SEQUENCE public.french_cities_id_city_seq OWNED BY public.french_cities.id
 -- Name: group; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public."group" (
+CREATE TABLE "EHA"."group" (
     id integer NOT NULL,
     name text NOT NULL
 );
@@ -404,7 +401,7 @@ CREATE TABLE public."group" (
 -- Name: group_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.group_id_seq
+CREATE SEQUENCE "EHA".group_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -419,7 +416,7 @@ CREATE SEQUENCE public.group_id_seq
 -- Name: group_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.group_id_seq OWNED BY public."group".id;
+ALTER SEQUENCE "EHA".group_id_seq OWNED BY "EHA"."group".id;
 
 
 --
@@ -427,7 +424,7 @@ ALTER SEQUENCE public.group_id_seq OWNED BY public."group".id;
 -- Name: hotline; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.hotline (
+CREATE TABLE "EHA".hotline (
     discussion integer NOT NULL,
     opened_at timestamp without time zone NOT NULL,
     email_from character varying(100) NOT NULL,
@@ -447,7 +444,7 @@ CREATE TABLE public.hotline (
 -- Name: hotline_discussion_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.hotline_discussion_seq
+CREATE SEQUENCE "EHA".hotline_discussion_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -462,7 +459,7 @@ CREATE SEQUENCE public.hotline_discussion_seq
 -- Name: hotline_discussion_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.hotline_discussion_seq OWNED BY public.hotline.discussion;
+ALTER SEQUENCE "EHA".hotline_discussion_seq OWNED BY "EHA".hotline.discussion;
 
 
 --
@@ -470,7 +467,7 @@ ALTER SEQUENCE public.hotline_discussion_seq OWNED BY public.hotline.discussion;
 -- Name: hotline_email; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.hotline_email (
+CREATE TABLE "EHA".hotline_email (
     id smallint NOT NULL,
     groupe character varying(5) NOT NULL,
     category character varying(100) NOT NULL,
@@ -484,7 +481,7 @@ CREATE TABLE public.hotline_email (
 -- Name: hotline_fichiers; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.hotline_fichiers (
+CREATE TABLE "EHA".hotline_fichiers (
     "row" integer NOT NULL,
     discussion integer NOT NULL,
     file_code character varying(100) NOT NULL,
@@ -497,7 +494,7 @@ CREATE TABLE public.hotline_fichiers (
 -- Name: hotline_fichiers_row_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.hotline_fichiers_row_seq
+CREATE SEQUENCE "EHA".hotline_fichiers_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -512,7 +509,7 @@ CREATE SEQUENCE public.hotline_fichiers_row_seq
 -- Name: hotline_fichiers_row_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.hotline_fichiers_row_seq OWNED BY public.hotline_fichiers."row";
+ALTER SEQUENCE "EHA".hotline_fichiers_row_seq OWNED BY "EHA".hotline_fichiers."row";
 
 
 --
@@ -520,7 +517,7 @@ ALTER SEQUENCE public.hotline_fichiers_row_seq OWNED BY public.hotline_fichiers.
 -- Name: hotline_fil; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.hotline_fil (
+CREATE TABLE "EHA".hotline_fil (
     "row" integer NOT NULL,
     discussion integer NOT NULL,
     nature character(1) NOT NULL,
@@ -536,7 +533,7 @@ CREATE TABLE public.hotline_fil (
 -- Name: hotline_fil_row_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.hotline_fil_row_seq
+CREATE SEQUENCE "EHA".hotline_fil_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -551,7 +548,7 @@ CREATE SEQUENCE public.hotline_fil_row_seq
 -- Name: hotline_fil_row_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.hotline_fil_row_seq OWNED BY public.hotline_fil."row";
+ALTER SEQUENCE "EHA".hotline_fil_row_seq OWNED BY "EHA".hotline_fil."row";
 
 
 --
@@ -559,7 +556,7 @@ ALTER SEQUENCE public.hotline_fil_row_seq OWNED BY public.hotline_fil."row";
 -- Name: hotline_groupe; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.hotline_groupe (
+CREATE TABLE "EHA".hotline_groupe (
     id character varying(5) NOT NULL,
     label character varying(100) NOT NULL,
     living boolean NOT NULL
@@ -571,7 +568,7 @@ CREATE TABLE public.hotline_groupe (
 -- Name: hotline_theme; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.hotline_theme (
+CREATE TABLE "EHA".hotline_theme (
     id smallint NOT NULL,
     label character varying(100) NOT NULL,
     living boolean NOT NULL
@@ -583,7 +580,7 @@ CREATE TABLE public.hotline_theme (
 -- Name: item_generic; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.item_generic (
+CREATE TABLE "EHA".item_generic (
     item_code character varying(20) NOT NULL,
     item_label character varying(90) NOT NULL,
     item_label_long character varying(180) NOT NULL,
@@ -605,7 +602,7 @@ CREATE TABLE public.item_generic (
 -- Name: menu_contacts; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.menu_contacts (
+CREATE TABLE "EHA".menu_contacts (
     id integer NOT NULL,
     label text NOT NULL,
     "position" integer NOT NULL,
@@ -623,7 +620,7 @@ CREATE TABLE public.menu_contacts (
 -- Name: menu_contacts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.menu_contacts_id_seq
+CREATE SEQUENCE "EHA".menu_contacts_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -638,7 +635,7 @@ CREATE SEQUENCE public.menu_contacts_id_seq
 -- Name: menu_contacts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.menu_contacts_id_seq OWNED BY public.menu_contacts.id;
+ALTER SEQUENCE "EHA".menu_contacts_id_seq OWNED BY "EHA".menu_contacts.id;
 
 
 --
@@ -646,7 +643,7 @@ ALTER SEQUENCE public.menu_contacts_id_seq OWNED BY public.menu_contacts.id;
 -- Name: menu_documentations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.menu_documentations (
+CREATE TABLE "EHA".menu_documentations (
     id integer NOT NULL,
     label text NOT NULL,
     "position" integer NOT NULL,
@@ -664,7 +661,7 @@ CREATE TABLE public.menu_documentations (
 -- Name: menu_documentations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.menu_documentations_id_seq
+CREATE SEQUENCE "EHA".menu_documentations_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -679,7 +676,7 @@ CREATE SEQUENCE public.menu_documentations_id_seq
 -- Name: menu_documentations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.menu_documentations_id_seq OWNED BY public.menu_documentations.id;
+ALTER SEQUENCE "EHA".menu_documentations_id_seq OWNED BY "EHA".menu_documentations.id;
 
 
 --
@@ -687,7 +684,7 @@ ALTER SEQUENCE public.menu_documentations_id_seq OWNED BY public.menu_documentat
 -- Name: news; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.news (
+CREATE TABLE "EHA".news (
     title character varying(150),
     date date,
     description text,
@@ -701,7 +698,7 @@ CREATE TABLE public.news (
 -- Name: news_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.news_id_seq
+CREATE SEQUENCE "EHA".news_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -716,7 +713,7 @@ CREATE SEQUENCE public.news_id_seq
 -- Name: news_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.news_id_seq OWNED BY public.news.id;
+ALTER SEQUENCE "EHA".news_id_seq OWNED BY "EHA".news.id;
 
 
 --
@@ -724,7 +721,7 @@ ALTER SEQUENCE public.news_id_seq OWNED BY public.news.id;
 -- Name: provider; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.provider (
+CREATE TABLE "EHA".provider (
     provider_code character varying(10) NOT NULL,
     provider_label character varying(50) NOT NULL,
     provider_country character varying(9) NOT NULL,
@@ -746,7 +743,7 @@ CREATE TABLE public.provider (
 -- Name: provider_item; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.provider_item (
+CREATE TABLE "EHA".provider_item (
     "row" integer NOT NULL,
     provider_code character varying(10) NOT NULL,
     item_code character varying(20) NOT NULL
@@ -758,7 +755,7 @@ CREATE TABLE public.provider_item (
 -- Name: provider_item_row_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.provider_item_row_seq
+CREATE SEQUENCE "EHA".provider_item_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -773,7 +770,7 @@ CREATE SEQUENCE public.provider_item_row_seq
 -- Name: provider_item_row_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.provider_item_row_seq OWNED BY public.provider_item."row";
+ALTER SEQUENCE "EHA".provider_item_row_seq OWNED BY "EHA".provider_item."row";
 
 
 --
@@ -781,7 +778,7 @@ ALTER SEQUENCE public.provider_item_row_seq OWNED BY public.provider_item."row";
 -- Name: repository; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.repository (
+CREATE TABLE "EHA".repository (
     family character varying(9) NOT NULL,
     code character varying(20) NOT NULL,
     label character varying(50) NOT NULL
@@ -793,7 +790,7 @@ CREATE TABLE public.repository (
 -- Name: sheet_contract_lots; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_contract_lots (
+CREATE TABLE "EHA".sheet_contract_lots (
     sheet_id bigint NOT NULL,
     contract_code character varying(255) NOT NULL,
     lot_name character varying(255) NOT NULL
@@ -805,7 +802,7 @@ CREATE TABLE public.sheet_contract_lots (
 -- Name: sheet_contracts; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_contracts (
+CREATE TABLE "EHA".sheet_contracts (
     id integer NOT NULL,
     sheet_id integer NOT NULL,
     contract_code character varying(20) NOT NULL,
@@ -819,7 +816,7 @@ CREATE TABLE public.sheet_contracts (
 -- Name: sheet_contracts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.sheet_contracts_id_seq
+CREATE SEQUENCE "EHA".sheet_contracts_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -834,7 +831,7 @@ CREATE SEQUENCE public.sheet_contracts_id_seq
 -- Name: sheet_contracts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.sheet_contracts_id_seq OWNED BY public.sheet_contracts.id;
+ALTER SEQUENCE "EHA".sheet_contracts_id_seq OWNED BY "EHA".sheet_contracts.id;
 
 
 --
@@ -842,7 +839,7 @@ ALTER SEQUENCE public.sheet_contracts_id_seq OWNED BY public.sheet_contracts.id;
 -- Name: sheet_files; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_files (
+CREATE TABLE "EHA".sheet_files (
     id integer NOT NULL,
     sheet_id integer NOT NULL,
     file_name character varying(255),
@@ -858,7 +855,7 @@ CREATE TABLE public.sheet_files (
 -- Name: sheet_files_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.sheet_files_id_seq
+CREATE SEQUENCE "EHA".sheet_files_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -873,7 +870,7 @@ CREATE SEQUENCE public.sheet_files_id_seq
 -- Name: sheet_files_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.sheet_files_id_seq OWNED BY public.sheet_files.id;
+ALTER SEQUENCE "EHA".sheet_files_id_seq OWNED BY "EHA".sheet_files.id;
 
 
 --
@@ -881,7 +878,7 @@ ALTER SEQUENCE public.sheet_files_id_seq OWNED BY public.sheet_files.id;
 -- Name: sheet_filiales; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_filiales (
+CREATE TABLE "EHA".sheet_filiales (
     sheet_id bigint NOT NULL,
     filiale_id bigint NOT NULL
 );
@@ -892,7 +889,7 @@ CREATE TABLE public.sheet_filiales (
 -- Name: sheet_groups; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_groups (
+CREATE TABLE "EHA".sheet_groups (
     sheet_id bigint NOT NULL,
     group_id bigint NOT NULL
 );
@@ -903,7 +900,7 @@ CREATE TABLE public.sheet_groups (
 -- Name: sheet_headers; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_headers (
+CREATE TABLE "EHA".sheet_headers (
     id integer NOT NULL,
     label text NOT NULL,
     description text,
@@ -931,7 +928,7 @@ CREATE TABLE public.sheet_headers (
 -- Name: sheet_headers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.sheet_headers_id_seq
+CREATE SEQUENCE "EHA".sheet_headers_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -946,7 +943,7 @@ CREATE SEQUENCE public.sheet_headers_id_seq
 -- Name: sheet_headers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.sheet_headers_id_seq OWNED BY public.sheet_headers.id;
+ALTER SEQUENCE "EHA".sheet_headers_id_seq OWNED BY "EHA".sheet_headers.id;
 
 
 --
@@ -954,7 +951,7 @@ ALTER SEQUENCE public.sheet_headers_id_seq OWNED BY public.sheet_headers.id;
 -- Name: sheet_lot; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_lot (
+CREATE TABLE "EHA".sheet_lot (
     name character varying(255) NOT NULL,
     description text NOT NULL,
     sheet_id bigint NOT NULL
@@ -966,7 +963,7 @@ CREATE TABLE public.sheet_lot (
 -- Name: sheet_options; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_options (
+CREATE TABLE "EHA".sheet_options (
     sheet_id bigint,
     start_date date,
     end_date date,
@@ -979,7 +976,7 @@ CREATE TABLE public.sheet_options (
 -- Name: sheet_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.sheet_options_id_seq
+CREATE SEQUENCE "EHA".sheet_options_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -993,7 +990,7 @@ CREATE SEQUENCE public.sheet_options_id_seq
 -- Name: sheet_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.sheet_options_id_seq OWNED BY public.sheet_options.id;
+ALTER SEQUENCE "EHA".sheet_options_id_seq OWNED BY "EHA".sheet_options.id;
 
 
 --
@@ -1001,7 +998,7 @@ ALTER SEQUENCE public.sheet_options_id_seq OWNED BY public.sheet_options.id;
 -- Name: sheet_providers; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_providers (
+CREATE TABLE "EHA".sheet_providers (
     sheet_id bigint NOT NULL,
     provider_code character varying(10) NOT NULL
 );
@@ -1012,7 +1009,7 @@ CREATE TABLE public.sheet_providers (
 -- Name: sheet_zones; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.sheet_zones (
+CREATE TABLE "EHA".sheet_zones (
     sheet_id bigint NOT NULL,
     zone_id bigint NOT NULL
 );
@@ -1023,7 +1020,7 @@ CREATE TABLE public.sheet_zones (
 -- Name: stats; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.stats (
+CREATE TABLE "EHA".stats (
     table_name character varying(19) NOT NULL,
     updated_date timestamp without time zone
 );
@@ -1034,7 +1031,7 @@ CREATE TABLE public.stats (
 -- Name: tenders; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.tenders (
+CREATE TABLE "EHA".tenders (
     "row" integer NOT NULL,
     tender_code character(13) NOT NULL,
     description_short text,
@@ -1053,7 +1050,7 @@ CREATE TABLE public.tenders (
 -- Name: tenders_row_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.tenders_row_seq
+CREATE SEQUENCE "EHA".tenders_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1068,7 +1065,7 @@ CREATE SEQUENCE public.tenders_row_seq
 -- Name: tenders_row_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.tenders_row_seq OWNED BY public.tenders."row";
+ALTER SEQUENCE "EHA".tenders_row_seq OWNED BY "EHA".tenders."row";
 
 
 --
@@ -1076,7 +1073,7 @@ ALTER SEQUENCE public.tenders_row_seq OWNED BY public.tenders."row";
 -- Name: user_news; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.user_news (
+CREATE TABLE "EHA".user_news (
     nni_utilisateur character varying(20),
     id_news integer,
     id integer NOT NULL
@@ -1088,7 +1085,7 @@ CREATE TABLE public.user_news (
 -- Name: user_news_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.user_news_id_seq
+CREATE SEQUENCE "EHA".user_news_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1103,7 +1100,7 @@ CREATE SEQUENCE public.user_news_id_seq
 -- Name: user_news_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.user_news_id_seq OWNED BY public.user_news.id;
+ALTER SEQUENCE "EHA".user_news_id_seq OWNED BY "EHA".user_news.id;
 
 
 --
@@ -1111,7 +1108,7 @@ ALTER SEQUENCE public.user_news_id_seq OWNED BY public.user_news.id;
 -- Name: zone; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.zone (
+CREATE TABLE "EHA".zone (
     id integer NOT NULL,
     name text NOT NULL
 );
@@ -1122,7 +1119,7 @@ CREATE TABLE public.zone (
 -- Name: zone_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.zone_id_seq
+CREATE SEQUENCE "EHA".zone_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1137,7 +1134,7 @@ CREATE SEQUENCE public.zone_id_seq
 -- Name: zone_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.zone_id_seq OWNED BY public.zone.id;
+ALTER SEQUENCE "EHA".zone_id_seq OWNED BY "EHA".zone.id;
 
 
 --
@@ -1145,7 +1142,7 @@ ALTER SEQUENCE public.zone_id_seq OWNED BY public.zone.id;
 -- Name: committee code; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.committee ALTER COLUMN code SET DEFAULT nextval('public.committee_code_seq'::regclass);
+ALTER TABLE ONLY "EHA".committee ALTER COLUMN code SET DEFAULT nextval('"EHA".committee_code_seq'::regclass);
 
 
 --
@@ -1153,7 +1150,7 @@ ALTER TABLE ONLY public.committee ALTER COLUMN code SET DEFAULT nextval('public.
 -- Name: filiale id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.filiale ALTER COLUMN id SET DEFAULT nextval('public.filiale_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".filiale ALTER COLUMN id SET DEFAULT nextval('"EHA".filiale_id_seq'::regclass);
 
 
 --
@@ -1161,7 +1158,7 @@ ALTER TABLE ONLY public.filiale ALTER COLUMN id SET DEFAULT nextval('public.fili
 -- Name: french_cities id_city; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.french_cities ALTER COLUMN id_city SET DEFAULT nextval('public.french_cities_id_city_seq'::regclass);
+ALTER TABLE ONLY "EHA".french_cities ALTER COLUMN id_city SET DEFAULT nextval('"EHA".french_cities_id_city_seq'::regclass);
 
 
 --
@@ -1169,7 +1166,7 @@ ALTER TABLE ONLY public.french_cities ALTER COLUMN id_city SET DEFAULT nextval('
 -- Name: group id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public."group" ALTER COLUMN id SET DEFAULT nextval('public.group_id_seq'::regclass);
+ALTER TABLE ONLY "EHA"."group" ALTER COLUMN id SET DEFAULT nextval('"EHA".group_id_seq'::regclass);
 
 
 --
@@ -1177,7 +1174,7 @@ ALTER TABLE ONLY public."group" ALTER COLUMN id SET DEFAULT nextval('public.grou
 -- Name: hotline discussion; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline ALTER COLUMN discussion SET DEFAULT nextval('public.hotline_discussion_seq'::regclass);
+ALTER TABLE ONLY "EHA".hotline ALTER COLUMN discussion SET DEFAULT nextval('"EHA".hotline_discussion_seq'::regclass);
 
 
 --
@@ -1185,7 +1182,7 @@ ALTER TABLE ONLY public.hotline ALTER COLUMN discussion SET DEFAULT nextval('pub
 -- Name: hotline_fichiers row; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_fichiers ALTER COLUMN "row" SET DEFAULT nextval('public.hotline_fichiers_row_seq'::regclass);
+ALTER TABLE ONLY "EHA".hotline_fichiers ALTER COLUMN "row" SET DEFAULT nextval('"EHA".hotline_fichiers_row_seq'::regclass);
 
 
 --
@@ -1193,7 +1190,7 @@ ALTER TABLE ONLY public.hotline_fichiers ALTER COLUMN "row" SET DEFAULT nextval(
 -- Name: hotline_fil row; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_fil ALTER COLUMN "row" SET DEFAULT nextval('public.hotline_fil_row_seq'::regclass);
+ALTER TABLE ONLY "EHA".hotline_fil ALTER COLUMN "row" SET DEFAULT nextval('"EHA".hotline_fil_row_seq'::regclass);
 
 
 --
@@ -1201,7 +1198,7 @@ ALTER TABLE ONLY public.hotline_fil ALTER COLUMN "row" SET DEFAULT nextval('publ
 -- Name: menu_contacts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.menu_contacts ALTER COLUMN id SET DEFAULT nextval('public.menu_contacts_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".menu_contacts ALTER COLUMN id SET DEFAULT nextval('"EHA".menu_contacts_id_seq'::regclass);
 
 
 --
@@ -1209,7 +1206,7 @@ ALTER TABLE ONLY public.menu_contacts ALTER COLUMN id SET DEFAULT nextval('publi
 -- Name: menu_documentations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.menu_documentations ALTER COLUMN id SET DEFAULT nextval('public.menu_documentations_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".menu_documentations ALTER COLUMN id SET DEFAULT nextval('"EHA".menu_documentations_id_seq'::regclass);
 
 
 --
@@ -1217,7 +1214,7 @@ ALTER TABLE ONLY public.menu_documentations ALTER COLUMN id SET DEFAULT nextval(
 -- Name: news id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.news ALTER COLUMN id SET DEFAULT nextval('public.news_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".news ALTER COLUMN id SET DEFAULT nextval('"EHA".news_id_seq'::regclass);
 
 
 --
@@ -1225,7 +1222,7 @@ ALTER TABLE ONLY public.news ALTER COLUMN id SET DEFAULT nextval('public.news_id
 -- Name: provider_item row; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.provider_item ALTER COLUMN "row" SET DEFAULT nextval('public.provider_item_row_seq'::regclass);
+ALTER TABLE ONLY "EHA".provider_item ALTER COLUMN "row" SET DEFAULT nextval('"EHA".provider_item_row_seq'::regclass);
 
 
 --
@@ -1233,7 +1230,7 @@ ALTER TABLE ONLY public.provider_item ALTER COLUMN "row" SET DEFAULT nextval('pu
 -- Name: sheet_contracts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_contracts ALTER COLUMN id SET DEFAULT nextval('public.sheet_contracts_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".sheet_contracts ALTER COLUMN id SET DEFAULT nextval('"EHA".sheet_contracts_id_seq'::regclass);
 
 
 --
@@ -1241,7 +1238,7 @@ ALTER TABLE ONLY public.sheet_contracts ALTER COLUMN id SET DEFAULT nextval('pub
 -- Name: sheet_files id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_files ALTER COLUMN id SET DEFAULT nextval('public.sheet_files_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".sheet_files ALTER COLUMN id SET DEFAULT nextval('"EHA".sheet_files_id_seq'::regclass);
 
 
 --
@@ -1249,7 +1246,7 @@ ALTER TABLE ONLY public.sheet_files ALTER COLUMN id SET DEFAULT nextval('public.
 -- Name: sheet_headers id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_headers ALTER COLUMN id SET DEFAULT nextval('public.sheet_headers_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".sheet_headers ALTER COLUMN id SET DEFAULT nextval('"EHA".sheet_headers_id_seq'::regclass);
 
 
 --
@@ -1257,7 +1254,7 @@ ALTER TABLE ONLY public.sheet_headers ALTER COLUMN id SET DEFAULT nextval('publi
 -- Name: sheet_options id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_options ALTER COLUMN id SET DEFAULT nextval('public.sheet_options_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".sheet_options ALTER COLUMN id SET DEFAULT nextval('"EHA".sheet_options_id_seq'::regclass);
 
 
 --
@@ -1265,7 +1262,7 @@ ALTER TABLE ONLY public.sheet_options ALTER COLUMN id SET DEFAULT nextval('publi
 -- Name: tenders row; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tenders ALTER COLUMN "row" SET DEFAULT nextval('public.tenders_row_seq'::regclass);
+ALTER TABLE ONLY "EHA".tenders ALTER COLUMN "row" SET DEFAULT nextval('"EHA".tenders_row_seq'::regclass);
 
 
 --
@@ -1273,7 +1270,7 @@ ALTER TABLE ONLY public.tenders ALTER COLUMN "row" SET DEFAULT nextval('public.t
 -- Name: user_news id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.user_news ALTER COLUMN id SET DEFAULT nextval('public.user_news_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".user_news ALTER COLUMN id SET DEFAULT nextval('"EHA".user_news_id_seq'::regclass);
 
 
 --
@@ -1281,7 +1278,7 @@ ALTER TABLE ONLY public.user_news ALTER COLUMN id SET DEFAULT nextval('public.us
 -- Name: zone id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.zone ALTER COLUMN id SET DEFAULT nextval('public.zone_id_seq'::regclass);
+ALTER TABLE ONLY "EHA".zone ALTER COLUMN id SET DEFAULT nextval('"EHA".zone_id_seq'::regclass);
 
 
 --
@@ -1289,7 +1286,7 @@ ALTER TABLE ONLY public.zone ALTER COLUMN id SET DEFAULT nextval('public.zone_id
 -- Name: administrators administrators_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.administrators
+ALTER TABLE ONLY "EHA".administrators
     ADD CONSTRAINT administrators_pkey PRIMARY KEY (email);
 
 
@@ -1298,7 +1295,7 @@ ALTER TABLE ONLY public.administrators
 -- Name: committee committee_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.committee
+ALTER TABLE ONLY "EHA".committee
     ADD CONSTRAINT committee_pkey PRIMARY KEY (code);
 
 
@@ -1307,7 +1304,7 @@ ALTER TABLE ONLY public.committee
 -- Name: contract contract_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.contract
+ALTER TABLE ONLY "EHA".contract
     ADD CONSTRAINT contract_pkey PRIMARY KEY (contract_system, contract_code, provider_code, contract_post_code, item_code);
 
 
@@ -1316,7 +1313,7 @@ ALTER TABLE ONLY public.contract
 -- Name: dauphin dauphin_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.dauphin
+ALTER TABLE ONLY "EHA".dauphin
     ADD CONSTRAINT dauphin_pkey PRIMARY KEY (code);
 
 
@@ -1325,7 +1322,7 @@ ALTER TABLE ONLY public.dauphin
 -- Name: externes externes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.externes
+ALTER TABLE ONLY "EHA".externes
     ADD CONSTRAINT externes_pkey PRIMARY KEY (externe_email);
 
 
@@ -1334,7 +1331,7 @@ ALTER TABLE ONLY public.externes
 -- Name: filiale filiale_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.filiale
+ALTER TABLE ONLY "EHA".filiale
     ADD CONSTRAINT filiale_pkey PRIMARY KEY (id);
 
 
@@ -1343,7 +1340,7 @@ ALTER TABLE ONLY public.filiale
 -- Name: group group_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public."group"
+ALTER TABLE ONLY "EHA"."group"
     ADD CONSTRAINT group_name_key UNIQUE (name);
 
 
@@ -1352,7 +1349,7 @@ ALTER TABLE ONLY public."group"
 -- Name: group group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public."group"
+ALTER TABLE ONLY "EHA"."group"
     ADD CONSTRAINT group_pkey PRIMARY KEY (id);
 
 
@@ -1361,7 +1358,7 @@ ALTER TABLE ONLY public."group"
 -- Name: hotline_email hotline_email_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_email
+ALTER TABLE ONLY "EHA".hotline_email
     ADD CONSTRAINT hotline_email_pkey PRIMARY KEY (id);
 
 
@@ -1370,7 +1367,7 @@ ALTER TABLE ONLY public.hotline_email
 -- Name: hotline_fichiers hotline_fichiers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_fichiers
+ALTER TABLE ONLY "EHA".hotline_fichiers
     ADD CONSTRAINT hotline_fichiers_pkey PRIMARY KEY ("row");
 
 
@@ -1379,7 +1376,7 @@ ALTER TABLE ONLY public.hotline_fichiers
 -- Name: hotline_fil hotline_fil_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_fil
+ALTER TABLE ONLY "EHA".hotline_fil
     ADD CONSTRAINT hotline_fil_pkey PRIMARY KEY ("row");
 
 
@@ -1388,7 +1385,7 @@ ALTER TABLE ONLY public.hotline_fil
 -- Name: hotline_groupe hotline_groupe_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_groupe
+ALTER TABLE ONLY "EHA".hotline_groupe
     ADD CONSTRAINT hotline_groupe_pkey PRIMARY KEY (id);
 
 
@@ -1397,7 +1394,7 @@ ALTER TABLE ONLY public.hotline_groupe
 -- Name: hotline hotline_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline
+ALTER TABLE ONLY "EHA".hotline
     ADD CONSTRAINT hotline_pkey PRIMARY KEY (discussion);
 
 
@@ -1406,7 +1403,7 @@ ALTER TABLE ONLY public.hotline
 -- Name: hotline_theme hotline_theme_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.hotline_theme
+ALTER TABLE ONLY "EHA".hotline_theme
     ADD CONSTRAINT hotline_theme_pkey PRIMARY KEY (id);
 
 
@@ -1415,7 +1412,7 @@ ALTER TABLE ONLY public.hotline_theme
 -- Name: item_generic item_generic_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.item_generic
+ALTER TABLE ONLY "EHA".item_generic
     ADD CONSTRAINT item_generic_pkey PRIMARY KEY (item_code);
 
 
@@ -1424,7 +1421,7 @@ ALTER TABLE ONLY public.item_generic
 -- Name: menu_contacts menu_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.menu_contacts
+ALTER TABLE ONLY "EHA".menu_contacts
     ADD CONSTRAINT menu_contacts_pkey PRIMARY KEY (id);
 
 
@@ -1433,7 +1430,7 @@ ALTER TABLE ONLY public.menu_contacts
 -- Name: menu_documentations menu_documentations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.menu_documentations
+ALTER TABLE ONLY "EHA".menu_documentations
     ADD CONSTRAINT menu_documentations_pkey PRIMARY KEY (id);
 
 
@@ -1442,7 +1439,7 @@ ALTER TABLE ONLY public.menu_documentations
 -- Name: filiale name_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.filiale
+ALTER TABLE ONLY "EHA".filiale
     ADD CONSTRAINT name_unique UNIQUE (name);
 
 
@@ -1451,7 +1448,7 @@ ALTER TABLE ONLY public.filiale
 -- Name: news news_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.news
+ALTER TABLE ONLY "EHA".news
     ADD CONSTRAINT news_pkey PRIMARY KEY (id);
 
 
@@ -1460,7 +1457,7 @@ ALTER TABLE ONLY public.news
 -- Name: sheet_providers pk_sheet_providers; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_providers
+ALTER TABLE ONLY "EHA".sheet_providers
     ADD CONSTRAINT pk_sheet_providers PRIMARY KEY (provider_code, sheet_id);
 
 
@@ -1469,7 +1466,7 @@ ALTER TABLE ONLY public.sheet_providers
 -- Name: provider_item provider_item_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.provider_item
+ALTER TABLE ONLY "EHA".provider_item
     ADD CONSTRAINT provider_item_pkey PRIMARY KEY ("row");
 
 
@@ -1478,7 +1475,7 @@ ALTER TABLE ONLY public.provider_item
 -- Name: provider provider_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.provider
+ALTER TABLE ONLY "EHA".provider
     ADD CONSTRAINT provider_pkey PRIMARY KEY (provider_code);
 
 
@@ -1487,7 +1484,7 @@ ALTER TABLE ONLY public.provider
 -- Name: repository repository_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.repository
+ALTER TABLE ONLY "EHA".repository
     ADD CONSTRAINT repository_pkey PRIMARY KEY (family, code);
 
 
@@ -1496,7 +1493,7 @@ ALTER TABLE ONLY public.repository
 -- Name: sheet_contracts sheet_contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_contracts
+ALTER TABLE ONLY "EHA".sheet_contracts
     ADD CONSTRAINT sheet_contracts_pkey PRIMARY KEY (sheet_id, contract_code);
 
 
@@ -1505,7 +1502,7 @@ ALTER TABLE ONLY public.sheet_contracts
 -- Name: sheet_files sheet_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_files
+ALTER TABLE ONLY "EHA".sheet_files
     ADD CONSTRAINT sheet_files_pkey PRIMARY KEY (id);
 
 
@@ -1514,7 +1511,7 @@ ALTER TABLE ONLY public.sheet_files
 -- Name: sheet_filiales sheet_filiales_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_filiales
+ALTER TABLE ONLY "EHA".sheet_filiales
     ADD CONSTRAINT sheet_filiales_pkey PRIMARY KEY (sheet_id, filiale_id);
 
 
@@ -1523,7 +1520,7 @@ ALTER TABLE ONLY public.sheet_filiales
 -- Name: sheet_groups sheet_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_groups
+ALTER TABLE ONLY "EHA".sheet_groups
     ADD CONSTRAINT sheet_groups_pkey PRIMARY KEY (sheet_id, group_id);
 
 
@@ -1532,7 +1529,7 @@ ALTER TABLE ONLY public.sheet_groups
 -- Name: sheet_lot sheet_lot_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_lot
+ALTER TABLE ONLY "EHA".sheet_lot
     ADD CONSTRAINT sheet_lot_unique UNIQUE (sheet_id, name);
 
 
@@ -1541,7 +1538,7 @@ ALTER TABLE ONLY public.sheet_lot
 -- Name: sheet_options sheet_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_options
+ALTER TABLE ONLY "EHA".sheet_options
     ADD CONSTRAINT sheet_options_pkey PRIMARY KEY (id);
 
 
@@ -1550,7 +1547,7 @@ ALTER TABLE ONLY public.sheet_options
 -- Name: sheet_zones sheet_zone_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_zones
+ALTER TABLE ONLY "EHA".sheet_zones
     ADD CONSTRAINT sheet_zone_pkey PRIMARY KEY (sheet_id, zone_id);
 
 
@@ -1559,7 +1556,7 @@ ALTER TABLE ONLY public.sheet_zones
 -- Name: sheet_headers sheets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_headers
+ALTER TABLE ONLY "EHA".sheet_headers
     ADD CONSTRAINT sheets_pkey PRIMARY KEY (id);
 
 
@@ -1568,7 +1565,7 @@ ALTER TABLE ONLY public.sheet_headers
 -- Name: stats stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.stats
+ALTER TABLE ONLY "EHA".stats
     ADD CONSTRAINT stats_pkey PRIMARY KEY (table_name);
 
 
@@ -1577,7 +1574,7 @@ ALTER TABLE ONLY public.stats
 -- Name: tenders tenders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tenders
+ALTER TABLE ONLY "EHA".tenders
     ADD CONSTRAINT tenders_pkey PRIMARY KEY ("row");
 
 
@@ -1586,7 +1583,7 @@ ALTER TABLE ONLY public.tenders
 -- Name: sheet_contract_lots unique_lot; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_contract_lots
+ALTER TABLE ONLY "EHA".sheet_contract_lots
     ADD CONSTRAINT unique_lot PRIMARY KEY (sheet_id, contract_code, lot_name);
 
 
@@ -1595,7 +1592,7 @@ ALTER TABLE ONLY public.sheet_contract_lots
 -- Name: user_news user_news_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.user_news
+ALTER TABLE ONLY "EHA".user_news
     ADD CONSTRAINT user_news_pkey PRIMARY KEY (id);
 
 
@@ -1604,7 +1601,7 @@ ALTER TABLE ONLY public.user_news
 -- Name: zone zone_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.zone
+ALTER TABLE ONLY "EHA".zone
     ADD CONSTRAINT zone_name_key UNIQUE (name);
 
 
@@ -1613,7 +1610,7 @@ ALTER TABLE ONLY public.zone
 -- Name: zone zone_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.zone
+ALTER TABLE ONLY "EHA".zone
     ADD CONSTRAINT zone_pkey PRIMARY KEY (id);
 
 
@@ -1622,7 +1619,7 @@ ALTER TABLE ONLY public.zone
 -- Name: idx_cities_zipcode; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_cities_zipcode ON public.french_cities USING btree (zipcode);
+CREATE UNIQUE INDEX idx_cities_zipcode ON "EHA".french_cities USING btree (zipcode);
 
 
 --
@@ -1630,7 +1627,7 @@ CREATE UNIQUE INDEX idx_cities_zipcode ON public.french_cities USING btree (zipc
 -- Name: idx_contract_provider; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_contract_provider ON public.contract USING btree (provider_code);
+CREATE INDEX idx_contract_provider ON "EHA".contract USING btree (provider_code);
 
 
 --
@@ -1638,7 +1635,7 @@ CREATE INDEX idx_contract_provider ON public.contract USING btree (provider_code
 -- Name: idx_hotline_email_from; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_hotline_email_from ON public.hotline USING btree (email_from);
+CREATE INDEX idx_hotline_email_from ON "EHA".hotline USING btree (email_from);
 
 
 --
@@ -1646,7 +1643,7 @@ CREATE INDEX idx_hotline_email_from ON public.hotline USING btree (email_from);
 -- Name: idx_hotline_fichiers; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_hotline_fichiers ON public.hotline_fichiers USING btree (file_code);
+CREATE UNIQUE INDEX idx_hotline_fichiers ON "EHA".hotline_fichiers USING btree (file_code);
 
 
 --
@@ -1654,7 +1651,7 @@ CREATE UNIQUE INDEX idx_hotline_fichiers ON public.hotline_fichiers USING btree 
 -- Name: idx_hotline_fil_discussion; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_hotline_fil_discussion ON public.hotline_fil USING btree (discussion);
+CREATE INDEX idx_hotline_fil_discussion ON "EHA".hotline_fil USING btree (discussion);
 
 
 --
@@ -1662,7 +1659,7 @@ CREATE INDEX idx_hotline_fil_discussion ON public.hotline_fil USING btree (discu
 -- Name: idx_provider_item; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_provider_item ON public.provider_item USING btree (provider_code, item_code);
+CREATE UNIQUE INDEX idx_provider_item ON "EHA".provider_item USING btree (provider_code, item_code);
 
 
 --
@@ -1670,7 +1667,7 @@ CREATE UNIQUE INDEX idx_provider_item ON public.provider_item USING btree (provi
 -- Name: idx_provider_x_y; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_provider_x_y ON public.provider USING btree (x, y);
+CREATE INDEX idx_provider_x_y ON "EHA".provider USING btree (x, y);
 
 
 --
@@ -1678,8 +1675,8 @@ CREATE INDEX idx_provider_x_y ON public.provider USING btree (x, y);
 -- Name: sheet_contracts fk_sheet_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_contracts
-    ADD CONSTRAINT fk_sheet_id FOREIGN KEY (sheet_id) REFERENCES public.sheet_headers(id);
+ALTER TABLE ONLY "EHA".sheet_contracts
+    ADD CONSTRAINT fk_sheet_id FOREIGN KEY (sheet_id) REFERENCES "EHA".sheet_headers(id);
 
 
 --
@@ -1687,8 +1684,8 @@ ALTER TABLE ONLY public.sheet_contracts
 -- Name: sheet_files fk_sheet_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.sheet_files
-    ADD CONSTRAINT fk_sheet_id FOREIGN KEY (sheet_id) REFERENCES public.sheet_headers(id);
+ALTER TABLE ONLY "EHA".sheet_files
+    ADD CONSTRAINT fk_sheet_id FOREIGN KEY (sheet_id) REFERENCES "EHA".sheet_headers(id);
 
 
 -- Completed on 2021-11-05 14:43:27
