@@ -1,8 +1,5 @@
 <?php
 
-###### Routing TEST EMAILING ########
-
-$router->get('/test/mailing/archivage/:nbr', 'App\Controllers\TestController@archivage');
 
 $router->get('/api/monitoring/health_check', 'App\Controllers\HealthcheckController@index');
 $router->post('/authentication/login', 'App\Controllers\AuthenticationController@login');
