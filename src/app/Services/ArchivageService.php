@@ -27,5 +27,5 @@ class ArchivageService {
             echo "Message could not be sent. Mailer Error: {$mailer->getErrorInfo()}";
         }
 
-
+    }
 }
