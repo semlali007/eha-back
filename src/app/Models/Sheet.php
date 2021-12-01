@@ -11,6 +11,7 @@ use App\Models\SheetArea;
 use App\Models\SheetProvider;
 use App\Models\SheetGroup;
 use App\Models\SheetBeneficiary;
+use App\Models\Committee;
 use Exception;
 use PDO;
 
@@ -26,6 +27,7 @@ class Sheet extends Model
     protected $sheetProviderTable;
     protected $sheetGroupTable;
     protected $searchCondition;
+    protected $committeeTable;
 
     public function __construct()
     {
@@ -38,6 +40,7 @@ class Sheet extends Model
         $this->sheetAreaTable = (new SheetArea())->table;
         $this->sheetProviderTable = (new SheetProvider())->table;
         $this->sheetGroupTable = (new SheetGroup())->table;
+        $this->committeeTable = (new Committee())->table;
         $this->searchCondition = null;
     }
 
@@ -82,6 +85,7 @@ class Sheet extends Model
             $query = "SELECT COUNT(s.*) FROM " . $this->table . " s $this->searchCondition";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
+            
             return  $sth->fetch(PDO::FETCH_ASSOC)['count'];
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -105,6 +109,7 @@ class Sheet extends Model
 
 
         $directions = $options['directions'] ?? [];
+        
         $search = '';
 
         if (count($beneficiaries) > 0) {
@@ -152,6 +157,7 @@ class Sheet extends Model
         $showcase = $options['showcase'] ?? '';
         $partnership = $options['partnership'] ?? '';
         $protectedSector = $options['protected_sector'] ?? '';
+        $committees = $options['committees'] ?? [];
         $dauphin = $options['dauphin'] ?? '';
         $search .= ' WHERE 1= 1 ';
         if ($search_input !== '') {
@@ -181,6 +187,11 @@ class Sheet extends Model
         if ($showcase !== '') {
             $this->addCondition($search, 's.showcase', ($showcase == true) ? 'true' : 'false');
         }
+        
+        if (is_array($committees) && isset($committees[0])) {
+            $this->addCondition($search, 's.committee', $committees[0]);
+        }
+
 
         $this->searchCondition  = $search;
     }
@@ -329,6 +340,22 @@ class Sheet extends Model
         }
     }
 
+
+
+    public function groupedByCommittees()
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.committee as code, c.label as name FROM " . $this->table . "  s " . " INNER join {$this->committeeTable} c
+             ON c.code = s.committee {$this->searchCondition} GROUP BY committee, c.label";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+   
+    
     function addCondition(&$sql, $key, $value)
     {
         if (is_null($sql) || is_null($key) || is_null($value)) {

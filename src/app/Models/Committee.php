@@ -20,7 +20,7 @@ class Committee extends Model {
             $query = 'SELECT * FROM ' . $this->table . ' WHERE code=:code';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':code', $code, $this->db->getPDO()::PARAM_INT);
-
+            $sth->execute();
             return $sth->fetch($this->db->getPDO()::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -32,7 +32,7 @@ class Committee extends Model {
         try {
             $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY label asc';
             $sth = $this->db->getPDO()->prepare($query);
-
+            $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
