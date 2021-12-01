@@ -35,6 +35,7 @@ class SheetRepository extends AbstractRepository {
                         'areas' => $sheet->groupedByZone(),
                         'providers' => $sheet->groupedByProvider(),
                         'directions' => $sheet->groupedByDirections(),
+                        'committees' => $sheet->groupedByCommittees(),
                     ],
         ];
     }
