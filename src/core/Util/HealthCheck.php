@@ -8,6 +8,11 @@ namespace Core\Util;
  * @author HGDDEDBN
  */
 class HealthCheck {
+    
+    const PING_TIMEOUT = 30 ;
+    const HLK_ERROR_MSG = "HLK Non disponible" ;
+    const HLK_SOURCE = "HLK" ;
+    const SERVER_SOURCE = "SERVER" ;
 
     /**
      * 
@@ -32,13 +37,19 @@ class HealthCheck {
      * @return bool
      */
     public static function isServerEnable(string $serverUrl, int $port = 80): bool {
-
-        $ping = @fsockopen($serverUrl, $port, $errno, $errstr, 10);
-        if ($ping) {
-            @fclose($ping);
+        $ping = @fsockopen($serverUrl, $port, $errno, $errstr, self::PING_TIMEOUT);
+        if ($ping) :
+            fclose($ping);
             return true;
-        }
+        endif;
         return false;
     }
+
+    /**
+     * Pinguer le serveur HLK pour retourner le Status du serveur si UP ou down 
+     */
+    public static function isActiveHlk():bool{
+        return self::isServerEnable(getenv("HALK_API_BASE_URL")) ;
+    } 
 
 }
