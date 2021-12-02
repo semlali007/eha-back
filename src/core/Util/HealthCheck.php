@@ -10,6 +10,7 @@ namespace Core\Util;
 class HealthCheck {
     
     const PING_TIMEOUT = 30 ;
+    const HLK_ERROR_MSG = "HLK Non disponible" ;
 
     /**
      * 
