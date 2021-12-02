@@ -26,13 +26,6 @@ $configuration = [
             'purchases' => [
                 "search" => "get_purchase_situation_id", // Action
             ]
-        ],
-        "routes"=>[
-            "search"=>"search",
-            "dauphins"=>"dauphins",
-            "contracts"=>"contracts",
-            "items"=>"items",
-            "products"=>"products"
         ]
     ]
     , 
