@@ -39,17 +39,23 @@ class Router {
     }
     
     /**
-     * 
      * Check Availability of HLK
+     * @return void
      */
-    public function checkHLK() {
+    public function checkHLK():void {
         $routes = $GLOBALS['configuration']['hlk']["routes"];
-        if (array_filter($routes, function ($k) {
-                    return str_contains($k, $this->url);
-                }, ARRAY_FILTER_USE_KEY)) :
+        $checkRoute = array_filter($routes, function ($k,$v) {
+                    return ((trim($v) === trim($this->url)) || (str_contains($v, $this->url)));
+                }, ARRAY_FILTER_USE_BOTH) ;
+        if ($checkRoute) :
             if (!health::isActiveHlk()) :
                 http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-                return json_encode(["error" => health::HLK_ERROR_MSG]);
+                print_r(json_encode([
+                    "source" => health::HLK_SOURCE,
+                    "error" => health::HLK_ERROR_MSG,
+                    "status" => Response::HTTP_SERVICE_UNAVAILABLE
+                ]));
+                exit;
             endif;
         endif;
     }

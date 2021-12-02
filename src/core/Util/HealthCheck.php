@@ -11,6 +11,8 @@ class HealthCheck {
     
     const PING_TIMEOUT = 30 ;
     const HLK_ERROR_MSG = "HLK Non disponible" ;
+    const HLK_SOURCE = "HLK" ;
+    const SERVER_SOURCE = "SERVER" ;
 
     /**
      * 
