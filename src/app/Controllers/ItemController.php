@@ -13,10 +13,6 @@ class ItemController extends Controller {
      * @return type
      */
     public function search(string $code) {
-        if (!\Core\Util\HealthCheck::isActiveHlk()) :
-            http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
-        endif;
         $hlk = $GLOBALS['configuration']['hlk'];
         $queryData = [
             'password' => $hlk['pwd'],
@@ -34,10 +30,6 @@ class ItemController extends Controller {
      * @return type
      */
     public function show(string $code) {
-        if (!\Core\Util\HealthCheck::isActiveHlk()) :
-            http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
-        endif;
         $hlk = $GLOBALS['configuration']['hlk'];
         $queryData = [
             'password' => $hlk['pwd'],
