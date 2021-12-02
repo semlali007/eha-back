@@ -23,7 +23,7 @@ class ContractController extends Controller
     {
         if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         return $this->response($this->contractRepository->getContract(['word' => $code]));
     }
@@ -36,7 +36,7 @@ class ContractController extends Controller
     {
         if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         return $this->response($this->contractRepository->searchFromApi(["word" => $words]));
     }

@@ -14,7 +14,7 @@ class ProductController extends Controller {
     public function search(string $code) 
     {   if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         $hlk = $GLOBALS['configuration']['hlk'];
         $queryData = [
@@ -35,7 +35,7 @@ class ProductController extends Controller {
     public function show(string $code) {
         if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         $hlk = $GLOBALS['configuration']['hlk'];
         $queryData = [

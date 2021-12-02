@@ -23,7 +23,7 @@ class ProviderController extends Controller
     {   
         if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         $options = $this->decode(file_get_contents("php://input"));
         return  $this->response($this->providerRepository->search($options));
@@ -33,7 +33,7 @@ class ProviderController extends Controller
     {   
         if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         return $this->response($this->providerRepository->getProvider(['code' => $code]));
     }

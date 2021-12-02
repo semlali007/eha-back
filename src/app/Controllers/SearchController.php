@@ -27,7 +27,7 @@ class SearchController extends Controller
     { 
         if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         $options = $this->decode(file_get_contents("php://input"));
         $providers =  $this->providerRepository->searchFromApi($options);
@@ -48,7 +48,7 @@ class SearchController extends Controller
     public function getAnchors()
     {   if (!\Core\Util\HealthCheck::isActiveHlk()) :
             http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
-            return $this->response(["error" => "HLK Non disponible"]);
+            return $this->response(["error" => \Core\Util\HealthCheck::HLK_ERROR_MSG]);
         endif;
         $options = $this->decode(file_get_contents("php://input"));
         $anchors =  $this->providerRepository->searchAnchors($options);
