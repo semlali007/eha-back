@@ -13,7 +13,10 @@ class DauphinController extends Controller
      * @return type
      */
     public function search(string $code) 
-    {
+    {   if (!\Core\Util\HealthCheck::isActiveHlk()) :
+            http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
+            return $this->response(["error" => "HLK Non disponible"]);
+        endif;
         $hlk = $GLOBALS['configuration']['hlk'];
         $queryData = [
             'password' => $hlk['pwd'],
@@ -31,6 +34,10 @@ class DauphinController extends Controller
      * @return type
      */
     public function show(string $code) {
+        if (!\Core\Util\HealthCheck::isActiveHlk()) :
+            http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
+            return $this->response(["error" => "HLK Non disponible"]);
+        endif;
         $hlk = $GLOBALS['configuration']['hlk'];
         $queryData = [
             'password' => $hlk['pwd'],

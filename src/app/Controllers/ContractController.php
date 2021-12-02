@@ -21,6 +21,10 @@ class ContractController extends Controller
      */
     public function show(string $code)
     {
+        if (!\Core\Util\HealthCheck::isActiveHlk()) :
+            http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
+            return $this->response(["error" => "HLK Non disponible"]);
+        endif;
         return $this->response($this->contractRepository->getContract(['word' => $code]));
     }
 
@@ -29,7 +33,11 @@ class ContractController extends Controller
      * @description Rechercher un contrat a partir d'une chaine de caractére
      */
     public function searchFor(string $words = "")
-    { 
+    {
+        if (!\Core\Util\HealthCheck::isActiveHlk()) :
+            http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
+            return $this->response(["error" => "HLK Non disponible"]);
+        endif;
         return $this->response($this->contractRepository->searchFromApi(["word" => $words]));
     }
 }
