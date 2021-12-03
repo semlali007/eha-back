@@ -49,7 +49,7 @@ class HealthCheck {
      * Pinguer le serveur HLK pour retourner le Status du serveur si UP ou down 
      */
     public static function isActiveHlk():bool{
-        return self::isServerEnable(getenv("HALK_API_BASE_URL")) ;
+        return self::isServerEnable(getenv("HLK_API_BASE_URL")) ;
     } 
 
 }
