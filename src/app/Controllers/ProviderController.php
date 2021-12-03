@@ -27,7 +27,7 @@ class ProviderController extends Controller
 
     public function show(string $code)
     {
-        return $this->response($this->providerRepository->getProvider(['code' => $code]));
+        return $this->response($this->providerRepository->getProvider($code));
     }
 
 

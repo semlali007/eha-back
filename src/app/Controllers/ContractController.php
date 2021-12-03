@@ -20,8 +20,10 @@ class ContractController extends Controller
      * @return type
      */
     public function show(string $code)
-    {
-        return $this->response($this->contractRepository->getContract(['word' => $code]));
+    {   
+        $params = explode("-",$code) ;
+        $contract_code = (count($params)>0) ? $params[0] : "" ;
+        return $this->response($this->contractRepository->getContract(['word' => $contract_code]));
     }
 
     /**
