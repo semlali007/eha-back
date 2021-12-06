@@ -23,7 +23,6 @@ SET row_security = off;
 -- Name: postgres; Type: DATABASE; Schema: -; Owner: -
 --
 
-\connect EHA
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -387,10 +386,10 @@ ALTER SEQUENCE "EHA".french_cities_id_city_seq OWNED BY "EHA".french_cities.id_c
 
 --
 -- TOC entry 216 (class 1259 OID 24851)
--- Name: group; Type: TABLE; Schema: public; Owner: -
+-- Name: group_direction; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE "EHA"."group" (
+CREATE TABLE "EHA"."group_direction" (
     id integer NOT NULL,
     name text NOT NULL
 );
@@ -413,10 +412,10 @@ CREATE SEQUENCE "EHA".group_id_seq
 --
 -- TOC entry 3137 (class 0 OID 0)
 -- Dependencies: 217
--- Name: group_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: group_id_seq; Type: SEQUENCE OWNED BY; Schema: EHA; Owner: -
 --
 
-ALTER SEQUENCE "EHA".group_id_seq OWNED BY "EHA"."group".id;
+ALTER SEQUENCE "EHA".group_id_seq OWNED BY "EHA"."group_direction".id;
 
 
 --
@@ -1166,7 +1165,7 @@ ALTER TABLE ONLY "EHA".french_cities ALTER COLUMN id_city SET DEFAULT nextval('"
 -- Name: group id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY "EHA"."group" ALTER COLUMN id SET DEFAULT nextval('"EHA".group_id_seq'::regclass);
+ALTER TABLE ONLY "EHA"."group_direction" ALTER COLUMN id SET DEFAULT nextval('"EHA".group_id_seq'::regclass);
 
 
 --
@@ -1340,7 +1339,7 @@ ALTER TABLE ONLY "EHA".filiale
 -- Name: group group_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY "EHA"."group"
+ALTER TABLE ONLY "EHA"."group_direction"
     ADD CONSTRAINT group_name_key UNIQUE (name);
 
 
@@ -1349,7 +1348,7 @@ ALTER TABLE ONLY "EHA"."group"
 -- Name: group group_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY "EHA"."group"
+ALTER TABLE ONLY "EHA"."group_direction"
     ADD CONSTRAINT group_pkey PRIMARY KEY (id);
 
 

@@ -8,7 +8,7 @@ use PDO;
 
 class Group extends Model
 {
-    protected $tableName = 'group';
+    protected $tableName = 'group_direction';
 
     public function add($options)
     {
