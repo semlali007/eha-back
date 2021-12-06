@@ -18,12 +18,15 @@ class DotEnv
     protected $path;
 
 
-    public function __construct(string $path)
-    {
-        if(!file_exists($path)) {
-            throw new \InvalidArgumentException(sprintf('%s does not exist', $path));
+    public function __construct(string $pathProd, string $pathEnv)
+    {   $this->path = $pathEnv;
+        if (!file_exists($pathEnv)) {
+            $this->path = $pathProd;
         }
-        $this->path = $path;
+        if (!file_exists($this->path)) {
+            throw new \InvalidArgumentException(sprintf('%s does not exist', $this->path));
+        }
+        
     }
 
     public function load() :void
