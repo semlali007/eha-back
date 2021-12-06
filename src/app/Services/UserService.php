@@ -51,6 +51,10 @@ class UserService {
         if (array_key_exists("cn", $userInfo)) {
             $user->setFullname($userInfo['cn']);
         }
+        // verifier si sub existe dans les userinfo
+        if (array_key_exists("gardianHierarchie", $userInfo)) {
+            $user->setDirection($userInfo['gardianHierarchie']);
+        }
         // Chercher dans isMemberOf le role necessaire 
         if (array_key_exists("isMemberOf", $userInfo)) {
             // Vérifier les roles user (Appel Userinfo) => isMemberOf

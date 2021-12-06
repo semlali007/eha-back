@@ -11,17 +11,16 @@ use App\Models\HotlineFil;
 use App\Models\HotlineTheme;
 use App\Services\EmailService;
 use App\Services\StaticTextService;
-use App\Services\UserService;
 use App\Validation\Validator;
 use Exception;
+use Core\Mailer\Builder as Mailer ;
+use App\Security\User ;
 
 class HotlineManager extends AbstractManager
 {
-    public function create($options)
-    {
-
-        $user = UserService::getUser();
-        $entity = substr($user['direction'], 0, 45);
+    public function create($options,User $user)
+    {  
+        $entity = substr($user->getDirection(), 0, 45);
         $validator = new Validator($options);
         $errors = $validator->validate([
             'post' => ['required'],
@@ -33,13 +32,13 @@ class HotlineManager extends AbstractManager
         if ($errors) {
             throw (new InvalidParameterException())->setErrors($errors);
         }
-        $email = $user['email'];
+        $email = $user->getEmail();
         $category = $options['category'];
         $theme = $options['theme'];
         $sha_demandeur = base64_encode($email . bin2hex(random_bytes(10)) . 'h');
         $sha_hotline   = base64_encode($email . bin2hex(random_bytes(10)) . 'd');
         $post = $options['post'];
-        $emailTo = null;
+       
         $hotlineEmail = new HotlineEmail();
         $hotliner = $hotlineEmail->getHotlineInformations($category);
         if (!is_array($hotliner) || empty($hotliner) || !isset($hotliner['email'])) {
@@ -76,24 +75,33 @@ class HotlineManager extends AbstractManager
                 'email' => $emailTo,
                 'message' => 'Question affectée automatiquement à ' . $emailTo,
             ]);
-
-            EmailService::sendEmail('hotline_question_creation_to_user', $email, [
-                'id' => $id,
-                'sha_demandeur' => $sha_demandeur,
-                'message' => StaticTextService::$_HOTLINE_TEXT['05'],
-                'config_domain' => CONFIG_DOMAIN
-            ]);
+            
+            (new Mailer()) // instancier le builder
+                    ->setSubject("Achatpédia - Q$id - Création") // mettre le sujet
+                    ->setRecepients($email) // Recepteur
+                    ->html("mail/hotline_question_post_new_hotline.html.twig", [
+                        'id' => $id,
+                        'sha_demandeur' => $sha_demandeur,
+                        'message' => StaticTextService::$_HOTLINE_TEXT['05'],
+                        'config_domain' => getenv('CONFIG_DOMAINE')
+                    ]) // appeler le template HTML
+                    ->send() // Envoyer l'email
+            ;
 
             $themeData = (new HotlineTheme())->get($theme);
             if (isset($themeData['label'])) {
-                EmailService::sendEmail('hotline_question_creation_to_hotliner', $emailTo, [
-                    'id' => $id,
-                    'sha_hotline' => $sha_hotline,
-                    'message' => StaticTextService::$_HOTLINE_TEXT['06'],
-                    'config_domain' => CONFIG_DOMAIN,
-                    'theme' => $themeData['label'],
-                    'category_label' => (empty($categoryLabel)) ? '' : ' - ' . $categoryLabel
-                ]);
+                $label = (empty($categoryLabel)) ? '' : ' - ' . $categoryLabel;
+                $theme = $themeData['label'];
+                (new Mailer())
+                        ->setSubject("Achatpédia - Q$id - Création - $theme $label") // mettre le sujet
+                        ->setRecepients($emailTo) // Recepteur
+                        ->html("mail/hotline_question_creation_to_hotliner.html.twig", [
+                            'id' => $id,
+                            'sha_hotline' => $sha_hotline,
+                            'message' => StaticTextService::$_HOTLINE_TEXT['06'],
+                            'config_domain' => getenv('CONFIG_DOMAINE')                           
+                        ])->send() // Envoyer l'email
+                ;
             }
         }
     }
@@ -147,20 +155,32 @@ class HotlineManager extends AbstractManager
         $answer['status'] = true;
         try {
             if ($isHotline) {
-                EmailService::sendEmail('hotline_question_forword_to_hotliner', $email, [
-                    'id' => $id,
-                    'sha_hotline' => $sha,
-                    'message' => StaticTextService::$_HOTLINE_TEXT['12'],
-                    'config_domain' => CONFIG_DOMAIN,
-                    'group' => (empty($groupe) ? '' : ' pour ' . $groupe),
-                ]);
+                 (new Mailer()) // instancier le builder
+                        ->setSubject("Achatpédia - Q$id - Création - $theme $label") // mettre le sujet
+                        ->setRecepients($email) // Recepteur
+                        ->html("mail/hotline_question_forword_to_hotliner.html.twig", [
+                            'id' => $id,
+                            'sha_hotline' => $sha,
+                            'message' => StaticTextService::$_HOTLINE_TEXT['12'],
+                            'config_domain' => getenv('CONFIG_DOMAINE'),
+                            'group'=>(empty($groupe) ? '' : ' pour ' . $groupe)
+                        ]) // appeler le template HTML
+                     //   ->send() // Envoyer l'email
+                ;
+            
             } else {
-                EmailService::sendEmail('hotline_question_forword_to_direction', $email, [
-                    'id' => $id,
-                    'sha_hotline' => $sha,
-                    'message' => StaticTextService::$_HOTLINE_TEXT['13'],
-                    'config_domain' => CONFIG_DOMAIN,
-                ]);
+                
+                 (new Mailer()) // instancier le builder
+                        ->setSubject("Achatpédia - Q$id - Pour info") // mettre le sujet
+                        ->setRecepients($email) // Recepteur
+                        ->html("mail/hotline_question_forword_to_hotliner.html.twig", [
+                            'id' => $id,
+                            'sha_hotline' => $sha,
+                            'message' => StaticTextService::$_HOTLINE_TEXT['13'],
+                            'config_domain' => getenv('CONFIG_DOMAINE'),
+                        ]) // appeler le template HTML
+                      //  ->send() // Envoyer l'email
+                ;
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['15'] . '</p>';
         } catch (EmailException $ex) {
@@ -225,24 +245,35 @@ class HotlineManager extends AbstractManager
 
         try {
             if ($isHotline) {
-                EmailService::sendEmail('hotline_question_post_new_hotline', $email, [
-                    'id' => $id,
-                    'sha_hotline' => $infos['sha_demandeur'],
-                    'message' => StaticTextService::$_HOTLINE_TEXT['18'],
-                    'config_domain' => CONFIG_DOMAIN,
-                ]);
+                (new Mailer()) 
+                        ->setSubject("Achatpédia - Q$id - Nouveau message de la hotline") // mettre le sujet
+                        ->setRecepients($email)  
+                        ->html("mail/hotline_question_forword_to_hotliner.html.twig", [
+                            'id' => $id,
+                            'sha_hotline' => $infos['sha_demandeur'],
+                            'message' => StaticTextService::$_HOTLINE_TEXT['18'],
+                            'config_domain' => getenv('CONFIG_DOMAINE'),
+                        ]) // appeler le template HTML
+                //  ->send() // Envoyer l'email
+                ;
             } else {
-                EmailService::sendEmail('hotline_question_post_new_user', $email, [
-                    'id' => $id,
-                    'sha_hotline' => $infos['sha_hotline'],
-                    'message' => StaticTextService::$_HOTLINE_TEXT['19'],
-                    'config_domain' => CONFIG_DOMAIN,
-                ]);
+                
+                (new Mailer()) 
+                        ->setSubject("Achatpédia - Q$id - Nouveau message du demandeur") // mettre le sujet
+                        ->setRecepients($email)
+                        ->html("mail/hotline_question_forword_to_hotliner.html.twig", [
+                            'id' => $id,
+                            'sha_hotline' => $infos['sha_hotline'],
+                            'message' => StaticTextService::$_HOTLINE_TEXT['19'],
+                            'config_domain' => getenv('CONFIG_DOMAINE'),
+                        ]) 
+                //  ->send() // Envoyer l'email
+                ;
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['20'] . '</p>';
         } catch (EmailException $ex) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['21'] . '</p>';
-            $answer['message'] .=  '<p><a href="https://' . CONFIG_DOMAIN . '/app/hotline/get/' . $id . '/' . $sha . '">Achatpédia - Discussion ' . $id . '</a></p>';
+           // $answer['message'] .=  '<p><a href="https://' . CONFIG_DOMAIN . '/app/hotline/get/' . $id . '/' . $sha . '">Achatpédia - Discussion ' . $id . '</a></p>';
         }
 
         return $answer;

@@ -22,13 +22,30 @@ class User {
      * @var string
      */
     private string $fullname;
+    
+    /**
+     *
+     * @var string
+     */
+    private string $email;
+    
+    /**
+     *
+     * @var string
+     */
+    private string $direction;
 
     /**
      * @var User Roles 
      */
     private $roles = [Role::DEFAULT];
+    
+    
+    public function __construct() {
+        $this->email = getenv("DEFAULT_EMAIL");
+    }
 
-    /**
+        /**
      * 
      * @return string|null
      */
@@ -109,6 +126,42 @@ class User {
      */
     function setFullname(string $fullname): void {
         $this->fullname = $fullname;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getDirection(): string {
+        return $this->direction;
+    }
+
+    /**
+     * 
+     * @param string $direction
+     * @return self
+     */
+    public function setDirection(string $direction = ""): self {
+        $this->direction = $direction;
+        return $this ;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getEmail(): string {
+        return $this->email;
+    }
+
+    /**
+     * 
+     * @param string $email
+     * @return self
+     */
+    public function setEmail(string $email): self {
+        $this->email = $email;
+        return $this ;
     }
 
 

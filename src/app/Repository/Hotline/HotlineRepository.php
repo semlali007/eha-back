@@ -6,54 +6,27 @@ use App\Exceptions\InvalidParameterException;
 use App\Models\Hotline;
 use App\Models\HotlineFil;
 use App\Repository\AbstractRepository;
-use App\Services\UserService;
+use App\Security\User;
 use App\Validation\Validator;
 use Exception;
 
 class HotlineRepository extends AbstractRepository
 {
-    public function getList($options)
-    {
-        $user  = UserService::getUser();
-        $validator = new Validator($options);
+    public function getList($options,User $user)
+    {   
+        $validator = new Validator($options); // validation
         $errors = $validator->validate([
             'email' => ['required'],
         ]);
-
-        if ($errors) {
-            throw (new InvalidParameterException())->setErrors($errors);
-        }
+        
+        if ($errors) :
+            $options['email'] = $user->getEmail() ;
+        endif;
 
         $hotline = new Hotline();
-        $dateMin = date('Y-m-d');
-        $dateMin = explode('-', $dateMin);
-        $options['date'] = ($dateMin[0] - 1) . '-' . $dateMin[1] . '-' . $dateMin[2];
-        $res = $hotline->getList($options);
-        $answer['status'] = true;
-        $answer['message'] = '';
-        $answer['data'] = [
-            'new' => [],
-            'progress' => [],
-            'end' => []
-        ];
-        foreach ($res as $row) {
-            if (in_array($row['natures'], array('O', 'OF', 'FO'))) {
-                $key = 'new';
-            } else if (strpos($row['natures'], 'C') !== false) {
-                $key = 'end';
-            } else {
-                $key = 'progress';
-            }
-            $answer['data'][$key][] = array(
-                'id' => $row['discussion'],
-                'opened_at' => $row['opened_at'],
-                'closed_at' => $row['closed_at'],
-                'question' => $row['question'],
-                'sha' => ($user['email'] == $options['email']) ? ($row['is_hotline'] ? $row['sha_hotline'] : $row['sha_demandeur']) : '',
-            );
-        }
-
-        return $answer;
+        $options['date'] = date('Y-m-d');
+       
+        return $this->getAnswers($hotline->getList($options), $user, $options) ;
     }
 
 
@@ -140,4 +113,33 @@ class HotlineRepository extends AbstractRepository
 
         return $answer;
     }
+    
+    /**
+     * Parse Data inside answers
+     * @param array $res
+     * @param User $user
+     * @param array $options
+     * @return array|null
+     */
+    public function getAnswers(array $res,User $user,array $options):?array {
+        $answer = ['status' => true,'message' => '','data' => ['new' => [],'progress' => [],'end' => []]];
+        foreach ($res as $row) {
+            if (in_array($row['natures'], array('O', 'OF', 'FO'))) {
+                $key = 'new';
+            } else if (strpos($row['natures'], 'C') !== false) {
+                $key = 'end';
+            } else {
+                $key = 'progress';
+            }
+            $answer['data'][$key][] = array(
+                'id' => $row['discussion'],
+                'opened_at' => $row['opened_at'],
+                'closed_at' => $row['closed_at'],
+                'question' => $row['question'],
+                'sha' => ($user->getEmail() == $options['email']) ? ($row['is_hotline'] ? $row['sha_hotline'] : $row['sha_demandeur']) : '',
+            );
+        }
+        return $answer ;
+    }
+
 }

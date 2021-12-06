@@ -24,7 +24,7 @@ class HotlineController extends Controller
     {
         try {
             $options = $this->decode(file_get_contents("php://input"), true);
-            return $this->response($this->hotlineRepository->getList($options));
+            return $this->response($this->hotlineRepository->getList($options, $this->currentUser));
         } catch (Exception $ex) {
             return $this->error($ex);
         }
@@ -46,8 +46,9 @@ class HotlineController extends Controller
     public function create()
     {
         try {
+            $user = $this->currentUser ;
             $options = $this->decode(file_get_contents("php://input"));
-            $this->hotlineManager->create($options);
+            $this->hotlineManager->create($options,$user);
             return $this->response([
                 'status' => true
             ]);
