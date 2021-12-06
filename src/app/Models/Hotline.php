@@ -20,11 +20,7 @@ class Hotline extends Model {
     public function getList($options) {
         try {
             $email = $options['email'];
-            $categoryWhere = '';
-            if (!empty($options['category'])) {
-                $categoryWhere = " WHERE h.category_id =:category ";
-            }
-
+            $categoryWhere = (array_key_exists('category', $options)&& !empty($options['category'])) ?" WHERE h.category_id =:category " : '' ;
             $query = "
                     SELECT hf.discussion, hf.is_hotline, h.opened_at, h.closed_at, h.question, h.sha_demandeur, h.sha_hotline, hf.natures
                     FROM (
@@ -49,13 +45,13 @@ class Hotline extends Model {
                      $categoryWhere 
                     ORDER BY h.opened_at DESC
                 ";
-
+      
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':email', $email, PDO::PARAM_STR);
             $sth->bindParam(':date', $options['date'], PDO::PARAM_STR);
             $sth->bindParam(':emailValue', $email, PDO::PARAM_STR);
             if (!empty($options['category'])) {
-                $sth->bindParam(':category', $category, PDO::PARAM_STR);
+                $sth->bindParam(':category', $options['category'], PDO::PARAM_STR);
             }
 
             $sth->execute();
