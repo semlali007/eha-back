@@ -1688,7 +1688,7 @@ ALTER TABLE ONLY "EHA".sheet_files
 
 
 ALTER TABLE hotline 
-    ADD COLUMN notified INTEGER SET DEFAULT 0;
+    ADD COLUMN notified INTEGER DEFAULT 0;
 
 -- Completed on 2021-11-05 14:43:27
 
