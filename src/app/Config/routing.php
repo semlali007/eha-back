@@ -62,7 +62,7 @@ $router->post('/groups/search', 'App\Controllers\GroupController@search', ["role
 $router->post('/groups/add', 'App\Controllers\GroupController@add', ["roles"=>['ADMIN']]);
 // affichage de se documenter dans l'accueil ----
 $router->get('/documentations', 'App\Controllers\DocumentationController@index', ["roles"=>['USER']]);
-// Hotlines 
+// Hotlines pos
 $router->post('/hotlines', 'App\Controllers\HotlineController@index', ["roles"=>['USER']]);
 $router->get('/hotlines/configuration', 'App\Controllers\HotlineController@configuration', ["roles"=>['USER']]);
 $router->get('/hotlines/get/:id/sha/:sha', 'App\Controllers\HotlineController@show', ["roles"=>['USER']]);

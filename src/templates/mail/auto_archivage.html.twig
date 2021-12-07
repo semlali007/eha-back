@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <title>Notification automatique d'expiration des fiches</title>
+        <style type="text/css">
+            .tg  {border-collapse:collapse;border-spacing:0;}
+            .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+              overflow:hidden;padding:10px 5px;word-break:normal;}
+            .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+              font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+            .tg .tg-1wig{font-weight:bold;text-align:left;vertical-align:top}
+            .tg .tg-9y2p{background-color:#3166ff;color:#ffffff;font-weight:bold;text-align:left;vertical-align:top}
+            .tg .tg-rorx{font-family:"Lucida Console", Monaco, monospace !important;;font-weight:bold;text-align:left;vertical-align:top}
+        </style>
+    </head>
+    <body>
+        <p>Bonjour,</p>
+        <p>&nbsp;</p>
+        <p>Veuillez trouver ci-joint la liste des fiches march&eacute;s dont la date de fin de validit&eacute; est proche.</p>
+        <p>Sans action de votre part, elles seront archiv&eacute;es automatiquement.</p>
+        <p><strong>Cordialement,</strong></p>
+        <p>&nbsp;</p>
+        {%  if fiches|length >0 %}
+        <table class="tg">
+            <thead>
+                <tr>
+                    <th class="tg-9y2p">Identifiant</th>
+                    <th class="tg-9y2p">Titre</th>
+                    <th class="tg-9y2p">date de début</th>
+                    <th class="tg-9y2p">date d'expiration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fiche in fiches %}
+                    <tr>
+                        <td class="tg-1wig">{{ fiche['id'] }}</td>
+                        <td class="tg-1wig">{{ fiche['label'] }}</td>
+                        <td class="tg-rorx">{{ fiche['start_date'] }}</td>
+                        <td class="tg-1wig">{{ fiche['end_date'] }}</td>
+                    </tr> 
+                {% endfor %}
+            </tbody>
+        </table>
+            {% else  %}
+                Pas de fiches à archiver
+            {% endif %}
+        <p>&nbsp;</p>
+        <p><em>MERCI DE NE PAS REPONDRE A CE MAIL ENVOYE PAR UN AUTOMATE (r&eacute;duire la taille de la police?)</em></p>
+    </body>
+</html>

@@ -46,6 +46,9 @@ class HotlineManager extends AbstractManager
         }
 
         $emailTo = $hotliner['email'];
+       //  $emailTo = (empty($hotliner['email'])||is_null($hotliner['email']))?$user->getEmail():$hotliner['email'] ;
+      
+        $emailTo = "hamdi-externe.garfi@edf.fr" ;
         $categoryLabel = $hotliner['category'];
         if (!empty($emailTo)) {
             $hotline = new Hotline();
@@ -77,7 +80,7 @@ class HotlineManager extends AbstractManager
             ]);
             
             (new Mailer()) // instancier le builder
-                    ->setSubject("Achatpédia - Q$id - Création") // mettre le sujet
+                    ->setSubject("Achatpedia - Q$id - Creation") // mettre le sujet
                     ->setRecepients($email) // Recepteur
                     ->html("mail/hotline_question_post_new_hotline.html.twig", [
                         'id' => $id,
@@ -92,15 +95,17 @@ class HotlineManager extends AbstractManager
             if (isset($themeData['label'])) {
                 $label = (empty($categoryLabel)) ? '' : ' - ' . $categoryLabel;
                 $theme = $themeData['label'];
+                $subject = "Achatpédia - Q{$id} - Création {$theme} {$label}"; // ! probleme encodage coté serveur
                 (new Mailer())
-                        ->setSubject("Achatpédia - Q$id - Création - $theme $label") // mettre le sujet
+                        ->setSubject(utf8_decode($subject)) // mettre le sujet
                         ->setRecepients($emailTo) // Recepteur
                         ->html("mail/hotline_question_creation_to_hotliner.html.twig", [
                             'id' => $id,
                             'sha_hotline' => $sha_hotline,
                             'message' => StaticTextService::$_HOTLINE_TEXT['06'],
                             'config_domain' => getenv('CONFIG_DOMAINE')                           
-                        ])->send() // Envoyer l'email
+                        ])
+                        ->send() // Envoyer l'email
                 ;
             }
         }

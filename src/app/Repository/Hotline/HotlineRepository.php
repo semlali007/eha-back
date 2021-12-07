@@ -141,5 +141,23 @@ class HotlineRepository extends AbstractRepository
         }
         return $answer ;
     }
+    
+    /**
+     * 
+     * @param int $questionId
+     * @return bool|null
+     */
+    public function getNotAnswered(int $questionId): ?bool {
+       $result =  (new HotlineFil())->isCommented($questionId) ;
+       return (count($result)>0) ;
+    }
+    
+    /**
+     * 
+     * @return array
+     */
+    public function listAll(){
+       return (new HotlineFil())->getAll() ;
+    }
 
 }
