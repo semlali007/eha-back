@@ -165,7 +165,7 @@ class HotlineManager extends AbstractManager
                             'config_domain' => getenv('CONFIG_DOMAINE'),
                             'group'=>(empty($groupe) ? '' : ' pour ' . $groupe)
                         ]) // appeler le template HTML
-                     //   ->send() // Envoyer l'email
+                        ->send() // Envoyer l'email
                 ;
             
             } else {
@@ -179,7 +179,7 @@ class HotlineManager extends AbstractManager
                             'message' => StaticTextService::$_HOTLINE_TEXT['13'],
                             'config_domain' => getenv('CONFIG_DOMAINE'),
                         ]) // appeler le template HTML
-                      //  ->send() // Envoyer l'email
+                        ->send() // Envoyer l'email
                 ;
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['15'] . '</p>';
@@ -254,7 +254,7 @@ class HotlineManager extends AbstractManager
                             'message' => StaticTextService::$_HOTLINE_TEXT['18'],
                             'config_domain' => getenv('CONFIG_DOMAINE'),
                         ]) // appeler le template HTML
-                //  ->send() // Envoyer l'email
+                  ->send() // Envoyer l'email
                 ;
             } else {
                 
@@ -267,7 +267,7 @@ class HotlineManager extends AbstractManager
                             'message' => StaticTextService::$_HOTLINE_TEXT['19'],
                             'config_domain' => getenv('CONFIG_DOMAINE'),
                         ]) 
-                //  ->send() // Envoyer l'email
+                  ->send() // Envoyer l'email
                 ;
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['20'] . '</p>';
