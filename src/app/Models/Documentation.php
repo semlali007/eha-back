@@ -20,11 +20,7 @@ class Documentation extends Model {
     public function getByParentId($parentId) {
         $response= [];
         $documents = $this->getItems($parentId); 
-        foreach ($documents as $document) { 
-            $element = $document;
-            $element['sub'] = $this->getByParentId($document['id']);
-            $response[] = $element ;
-        }
+        
         return $response ;
     }
 
@@ -223,5 +219,21 @@ class Documentation extends Model {
             throw new Exception('erreur de suppression de contact');
         }
     }
+
+     /**
+     * 
+     * @return array
+     * @throws Exception
+     */
+    public function getAll(): array {
+        try {
+            $sth = $this->db->getPDO()->prepare('SELECT * FROM ' . $this->table .' ORDER BY position asc');
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
 
 }
