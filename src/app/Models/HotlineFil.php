@@ -49,4 +49,30 @@ class HotlineFil extends Model
             throw new InternalServerException();
         }
     }
+    /**
+     * 
+     * @return type
+     * @throws InternalServerException
+     */
+    public function getALl(){
+         try {
+            $query = 'SELECT row as id FROM ' . $this->table . ' WHERE discussion = :id ORDER BY row ASC ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException($e->getMessage());
+        }
+    }
+    public function isCommented(int $questionId){
+          try {
+            $query = 'SELECT *  FROM ' . $this->table . ' WHERE discussion = :id ORDER BY row ASC ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $questionId, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException($e->getMessage());
+        }
+    }
 }

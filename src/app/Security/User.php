@@ -33,7 +33,7 @@ class User {
      *
      * @var string
      */
-    private string $direction;
+    public string $direction = "DEFAULT";
 
     /**
      * @var User Roles 
@@ -42,7 +42,7 @@ class User {
     
     
     public function __construct() {
-        $this->email = getenv("DEFAULT_EMAIL");
+        $this->email = getenv("DEFAULT_SEND_EMAIL");
     }
 
         /**
