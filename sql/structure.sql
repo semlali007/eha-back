@@ -1687,6 +1687,9 @@ ALTER TABLE ONLY "EHA".sheet_files
     ADD CONSTRAINT fk_sheet_id FOREIGN KEY (sheet_id) REFERENCES "EHA".sheet_headers(id);
 
 
+ALTER TABLE hotline 
+    ADD COLUMN notified INTEGER;
+
 -- Completed on 2021-11-05 14:43:27
 
 --
