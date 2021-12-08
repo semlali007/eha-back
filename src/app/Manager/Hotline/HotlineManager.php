@@ -9,7 +9,6 @@ use App\Models\Hotline;
 use App\Models\HotlineEmail;
 use App\Models\HotlineFil;
 use App\Models\HotlineTheme;
-use App\Services\EmailService;
 use App\Services\StaticTextService;
 use App\Validation\Validator;
 use Exception;
@@ -44,11 +43,9 @@ class HotlineManager extends AbstractManager
         if (!is_array($hotliner) || empty($hotliner) || !isset($hotliner['email'])) {
             throw new Exception('hotline.no_hotliner_found');
         }
-
-        $emailTo = $hotliner['email'];
-       //  $emailTo = (empty($hotliner['email'])||is_null($hotliner['email']))?$user->getEmail():$hotliner['email'] ;
-        $categoryLabel = $hotliner['category'];
-        if (!empty($emailTo)) {
+        if ((array_key_exists('email', $hotliner))&& !empty($emailTo)) {
+            $emailTo = $hotliner['email'];
+            $categoryLabel = $hotliner['category'];
             $hotline = new Hotline();
             $id = $hotline->insertRequest([
                 'email' => $email,
