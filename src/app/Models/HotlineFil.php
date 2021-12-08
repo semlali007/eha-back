@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
+use App\Models\Hotline ;
 use PDO;
 
 class HotlineFil extends Model
 {
     protected $tableName = 'hotline_fil';
-
+    protected $hotelineTable = 'hotline';
+    
+  
     public function getTimeLineByQuestion($id)
     {
         try {
@@ -56,7 +59,7 @@ class HotlineFil extends Model
      */
     public function getALl(){
          try {
-            $query = 'SELECT row as id FROM ' . $this->table . ' WHERE discussion = :id ORDER BY row ASC ';
+            $query = 'SELECT DISTINCT discussion as id,email_from as email,opened_at as quand, sha_hotline, notified FROM ' . $this->hotelineTable . ' WHERE ORDER BY discussion ASC ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
@@ -66,7 +69,7 @@ class HotlineFil extends Model
     }
     public function isCommented(int $questionId){
           try {
-            $query = 'SELECT *  FROM ' . $this->table . ' WHERE discussion = :id ORDER BY row ASC ';
+            $query = 'SELECT *  FROM ' . $this->table . ' WHERE discussion = :id and nature=\'O\' ORDER BY row ASC ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id', $questionId, PDO::PARAM_INT);
             $sth->execute();
@@ -74,5 +77,16 @@ class HotlineFil extends Model
         } catch (\Exception $e) {
             throw new InternalServerException($e->getMessage());
         }
+    }
+    
+    
+    public function updateNotif(){
+         $query = "
+            UPDATE {$this->hotelineTable} SET notified = notified + 1
+        ";
+
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            return  $this->db->getPDO()->lastInsertId();
     }
 }

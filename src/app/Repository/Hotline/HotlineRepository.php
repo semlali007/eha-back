@@ -149,7 +149,7 @@ class HotlineRepository extends AbstractRepository
      */
     public function getNotAnswered(int $questionId): ?bool {
        $result =  (new HotlineFil())->isCommented($questionId) ;
-       return (count($result)>0) ;
+       return (bool)(count($result)>0) ;
     }
     
     /**
@@ -158,6 +158,14 @@ class HotlineRepository extends AbstractRepository
      */
     public function listAll(){
        return (new HotlineFil())->getAll() ;
+    }
+    
+    /**
+     * 
+     * @return array
+     */
+    public function updateNotif(){
+       return (new HotlineFil())->updateNotif() ;
     }
 
 }
