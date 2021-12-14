@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Command\Command;
 
 use App\Repository\Hotline\HotlineRepository ;
+use Core\Mailer\Builder ;
+use Core\Util\Date as dateHotline;
 use App\Services\StaticTextService ;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
     Output\OutputInterface,
-    Style\SymfonyStyle as style,
-    Input\InputArgument
+    Style\SymfonyStyle as style
 } ;
 
 
@@ -60,35 +61,79 @@ class SearchNoReplyHotline extends Command {
         $io = new style($input, $output);
         $io->title('Recherche en cours ... ');
         $i = 0 ;
-        $array= $this->hotlineRepository->listAll(); // Récupérer les ids et les dates des fiches
-        foreach ($array as $question) {
-           
-            $checkIsCommented = $this->hotlineRepository->getNotAnswered($question['id']) ;
-            if(!$checkIsCommented){
-                $i++ ;
-                 $subject = "Achatpédia - Q{$question['id']} "; // ! probleme encodage coté serveur
-                (new Mailer())
-                        ->setSubject(utf8_decode($subject)) // mettre le sujet
-                        ->setRecepients($emailTo) // Recepteur
-                        ->html("mail/hotline_question_creation_to_hotliner.html.twig", [
-                            'id' => $question['id'],
-                            'sha_hotline' => $sha_hotline,
-                            'message' => StaticTextService::$_HOTLINE_TEXT['06'],
-                            'config_domain' => getenv('CONFIG_DOMAINE')                           
-                        ])
-                        ->send() // Envoyer l'email
-                ;
-            }
+
+        $discussions= $this->hotlineRepository->listAll(); // Récupérer les ids et les dates des fiches
+        foreach ($discussions as $question) {
+            $i++;
+            $isAnswered = $this->hotlineRepository->getNotAnswered($question['id']);
+            if (!$isAnswered): // Pas de commentaires
+                $dateStr = explode(" ", $question['quand']);
+                $notifNumber = intval($question['notified']) ;
+                $this->notifyByEmail(
+                        $question['email'], $dateStr[0],$question['id'], $question['sha_hotline']
+                        ,$notifNumber
+                        ) ;
+            endif;
         }
-        $io->success("Recherche et notifications terminé !") ;
         
+        $io->success("Recherche et notifications terminé !") ;
         $output->writeln([
             "",
-            "<info>{$i} utilisateurs(s) notifié(s)!</>",
+            "<info>{$i} utilisateur(s) notifié(s)!</>",
         ]);
-        
+
         // Retourné l'etat de la commande
         return Command::SUCCESS  ;
+    }
+    
+    /**
+     * 
+     * @param string $emailTo
+     * @param string $date
+     * @param int $id
+     * @param string $label
+     * @param string $theme
+     * @param string $sha_hotline
+     * @param int $notifNumber
+     */
+    public function notifyByEmail(string $emailTo,string $date, int $id,string $label, string $theme, string $sha_hotline, int $notifNumber = 0):void{
+        // Rappel num 1=> 5
+        $dateM5 = new \DateTime(dateHotline::generateDateMoins(5,'Y-m-d')) ;
+        $dateM15 = new \DateTime(dateHotline::generateDateMoins(15,'Y-m-d')) ;
+        $dateM30 = new \DateTime(dateHotline::generateDateMoins(30,'Y-m-d')) ;
+        $dateTime =  new \DateTime($date) ;
+        
+        if($notifNumber == 0 && ($dateM5)>= $dateTime && ($dateTime> $dateM15)){
+           $this->sendMail($emailTo,$id,$label,$theme, $sha_hotline) ;
+           $this->hotlineRepository->updateNotif() ;
+        }
+        
+        // Rappel Num 2 => 15
+        if($notifNumber == 1 && ($dateM15)>= $dateTime && ($dateTime> $dateM30)){
+           $this->sendMail($emailTo,$id,$label,$theme, $sha_hotline) ;
+           $this->hotlineRepository->updateNotif() ;
+        }
+         // Rappel num 3 => 30
+         if($notifNumber > 1 &&  ($dateTime<= $dateM30)){
+           $this->sendMail($emailTo,$id,$sha_hotline) ;
+           $this->hotlineRepository->updateNotif() ;
+        }
+    }
+    
+    /**
+     * 
+     * @param string $emailTo
+     */
+    public function sendMail(string $emailTo, int $id, string $sha_hotline):void {
+        (new Builder())
+                ->setSubject("Achatpedia - Q{$id} - Rappel")->setRecepients($emailTo) 
+                ->html("mail/hotline_question_creation_to_hotliner.html.twig", [
+                    'id' => $id,
+                    'sha_hotline' => $sha_hotline,
+                    'message' => StaticTextService::$_HOTLINE_TEXT['06'],
+                    'config_domain' => getenv('CONFIG_DOMAINE')
+                ])->send()  
+        ;
     }
 
 }

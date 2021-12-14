@@ -37,7 +37,8 @@ class Builder {
         $templateBasePath = dirname(__DIR__). '/../' . self::PATH_TEMPLATING ;
         $this->twig = new Environment(new FilesystemLoader($templateBasePath)); // Templating
         $this->mail = new Mailer($enbaleException); // Mailer
-        $this->mail->CharSet = "text/html; charset=UTF-8;";
+        $this->mail->ContentType = "Content-type: text/plain; charset=UTF-8" ;
+        $this->mail->setLanguage('fr');
         $this->setFrom(getenv("EMAIL_NO_REPLAY"), getenv("EMAIL_NO_REPLY_NAME")) ;
         // Charger les prametres personnalisés
         if (filter_var(getenv("ENABLE_CUSTOM_CONF"), FILTER_VALIDATE_BOOLEAN)) :

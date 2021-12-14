@@ -3,9 +3,11 @@
 namespace App\Command;
 
 use Symfony\Component\Console\Application;
-use App\Command\Command\{ArchivageFicheMarche,AutoNotifArchivageFiche};
-
-
+use App\Command\Command\{
+    ArchivageFicheMarche,
+    AutoNotifArchivageFiche,
+    SearchNoReplyHotline
+};
 
 /**
  * @author HGDDEDBN
@@ -38,7 +40,8 @@ class Bootstrap {
         $this->application = new Application();
         $this->commands = [
             new ArchivageFicheMarche(),
-            new AutoNotifArchivageFiche()
+            new AutoNotifArchivageFiche(),
+            new SearchNoReplyHotline()
         ] ;
     }
 

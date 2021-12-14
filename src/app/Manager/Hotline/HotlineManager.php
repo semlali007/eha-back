@@ -9,7 +9,6 @@ use App\Models\Hotline;
 use App\Models\HotlineEmail;
 use App\Models\HotlineFil;
 use App\Models\HotlineTheme;
-use App\Services\EmailService;
 use App\Services\StaticTextService;
 use App\Validation\Validator;
 use Exception;
@@ -44,13 +43,10 @@ class HotlineManager extends AbstractManager
         if (!is_array($hotliner) || empty($hotliner) || !isset($hotliner['email'])) {
             throw new Exception('hotline.no_hotliner_found');
         }
-
-        $emailTo = $hotliner['email'];
-       //  $emailTo = (empty($hotliner['email'])||is_null($hotliner['email']))?$user->getEmail():$hotliner['email'] ;
-      
-        $emailTo = "hamdi-externe.garfi@edf.fr" ;
-        $categoryLabel = $hotliner['category'];
-        if (!empty($emailTo)) {
+        
+        if ((array_key_exists('email', $hotliner))) {
+            $emailTo = $hotliner['email'];
+            $categoryLabel = $hotliner['category'];
             $hotline = new Hotline();
             $id = $hotline->insertRequest([
                 'email' => $email,
@@ -79,25 +75,25 @@ class HotlineManager extends AbstractManager
                 'message' => 'Question affectée automatiquement à ' . $emailTo,
             ]);
             
-            (new Mailer()) // instancier le builder
-                    ->setSubject("Achatpedia - Q$id - Creation") // mettre le sujet
-                    ->setRecepients($email) // Recepteur
-                    ->html("mail/hotline_question_post_new_hotline.html.twig", [
-                        'id' => $id,
-                        'sha_demandeur' => $sha_demandeur,
-                        'message' => StaticTextService::$_HOTLINE_TEXT['05'],
-                        'config_domain' => getenv('CONFIG_DOMAINE')
-                    ]) // appeler le template HTML
-                    ->send() // Envoyer l'email
-            ;
+//            (new Mailer()) // instancier le builder
+//                    ->setSubject("Achatpedia - Q$id - Creation") // mettre le sujet
+//                    ->setRecepients($email) // Recepteur
+//                    ->html("mail/hotline_question_creation_to_hotlinerauto.html.twig", [
+//                        'id' => $id,
+//                        'sha_demandeur' => $sha_demandeur,
+//                        'message' => StaticTextService::$_HOTLINE_TEXT['05'],
+//                        'config_domain' => getenv('CONFIG_DOMAINE')
+//                    ]) // appeler le template HTML
+//                    ->send() // Envoyer l'email
+//            ;
 
             $themeData = (new HotlineTheme())->get($theme);
             if (isset($themeData['label'])) {
                 $label = (empty($categoryLabel)) ? '' : ' - ' . $categoryLabel;
                 $theme = $themeData['label'];
-                $subject = "Achatpédia - Q{$id} - Création {$theme} {$label}"; // ! probleme encodage coté serveur
+                $subject = preg_replace('~&([a-z]{1,2})(acute|cedil|circ|Grave|lig|orn|ring|slash|th|tilde|uml);~i', '$1', htmlentities("Achatpedia - Q{$id} - Creation {$theme} {$label}", ENT_QUOTES, 'UTF-8'));
                 (new Mailer())
-                        ->setSubject(utf8_decode($subject)) // mettre le sujet
+                        ->setSubject($subject) // mettre le sujet
                         ->setRecepients($emailTo) // Recepteur
                         ->html("mail/hotline_question_creation_to_hotliner.html.twig", [
                             'id' => $id,

@@ -16,7 +16,37 @@ class Hotline extends Model {
         parent::__construct();
         $this->hotelineFileTable = (new HotlineFil())->table;
     }
-
+    
+    public function getAll(string $date=""){
+            $query = "
+                    SELECT hf.discussion, hf.is_hotline, h.opened_at, h.closed_at, h.question, h.sha_demandeur, h.sha_hotline, hf.natures
+                    FROM (
+                        SELECT DISTINCT hf.discussion, hf.is_hotline, n.natures
+                        FROM  {$this->hotelineFileTable}  AS hf
+                        LEFT JOIN (
+                            SELECT discussion, string_agg(nature, '') as natures
+                            FROM  {$this->hotelineFileTable}  
+                            WHERE discussion IN (
+                                SELECT DISTINCT discussion
+                                FROM  {$this->hotelineFileTable} 
+                                WHERE email = :email
+                                AND quand > :date 
+                            )
+                            GROUP BY discussion
+                        ) AS n
+                        ON hf.discussion = n.discussion
+                    ) AS hf 
+                    LEFT JOIN  {$this->table}   AS h
+                    ON hf.discussion = h.discussion
+                    ORDER BY h.opened_at DESC
+                ";
+                    
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':date', $date, PDO::PARAM_STR);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+    }
+    
     public function getList($options) {
         try {
             $email = $options['email'];
