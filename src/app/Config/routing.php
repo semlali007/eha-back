@@ -109,6 +109,9 @@ $router->post('/migration/list', 'App\Controllers\Admin\MigrateController@index'
 $router->post('/purchases/search', 'App\Controllers\PurchaseController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 
 
+$router->get('/pages/get/:code', 'App\Controllers\PageController@get', ["roles"=>['USER']]);
+$router->post('/pages/edit/:code', 'App\Controllers\PageController@update', ["roles"=>['ADMIN']]);
+
 //try {
 $data = $router->run();
 if (is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE)):
