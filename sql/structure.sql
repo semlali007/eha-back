@@ -1698,10 +1698,10 @@ ALTER TABLE "EHA".hotline
 
 CREATE TABLE "EHA".static_page
 (
-    page varying(50)  NOT NULL,
+    page character varying(50)  NOT NULL,
     content text NOT NULL,
     active boolean DEFAULT false NOT NULL,
-    title varying(100)  NOT NULL,
+    title character varying(100)  NOT NULL,
     CONSTRAINT static_page_pkey PRIMARY KEY (page)
 );
 
