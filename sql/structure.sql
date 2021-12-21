@@ -1696,3 +1696,17 @@ ALTER TABLE "EHA".hotline
 -- PostgreSQL database dump complete
 --
 
+CREATE TABLE "EHA".static_page
+(
+    page varying(50)  NOT NULL,
+    content text NOT NULL,
+    active boolean DEFAULT false NOT NULL,
+    title varying(100)  NOT NULL,
+    CONSTRAINT static_page_pkey PRIMARY KEY (page)
+);
+
+INSERT INTO "EHA".static_page(page, content, active, title)
+	VALUES ('sheet_modal_news', 'Vitrine de l offre', false, 'Vitrine de l offre');
+
+INSERT INTO "EHA".static_page(page, content, active, title)
+	VALUES ('purchase_modal_news', 'Ma situation achat', false, 'Ma situation achat');
