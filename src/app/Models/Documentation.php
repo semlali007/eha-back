@@ -112,12 +112,14 @@ class Documentation extends Model {
      * @throws Exception
      */
     public function add(array $data) {
+      
         try {
             $query = '
-        INSERT INTO ' . $this->table . ' (label, position, parent, link, breadcrumb, external, warning, description) VALUES (:label, (select coalesce(max(position), 0) + 1 FROM ' . $this->table . ' WHERE  parent=:parent_id), :parent, :link, :breadcrumb, :external, :warning, :description);
+        INSERT INTO ' . $this->table . ' (label, shortdescription ,position, parent, link, breadcrumb, external, warning, description) VALUES (:label,:shortdescription, (select coalesce(max(position), 0) + 1 FROM ' . $this->table . ' WHERE  parent=:parent_id), :parent, :link, :breadcrumb, :external, :warning, :description);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
+            $sth->bindParam(':shortdescription', $data['shortdescription'], PDO::PARAM_STR);
             $sth->bindParam(':parent_id', $data['parent'], PDO::PARAM_STR);
             $sth->bindParam(':parent', $data['parent'], PDO::PARAM_STR);
             $sth->bindParam(':link', $data['link'], PDO::PARAM_STR);
@@ -141,10 +143,11 @@ class Documentation extends Model {
         try {
             try {
                 $query = '
-                UPDATE ' . $this->table . ' set label=:label, link=:link, breadcrumb=:breadcrumb, external=:external, warning=:warning, description=:description WHERE id=:id;
+                UPDATE ' . $this->table . ' set label=:label, shortdescription=:shortdescription, link=:link, breadcrumb=:breadcrumb, external=:external, warning=:warning, description=:description WHERE id=:id;
         ';
                 $sth = $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
+                $sth->bindParam(':shortdescription', $data['shortdescription'], PDO::PARAM_STR);
                 $sth->bindParam(':link', $data['link'], PDO::PARAM_STR);
                 $sth->bindParam(':breadcrumb', $data['breadcrumb'], PDO::PARAM_STR);
                 $sth->bindParam(':external', $data['external'], PDO::PARAM_BOOL);
