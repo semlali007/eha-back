@@ -1690,6 +1690,9 @@ ALTER TABLE ONLY "EHA".sheet_files
 ALTER TABLE "EHA".hotline 
     ADD COLUMN notified INTEGER DEFAULT 0;
 
+ALTER TABLE "EHA".menu_documentations 
+    ADD COLUMN shortdescription TEXT;
+
 -- Completed on 2021-11-05 14:43:27
 
 --
