@@ -112,6 +112,15 @@ $router->post('/purchases/search', 'App\Controllers\PurchaseController@search', 
 $router->get('/pages/get/:code', 'App\Controllers\PageController@get', ["roles"=>['USER']]);
 $router->post('/pages/edit/:code', 'App\Controllers\PageController@update', ["roles"=>['ADMIN']]);
 
+$router->get('/informations/get/:type', 'App\Controllers\InformationController@get', ["roles"=>['USER']]);
+$router->get('/informations/edit/:id', 'App\Controllers\InformationController@getElement', ["roles"=>['USER']]);
+$router->get('/informations/list/:type', 'App\Controllers\InformationController@getList', ["roles"=>['USER']]);
+$router->post('/informations/save/:id', 'App\Controllers\InformationController@update', ["roles"=>['USER']]);
+$router->post('/informations/add/:type', 'App\Controllers\InformationController@add', ["roles"=>['USER']]);
+$router->get('/informations/delete/:id', 'App\Controllers\InformationController@delete',["roles"=>['USER']]);
+
+
+
 //try {
 $data = $router->run();
 if (is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE)):
