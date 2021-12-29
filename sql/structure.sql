@@ -1713,3 +1713,16 @@ INSERT INTO "EHA".static_page(page, content, active, title)
 
 INSERT INTO "EHA".static_page(page, content, active, title)
 	VALUES ('purchase_modal_news', 'Ma situation achat', false, 'Ma situation achat');
+
+CREATE TABLE "EHA".informations
+(
+    type character varying(50) NOT NULL,
+    short_description text  NOT NULL,
+    long_description text  NOT NULL,
+    start_date timestamp without time zone,
+    end_date timestamp without time zone,
+    id bigserial NOT NULL
+);
+
+ALTER TABLE ONLY "EHA".informations
+    ADD CONSTRAINT informations_pkey PRIMARY KEY (id);
