@@ -13,15 +13,15 @@ class NewsRepository extends AbstractRepository
         return $news->getNews();
     }
 
-    public function checkNni(int $idNews, string $userNni)
+    public function checkNni(int $idNews, string $userNni, $page)
     {
         $userNews = new UserNews();
-        return $userNews->checkNni($idNews,$userNni);
+        return $userNews->checkNni($idNews,$userNni, $page);
     }
 
-    public function insertUserNews($id,$monNNI) {
+    public function insertUserNews($id,$monNNI, $page) {
         $userNews = new UserNews();
-        return $userNews->insertUserNews($id,$monNNI);
+        return $userNews->insertUserNews($id,$monNNI, $page);
     }
     
      public function getList()
