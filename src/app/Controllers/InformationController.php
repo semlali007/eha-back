@@ -9,16 +9,19 @@ class InformationController extends Controller
 {
     private  $informationRepository;
     private  $informationManager;
+    private $currentNni  ;
     
-    public function __construct()
+    public function __construct($roles = [])
     {
+        parent::__construct($roles);
         $this->informationRepository = new InformationRepository();
         $this->informationManager = new InformationManager();
+        $this->currentNni = $this->getCurrentUser()->getNni();
     }
 
     public function get($type)
     {
-        return  $this->response($this->informationRepository->getContent($type));
+        return  $this->response($this->informationRepository->getContent($type, $this->currentNni));
     }
 
     public function update($id)
@@ -68,5 +71,6 @@ class InformationController extends Controller
         $list = $this->informationRepository->delete($id);
         return $this->response($list);
     }
+    
 
 }

@@ -30,7 +30,7 @@ class NewsController extends Controller
         $test = $this->newsRepository->getNews();
         $result = [];
         foreach ($test as $n) {
-            if ($this->newsRepository->checkNni($n['id'], $this->currentNni) <= 0) {
+            if ($this->newsRepository->checkNni($n['id'], $this->currentNni, 'news') <= 0) {
                 $result[] = $n;
             }
         }
@@ -43,8 +43,8 @@ class NewsController extends Controller
     public function createUserNews()
     {
         $response = Request::input();
-        foreach($response as $n) {
-            $this->newsRepository->insertUserNews($n['id'],$this->currentNni);
+        foreach($response['items'] as $n) {
+            $this->newsRepository->insertUserNews($n['id'],$this->currentNni, $response['type']);
         }
         return  $this->response($response);
     }

@@ -10,14 +10,14 @@ class Information extends Model
     protected $tableName = 'informations';
 
 
-    public function getContent($type)
+    public function getActiveInformations($type)
     {
         try {
             $query = 'SELECT * FROM ' . $this->table  . ' WHERE type=:type AND start_date <= CURRENT_TIMESTAMP and end_date>=CURRENT_TIMESTAMP order by id desc ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':type', $type, PDO::PARAM_STR);
             $sth->execute();
-            return  $sth->fetch(PDO::FETCH_ASSOC);
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
