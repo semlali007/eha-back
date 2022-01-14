@@ -63,8 +63,8 @@ class Sheet extends Model
     public function search($options)
     {
         try {
-            $orderBy = $options['order_by'] ?? 'id';
-            $direction = $options['direction'] ?? 'asc';
+            $orderBy = $options['order_by'] ?? 'updated_at';
+            $direction = $options['direction'] ?? 'desc';
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
