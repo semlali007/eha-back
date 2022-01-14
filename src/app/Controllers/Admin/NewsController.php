@@ -25,12 +25,12 @@ class NewsController extends Controller
      * 
      * @return mixed
      */
-    public function getNews():mixed {
+    public function getNews($type):mixed {
         
-        $test = $this->newsRepository->getNews();
+        $test = $this->newsRepository->getNews($type);
         $result = [];
         foreach ($test as $n) {
-            if ($this->newsRepository->checkNni($n['id'], $this->currentNni, 'news') <= 0) {
+            if ($this->newsRepository->checkNni($n['id'], $this->currentNni, $type) <= 0) {
                 $result[] = $n;
             }
         }
@@ -53,9 +53,9 @@ class NewsController extends Controller
      * 
      * @return mixed
      */
-    public function getList():mixed {
+    public function getList($type):mixed {
         
-        $list = $this->newsRepository->getList();
+        $list = $this->newsRepository->getList($type);
         return $this->response($list);
     }
 

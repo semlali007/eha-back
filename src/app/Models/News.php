@@ -10,11 +10,12 @@ class News extends Model
     protected $tableName = 'news';
 
 
-    public function getNews()
+    public function getNews($type)
     {
         try {
-            $query = 'SELECT DISTINCT * FROM ' . $this->table  . ' ORDER BY date desc';
+            $query = 'SELECT DISTINCT * FROM ' . $this->table  . ' WHERE type=:type ORDER BY date desc';
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':type', $type, PDO::PARAM_STR);
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -31,12 +32,13 @@ class News extends Model
     public function addNews(array $data) {
         try {
             $query = '
-        INSERT INTO ' . $this->table . ' (title, description,date) VALUES (:title, :description, :date) ;
+        INSERT INTO ' . $this->table . ' (title, description,date, type) VALUES (:title, :description, :date, :type) ;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':title', $data['title'], PDO::PARAM_STR);
             $sth->bindParam(':description', $data['description'], PDO::PARAM_STR);
             $sth->bindParam(':date', $data['date'], PDO::PARAM_STR);
+            $sth->bindParam(':type', $data['type'], PDO::PARAM_STR);
             $sth->execute();
             return $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
