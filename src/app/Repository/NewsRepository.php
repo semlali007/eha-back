@@ -7,10 +7,10 @@ use App\Models\UserNews;
 
 class NewsRepository extends AbstractRepository
 {
-    public function getNews()
+    public function getNews($type)
     {
         $news = new News();
-        return $news->getNews();
+        return $news->getNews($type);
     }
 
     public function checkNni(int $idNews, string $userNni, $page)
@@ -24,10 +24,10 @@ class NewsRepository extends AbstractRepository
         return $userNews->insertUserNews($id,$monNNI, $page);
     }
     
-     public function getList()
+     public function getList($type)
     {
         $news = new News();
-        return $news->getNews();
+        return $news->getNews($type);
     }
     public function add($data)
     {

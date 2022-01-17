@@ -1728,5 +1728,7 @@ ALTER TABLE ONLY "EHA".informations
     ADD CONSTRAINT informations_pkey PRIMARY KEY (id);
 
 ALTER TABLE "EHA".user_news 
-    ADD COLUMN page VARCHAR (10) ;
+    ADD COLUMN page VARCHAR (50) ;
     
+ALTER TABLE "EHA".news 
+    ADD COLUMN type VARCHAR (50) ;

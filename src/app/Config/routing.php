@@ -6,9 +6,9 @@ $router->post('/authentication/login', 'App\Controllers\AuthenticationController
 $router->get('/authentication/logout', 'App\Controllers\AuthenticationController@logout');
 
 ## Modal home ##
-$router->get('/config/news', 'App\Controllers\Admin\NewsController@getNews',["roles"=>['USER']]);
+$router->get('/config/news/:type', 'App\Controllers\Admin\NewsController@getNews',["roles"=>['USER']]);
 $router->post('/config/create-user-news', 'App\Controllers\Admin\NewsController@createUserNews',["roles"=>['USER']]);
-$router->get('/config/news/list', 'App\Controllers\Admin\NewsController@getList',["roles"=>['USER']]);
+$router->get('/config/news/list/:type', 'App\Controllers\Admin\NewsController@getList',["roles"=>['USER']]);
 $router->post('/config/news/add', 'App\Controllers\Admin\NewsController@add',["roles"=>['USER']]);
 $router->get('/config/news/edit/:id', 'App\Controllers\Admin\NewsController@getElement',["roles"=>['USER']]);
 $router->post('/config/news/update', 'App\Controllers\Admin\NewsController@update',["roles"=>['USER']]);
