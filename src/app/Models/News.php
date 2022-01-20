@@ -30,6 +30,8 @@ class News extends Model
      * @throws Exception
      */
     public function addNews(array $data) {
+        $date = new \DateTime();
+        $formatted = $date->format('Y-m-d');
         try {
             $query = '
         INSERT INTO ' . $this->table . ' (title, description,date, type) VALUES (:title, :description, :date, :type) ;
@@ -37,7 +39,7 @@ class News extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':title', $data['title'], PDO::PARAM_STR);
             $sth->bindParam(':description', $data['description'], PDO::PARAM_STR);
-            $sth->bindParam(':date', $data['date'], PDO::PARAM_STR);
+            $sth->bindParam(':date', $formatted, PDO::PARAM_STR);
             $sth->bindParam(':type', $data['type'], PDO::PARAM_STR);
             $sth->execute();
             return $this->db->getPDO()->lastInsertId();
@@ -52,6 +54,9 @@ class News extends Model
      * @throws Exception
      */
     public function updateNews(array $data) {
+        $date = new \DateTime();
+        $formatted = $date->format('Y-m-d');
+
         try {
             try {
                 $query = '
@@ -60,7 +65,7 @@ class News extends Model
                 $sth = $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':title', $data['title'], PDO::PARAM_STR);
                 $sth->bindParam(':description', $data['description'], PDO::PARAM_STR);
-                $sth->bindParam(':date', $data['date'], PDO::PARAM_STR);
+                $sth->bindParam(':date', $formatted, PDO::PARAM_STR);
                 $sth->bindParam(':id', $data['id'], PDO::PARAM_INT);
                 $sth->execute();
             } catch (\Exception $e) {
