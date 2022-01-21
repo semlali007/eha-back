@@ -1,5 +1,5 @@
 ALTER TABLE "EHA".user_news ALTER COLUMN page TYPE VARCHAR(50);
-ALTER TABLE "EHA".news ALTER COLUMN title TEXT;
+ALTER TABLE "EHA".news ALTER COLUMN title TYPE TEXT;
 ALTER TABLE "EHA".news  ADD COLUMN type VARCHAR (50) ;
 INSERT INTO "EHA".static_page(page, content, active, title)
 VALUES ('home_page', 'Page principale', false, 'Page principale');
