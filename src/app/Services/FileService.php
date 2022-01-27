@@ -8,8 +8,7 @@ class FileService
     public static function download($options)
     {
         if (isset($options["file"])) {
-            // $file = urldecode($options["file"]); // Correction checkmarks
-            $filepath = getenv("CONFIG_UPLOAD_PATH") . Request::decodeParam($options["file"]);
+            $filepath = getenv("CONFIG_UPLOAD_PATH") .DIRECTORY_SEPARATOR.urldecode($options["file"]);
             if (file_exists($filepath)) {
                 header('Content-Description: File Transfer');
                 header('Content-Type: application/octet-stream');
