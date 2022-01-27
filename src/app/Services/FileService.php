@@ -19,12 +19,8 @@ class FileService
                 header('Pragma: public');
                 header('Content-Length: ' . filesize($filepath));
                 flush(); // Flush system output buffer
-                return readfile($filepath);
-               
-            } else {
-                http_response_code(404);
-                die();
-            }
+                return readfile($filepath); 
+            } 
         }
     }
 }
