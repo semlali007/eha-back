@@ -19,6 +19,10 @@ $configuration = [
                 "search" => "search_providers", // Action
                 "get" => "get_provider", // verbe à utiliser
             ],
+            'anchors' => [
+                "search" => "data-mock/anchors.json", // search_anchors
+                "get" => "get_anchor", // verbe à utiliser
+            ],
             'items' => [
                 "search" => "search_items", // Action
                 "get" => "get_item", // verbe à utiliser
