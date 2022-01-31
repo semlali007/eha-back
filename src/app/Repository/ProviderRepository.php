@@ -38,6 +38,7 @@ class ProviderRepository extends AbstractRepository {
                 'action_code' => $hlk["actions"]["providers"]["search"],
                 'action_info' => $options['words']
             ];
+            
             return HttpClientService::exec_post($hlk['url'], $queryData); 
     }
 
@@ -63,37 +64,20 @@ class ProviderRepository extends AbstractRepository {
     }
 
     public function searchAnchors($options) {
+        $hlk = $GLOBALS['configuration']['hlk'];
+        $apiConfigAnchors = $hlk["actions"]["anchors"]["search"];
 
-        $configExterneApi = CONFIG_EXTERNAL_API;
-        $hlkConfig = $configExterneApi['hlk'];
-        $apiConfigAnchors = $hlkConfig['anchors']['list'];
-
-        if (strpos($apiConfigAnchors['url'], '.json') !== false) {
-            return json_decode(file_get_contents($apiConfigAnchors['url']), true);
+        if (strpos($apiConfigAnchors, '.json') !== false) {
+            return json_decode(file_get_contents(__DIR__ . "/../../public/" . $apiConfigAnchors), true);
         }
-
-        $headers = [
-            'Content-Type: application/json',
-            'Accept-Charset: utf-8'
-        ];
 
         $queryData = [
-            'password' => $hlkConfig['password'],
-            'username' => $hlkConfig['username'],
-            'limit' => $hlkConfig['limit'],
-            'search_text' => $options['words'],
-            'line' => $options['line'] ?? ''
+            'password' => $hlk['pwd'],
+            'action_code' => $hlk["actions"]["anchors"]["search"],
+            'action_info' => $options['zipcode']
         ];
 
-        HttpClientService::prepare($apiConfigAnchors['url'], json_encode($queryData), $headers);
-        HttpClientService::exec_post();
-        $providers = HttpClientService::get_response_assoc();
-
-        if (!is_array($providers) || count($providers) === 0) {
-            throw new Exception('erreur de recupération des données.');
-        }
-
-        return $providers;
+        return HttpClientService::exec_post($hlk['url'], $queryData);
     }
 
 }
