@@ -29,6 +29,10 @@ class ProviderController extends Controller
     {
         return $this->response($this->providerRepository->getProvider($code));
     }
-
+    public function add()
+    {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        return  $this->response($this->providerRepository->create($options));
+    }
 
 }

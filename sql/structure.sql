@@ -1776,6 +1776,8 @@ INSERT INTO "EHA".hotline_theme VALUES (20, 'Réclamation', true);
 INSERT INTO "EHA".hotline_theme VALUES (21, 'Divers', true);
 INSERT INTO "EHA".hotline_theme VALUES (22, 'Fiches Marchés', true);
 
+ALTER TABLE "EHA".provider ALTER COLUMN provider_code TYPE VARCHAR(200);
+ALTER TABLE "EHA".sheet_providers ALTER COLUMN provider_code TYPE VARCHAR(200);
 CREATE TABLE "EHA".subscription
 (
     sheet_id  bigserial NOT NULL,

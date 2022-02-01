@@ -80,4 +80,27 @@ class ProviderRepository extends AbstractRepository {
         return HttpClientService::exec_post($hlk['url'], $queryData);
     }
 
+
+    public function create($options)
+    {
+        try {
+            if (!isset($options['provider_label']) || empty($options['provider_label'])) {
+                throw new Exception('Le nom est obligatoire');
+            }
+            $provider = new Provider();
+            $options['provider_code'] = uniqid("NA");
+
+            $id =  $provider->add($options);
+            return [
+                'status' => true,
+                'id' => $id
+            ];
+        } catch (Exception $ex) {
+            http_response_code(500);
+            return [
+                'error' => $ex->getCode(),
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
 }
