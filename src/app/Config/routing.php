@@ -36,6 +36,7 @@ $router->get('/products/search/:code', 'App\Controllers\ProductController@search
 ### providers ###
 $router->get('/providers/show/:code', 'App\Controllers\ProviderController@show', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->get('/providers/search/:code', 'App\Controllers\ProviderController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
+$router->post('/providers/add', 'App\Controllers\ProviderController@add', ["roles"=>['ADMIN']]);
 
 $router->post('/sheets', 'App\Controllers\SheetController@index', ["roles"=>['USER']]);
 $router->get('/sheets/show/:id', 'App\Controllers\SheetController@show', ["roles"=>['USER']]);

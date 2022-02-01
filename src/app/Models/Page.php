@@ -22,6 +22,7 @@ class Page extends Model
             $sth->execute();
             return  $sth->fetch(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
+            var_dump($e->getMessage());exit;
             throw new InternalServerException();
         }
     }
