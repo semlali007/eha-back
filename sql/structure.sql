@@ -1775,3 +1775,11 @@ INSERT INTO "EHA".hotline_theme VALUES (19, 'Achat de licences logiciels et main
 INSERT INTO "EHA".hotline_theme VALUES (20, 'Réclamation', true);
 INSERT INTO "EHA".hotline_theme VALUES (21, 'Divers', true);
 INSERT INTO "EHA".hotline_theme VALUES (22, 'Fiches Marchés', true);
+
+CREATE TABLE "EHA".subscription
+(
+    sheet_id  bigserial NOT NULL,
+    created date,
+    user_nni character varying(100) NOT NULL,
+    CONSTRAINT subscription_pkey PRIMARY KEY (user_nni, sheet_id)
+)

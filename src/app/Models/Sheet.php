@@ -12,6 +12,8 @@ use App\Models\SheetProvider;
 use App\Models\SheetGroup;
 use App\Models\SheetBeneficiary;
 use App\Models\Committee;
+use App\Models\Subscription;
+
 use Exception;
 use PDO;
 
@@ -41,6 +43,7 @@ class Sheet extends Model
         $this->sheetProviderTable = (new SheetProvider())->table;
         $this->sheetGroupTable = (new SheetGroup())->table;
         $this->committeeTable = (new Committee())->table;
+        $this->subscriptionTable = (new Subscription())->table;
         $this->searchCondition = null;
     }
 
@@ -60,7 +63,7 @@ class Sheet extends Model
         }
     }
 
-    public function search($options)
+    public function search($options, $userNni = null)
     {
         try {
             $orderBy = $options['order_by'] ?? 'updated_at';
@@ -68,9 +71,17 @@ class Sheet extends Model
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
-            $query = "SELECT s.id, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date FROM {$this->table}  as s {$this->searchCondition}  ORDER BY s.{$orderBy} {$direction} LIMIT {$perpage} offset {$page} ";
+            $query = "SELECT s.id, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, 
+                      CASE 
+                      WHEN sub.sheet_id is not NULL THEN true
+                      ELSE false
+                      END subscribed
+                      FROM {$this->table}  as s 
+                      LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = S.ID and user_nni=:userNni
 
+                      {$this->searchCondition}  ORDER BY s.{$orderBy} {$direction} LIMIT {$perpage} offset {$page} ";
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {

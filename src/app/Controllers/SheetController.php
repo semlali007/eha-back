@@ -11,21 +11,26 @@ class SheetController extends Controller {
 
     private $sheetRepository;
     private $sheetManager;
+    private $currentNni  ;
 
     public function __construct($roles = [])
     {
         parent::__construct($roles);
+
         $this->sheetRepository = new SheetRepository();
         $this->sheetManager = new SheetManager();
     }
 
     public function index() {
+        $this->currentNni = $this->getCurrentUser()->getNni();
         $options = $this->decode(file_get_contents("php://input"));
-        return $this->response($this->sheetRepository->search($options));
+
+        return $this->response($this->sheetRepository->search($options, $this->currentNni));
     }
 
     public function show(int $id) {
-        return $this->response(['sheet' => $this->sheetRepository->getDetails($id)]);
+        $this->currentNni = $this->getCurrentUser()->getNni();
+        return $this->response(['sheet' => $this->sheetRepository->getDetails($id, $this->currentNni)]);
     }
 
     public function export() {
@@ -48,6 +53,28 @@ class SheetController extends Controller {
         return FileService::download($options);
     }
     
+
+    public function subscribe() {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        $this->currentNni = $this->getCurrentUser()->getNni();
+        if($this->currentNni!=$options['user']){
+            var_dump('problème');
+        }
+
+        return $this->response(['sheet' => $this->sheetManager->subscribe($options['sheet'],$options['user'])]);
+    }
+
+    public function unsubscribe() {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        $this->currentNni = $this->getCurrentUser()->getNni();
+        if($this->currentNni!=$options['user']){
+            var_dump('problème');
+        }
+
+        return $this->response(['sheet' => $this->sheetManager->unsubscribe($options['sheet'],$options['user'])]);
+    }
+
+
     /**
      * remove
      *
@@ -57,5 +84,6 @@ class SheetController extends Controller {
     public function remove(int $id) {
         return $this->response($this->sheetManager->remove($id));
     }
+
 
 }
