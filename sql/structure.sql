@@ -1778,3 +1778,10 @@ INSERT INTO "EHA".hotline_theme VALUES (22, 'Fiches Marchés', true);
 
 ALTER TABLE "EHA".provider ALTER COLUMN provider_code TYPE VARCHAR(200);
 ALTER TABLE "EHA".sheet_providers ALTER COLUMN provider_code TYPE VARCHAR(200);
+CREATE TABLE "EHA".subscription
+(
+    sheet_id  bigserial NOT NULL,
+    created date,
+    user_nni character varying(100) NOT NULL,
+    CONSTRAINT subscription_pkey PRIMARY KEY (user_nni, sheet_id)
+)

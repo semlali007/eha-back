@@ -12,6 +12,7 @@ use App\Models\SheetGroup;
 use App\Models\SheetLot;
 use App\Models\SheetOption;
 use App\Models\SheetProvider;
+use App\Models\Subscription;
 use App\Services\FileUpload;
 use App\Services\UserService;
 use Exception;
@@ -322,4 +323,25 @@ class SheetManager extends AbstractManager {
     function remove($id){
         return (new Sheet())->deleteSheet($id); 
     }
+
+     /**
+     * remove
+     *
+     * @param  mixed $id
+     * @return void
+     */
+    function subscribe($sheetId, $userNni){
+        return (new Subscription())->add($sheetId, $userNni);
+    }
+
+         /**
+     * remove
+     *
+     * @param  mixed $id
+     * @return void
+     */
+    function unsubscribe($sheetId, $userNni){
+        return (new Subscription())->remove($sheetId, $userNni);
+    }
+
 }

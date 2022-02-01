@@ -45,6 +45,9 @@ $router->post('/sheets/add', 'App\Controllers\SheetController@add', ["roles"=>['
 $router->post('/sheets/save', 'App\Controllers\SheetController@update', ["roles"=>['ADMIN']]);
 $router->post('/sheets/download', 'App\Controllers\SheetController@download', ["roles"=>['USER']]);
 $router->get('/sheets/remove/:id', 'App\Controllers\SheetController@remove', ["roles"=>['ADMIN']]);
+$router->post('/sheets/subscribe', 'App\Controllers\SheetController@subscribe', ["roles"=>['USER']]);
+$router->post('/sheets/unsubscribe', 'App\Controllers\SheetController@unsubscribe', ["roles"=>['USER']]);
+
 
 $router->get('/committees', 'App\Controllers\CommitteeController@index', ["roles"=>['USER']]);
 $router->get('/providers/autocomplete/:word', 'App\Controllers\ProviderController@autocomplete', ["roles"=>['USER']]);
