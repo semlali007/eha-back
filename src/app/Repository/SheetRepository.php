@@ -12,17 +12,19 @@ use App\Models\SheetGroup;
 use App\Models\SheetLot;
 use App\Models\SheetOption;
 use App\Models\SheetProvider;
+use App\Models\Subscription;
 use Core\Util\Date ;
 use Exception;
 
 class SheetRepository extends AbstractRepository {
 
-    public function search($options) {
+    public function search($options, $userNni = null) {
+
         $sheet = new Sheet();
         $sheet->initSearchCondition($options);
         return
                 [
-                    'sheets' => $sheet->search($options),
+                    'sheets' => $sheet->search($options, $userNni),
                     'total' => $sheet->getCount(),
                     'filter' => [
                         'edf_open' => $sheet->groupedByOpenEdf(),
@@ -80,7 +82,7 @@ class SheetRepository extends AbstractRepository {
         return (new Sheet())->archiverFichesByDate(Date::generateDateMoins($days));
     }
 
-    public function getDetails($id) {
+    public function getDetails($id, $userNni = null) {
         try {
             $details = (new Sheet())->get($id);
 
@@ -91,6 +93,12 @@ class SheetRepository extends AbstractRepository {
             }
 
             $details['committee'] = $committetSheet;
+
+
+            $sub = new Subscription();
+            $details['subscribed'] = $sub->isSubscribed($id, $userNni);
+
+
             $sheetContract = new SheetContract();
             $details['contracts'] = $sheetContract->getBySheet($id);
             $sheetFiliale = new SheetBeneficiary();
