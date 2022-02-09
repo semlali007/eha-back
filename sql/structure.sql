@@ -1728,7 +1728,7 @@ ALTER TABLE ONLY "EHA".informations
     ADD CONSTRAINT informations_pkey PRIMARY KEY (id);
 
 
-ALTER TABLE "EHA".user_news ALTER COLUMN page TYPE VARCHAR(50);
+ALTER TABLE "EHA".user_news ADD COLUMN page VARCHAR(50);
 ALTER TABLE "EHA".news ALTER COLUMN title TYPE TEXT;
 ALTER TABLE "EHA".news  ADD COLUMN type VARCHAR (50) ;
 INSERT INTO "EHA".static_page(page, content, active, title)
