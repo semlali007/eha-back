@@ -6,13 +6,13 @@ $router->post('/authentication/login', 'App\Controllers\AuthenticationController
 $router->get('/authentication/logout', 'App\Controllers\AuthenticationController@logout');
 
 ## Modal home ##
-$router->get('/config/news/:type', 'App\Controllers\Admin\NewsController@getNews',["roles"=>['USER']]);
-$router->post('/config/create-user-news', 'App\Controllers\Admin\NewsController@createUserNews',["roles"=>['USER']]);
-$router->get('/config/news/list/:type', 'App\Controllers\Admin\NewsController@getList',["roles"=>['USER']]);
-$router->post('/config/news/add', 'App\Controllers\Admin\NewsController@add',["roles"=>['USER']]);
-$router->get('/config/news/edit/:id', 'App\Controllers\Admin\NewsController@getElement',["roles"=>['USER']]);
-$router->post('/config/news/update', 'App\Controllers\Admin\NewsController@update',["roles"=>['USER']]);
-$router->get('/config/news/delete/:id', 'App\Controllers\Admin\NewsController@delete',["roles"=>['USER']]);
+$router->get('/news/:type', 'App\Controllers\Admin\NewsController@getNews',["roles"=>['USER']]);
+$router->post('/create-user-news', 'App\Controllers\Admin\NewsController@createUserNews',["roles"=>['USER']]);
+$router->get('/news/list/:type', 'App\Controllers\Admin\NewsController@getList',["roles"=>['USER']]);
+$router->post('/news/add', 'App\Controllers\Admin\NewsController@add',["roles"=>['USER']]);
+$router->get('/news/edit/:id', 'App\Controllers\Admin\NewsController@getElement',["roles"=>['USER']]);
+$router->post('/news/update', 'App\Controllers\Admin\NewsController@update',["roles"=>['USER']]);
+$router->get('/news/delete/:id', 'App\Controllers\Admin\NewsController@delete',["roles"=>['USER']]);
 
 $router->post('/search', 'App\Controllers\SearchController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->post('/search/anchors', 'App\Controllers\SearchController@getAnchors', ["roles"=>['USER'],"provider"=>["HLK"]]);
