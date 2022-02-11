@@ -26,7 +26,7 @@ class DatpaManager extends MigrateManager
         $sourceContractEdfEnedis =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['contrat']['edf_enedis'] . "Actifs/";
         $sourceDepDoc =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['doc_dep'] . "Actifs/";
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
-
+       
         try {
             $fiche = new LegacyDatpa();
             $provider = new Provider();
@@ -36,9 +36,11 @@ class DatpaManager extends MigrateManager
             $sheetManager = new SheetManager();
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
-
+            $code = "" ;
+              
             foreach ($options['items'] as $id) {
                 $list = $fiche->get($id);
+              
                 try {
                     $message = '';
                     $status =  'success';
@@ -241,7 +243,7 @@ class DatpaManager extends MigrateManager
 
                 $fiche->update($id, ['type_d_element' => $status, 'chemin_d_acces' => $message]);
             }
-
+           
             return json_encode([
                 'data' => $id,
                 'data' => $data

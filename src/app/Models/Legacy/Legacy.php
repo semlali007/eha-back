@@ -71,7 +71,7 @@ class Legacy extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
         } catch (\Exception $e) {
-            throw new InternalServerException();
+            throw new InternalServerException($e->getMessage());
         }
     }
 }
