@@ -32,7 +32,6 @@ class MigrateManager extends AbstractManager {
 
     public function updateData($options) {
         try {
-           
             $this->db->getPDO()->beginTransaction();
             $this->subject->initData();
             $i = 0;
@@ -65,7 +64,6 @@ class MigrateManager extends AbstractManager {
 
             $this->db->getPDO()->commit();
         } catch (Exception $e) {
-            
             if ($this->db->getPDO()->inTransaction()) {
                 $this->db->getPDO()->rollback();
             }

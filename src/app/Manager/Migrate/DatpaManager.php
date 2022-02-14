@@ -26,7 +26,6 @@ class DatpaManager extends MigrateManager
         $sourceContractEdfEnedis =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['contrat']['edf_enedis'] . "Actifs/";
         $sourceDepDoc =  $_ENV["CONFIG_MIGRATION_SOURCE"].$migrateConfig['datp']['doc_dep'] . "Actifs/";
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
-       
         try {
             $fiche = new LegacyDatpa();
             $fiche2= new LegacyDatpb() ;
@@ -42,15 +41,12 @@ class DatpaManager extends MigrateManager
             foreach ($options['items'] as $id) {
                 $list = $fiche->get($id);
                 $list2 = $fiche2->get($id);
-                
-              
-               
+                      
                 try {
                     $message = '';
                     $status =  'success';
                     $data['providers'] = [];
-                    $providers = $list['fournisseurs'];
-                   
+                    $providers = $list['fournisseurs'];          
                     foreach (explode(';#', $providers) as $item) {
                         foreach (explode(';#', $providers) as $item) {
                             $item = trim($item);
@@ -58,7 +54,6 @@ class DatpaManager extends MigrateManager
                             if (is_numeric($item)  && !empty($item)) {
                                 $code = 'NA' . $item;
                             }
-                            
                             if (!is_numeric($item)  && !empty($item)) {
                                 $provider->add(['provider_label' => substr($item, 0, 50), 'provider_code' => $code]);
                                 $p = $provider->get(['provider_label' => $item, 'provider_code' => $code]);
@@ -83,7 +78,6 @@ class DatpaManager extends MigrateManager
 
                     $data['groups'] = [];
                     $groups = $list['da_groupe'];
-                   
                     foreach (explode(';#', $groups) as $item) {
                         if (!is_numeric($item)  && !empty($item)) {
                             if ($item === 'DAIT' || $item === 'DATP') {
@@ -182,7 +176,6 @@ class DatpaManager extends MigrateManager
                             $status =  'warning';
                         }
                     }
-           
                     if (!empty($list['contrats_groupe_edf_enedis'])) {
                         if (is_dir($sourceContractEdfEnedis . $list['contrats_groupe_edf_enedis'])) {
                             $docContrat = scandir($sourceContractEdfEnedis . $list['contrats_groupe_edf_enedis']);
@@ -228,7 +221,6 @@ class DatpaManager extends MigrateManager
                     
                     $data['edf_open'] = boolval($datpb['marche_ouvert_au_personnel_edf']);
                     $data['showcase'] = false;
-                      
                     $data['partnership'] = boolval($datpb['partenariat_productivite']); 
                     $data['protected_sector'] = boolval($datpb['secteur_protege']);
                     $data['stipulation_for_others'] = boolval($datpb['stipulation_pour_autrui']);
@@ -242,8 +234,7 @@ class DatpaManager extends MigrateManager
                                 $data['zones'][] = ['id' => $p[0]['id']];
                             }
                         }
-                    }
-                            
+                    }                          
                     $ficheId = $sheetManager->addSheet($data);
                 } catch (Exception $e) {
                     $status =  'error';
