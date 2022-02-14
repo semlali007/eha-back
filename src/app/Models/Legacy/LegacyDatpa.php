@@ -3,5 +3,5 @@ namespace App\Models\Legacy;
 
 class LegacyDatpa extends Legacy
 {
-    protected $tableName = 'fiche_datp1';
+    protected $tableName = 'fiche_datpa';
 }
