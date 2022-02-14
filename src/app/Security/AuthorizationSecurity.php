@@ -5,6 +5,7 @@ namespace App\Security;
 use App\Exceptions\AccessDeniedException;
 use App\Security\User;
 use Core\Cache\ApcuCachePool as Pool ;
+use Core\Http\Response ;
 use App\Services\{
     UserService,
     JwtTokenService
@@ -32,7 +33,7 @@ class AuthorizationSecurity extends AbstractSecurity {
                 $roles = $this->translateRoles($roles);
                 if (!$user->hasRole($roles)) {
                     Pool::clearAllObjectsFromCache();
-                    http_response_code(\Core\Http\Response::HTTP_UNAUTHORIZED);
+                    http_response_code(Response::HTTP_UNAUTHORIZED);
                     throw new AccessDeniedException(); // retour a la frontend app 
                  
             }
