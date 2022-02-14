@@ -20,8 +20,8 @@ class DaitManager extends MigrateManager
     public function migrate($options)
     {
         $migrateConfig = self::$MigrateConfig;
-        $sourceContract =  $migrateConfig['dait']['contrat'] . "Actifs/";
-        $sourceDepDoc =  $migrateConfig['dait']['doc_dep'] . "Actifs/";
+        $sourceContract = getenv("CONFIG_MIGRATION_SOURCE").$migrateConfig['dait']['contrat'] . "Actifs/";
+        $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE").$migrateConfig['dait']['doc_dep'] . "Actifs/";    
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
         try {
             $fiche = new LegacyDait();
@@ -138,7 +138,7 @@ class DaitManager extends MigrateManager
                                         $ext    =   pathinfo($fileName, PATHINFO_EXTENSION);
                                         $name    =   pathinfo($fileName, PATHINFO_FILENAME);
                                         $destFileName = uniqid('D_' . $name . '_') . '.' . $ext;
-                                        $path = $sourceDepDoc . $list['kit_de_deploiement_dait'] . '/' . basename($fileName);
+                                        $path = $sourceDepDoc . $list['kit_de_deploiement_dait'] . '/' . basename($fileName);                          
                                         if (copy($path, $destinationMigrationPath . $destFileName)) {
                                             $data['files'][] = ['file_name' => $destFileName, 'file_url' => $destFileName, 'file_size' => 12333, 'node_id' => null, 'type' => 1];
                                         } else {

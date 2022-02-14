@@ -21,8 +21,8 @@ class DapiManager extends MigrateManager
     {
 
         $migrateConfig = self::$MigrateConfig;
-        $sourceContract =  $migrateConfig['dapi']['contrat'] . "Actifs/";
-        $sourceDepDoc =  $migrateConfig['dapi']['doc_dep'] . "Actifs/";
+        $sourceContract =  getenv("CONFIG_MIGRATION_SOURCE").$migrateConfig['dapi']['contrat'] . "Actifs/";
+        $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE").$migrateConfig['dapi']['doc_dep'] . "Actifs/";
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
 
         try {

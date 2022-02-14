@@ -58,9 +58,9 @@ class MigrateController extends Controller
                     exit;
                     break;
             }
-            return $this->response([
+           return json_encode([
                 'data' => $list
-            ]);
+            ],JSON_INVALID_UTF8_IGNORE);
         } catch (Exception $ex) {
             return $this->error($ex);
         }
