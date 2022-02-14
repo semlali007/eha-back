@@ -6,14 +6,17 @@ use App\Models\Legacy\LegacyDatpa;
 use App\Models\Legacy\LegacyDatpb;
 use App\Repository\AbstractRepository;
 
-class DatpRepository extends AbstractRepository {
-    public function getList() {
+class DatpRepository extends AbstractRepository
+{
+    public function getList()
+    {
         $datpa = new LegacyDatpa();
         $datpb = new LegacyDatpb();
         $list = $datpa->getList();
         foreach ($list as $key => $datpaItem) {
-            $list[$key]['datpb'] =  $datpb->get($datpaItem['id']) ; 
-        } 
+            $list[$key]['datpb'] = $datpb->get($datpaItem['id']);
+        }
+
         return $list;
     }
 }
