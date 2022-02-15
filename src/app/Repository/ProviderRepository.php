@@ -90,10 +90,10 @@ class ProviderRepository extends AbstractRepository {
             $provider = new Provider();
             $options['provider_code'] = uniqid("NA");
 
-            $id =  $provider->add($options);
+            $provider->add($options);
             return [
                 'status' => true,
-                'id' => $id
+                'element' => $provider->get(['provider_label'=>$options['provider_label']])[0]
             ];
         } catch (Exception $ex) {
             http_response_code(500);

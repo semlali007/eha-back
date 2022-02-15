@@ -17,7 +17,7 @@ class BeneficiaryManager extends AbstractManager
             $id =  $beneficiary->add($options);
             return [
                 'status' => true,
-                'id' => $id
+                'element' => $beneficiary->getById($id)
             ];
         } catch (Exception $ex) {
             http_response_code(500);
