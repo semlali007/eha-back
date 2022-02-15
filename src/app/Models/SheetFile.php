@@ -4,7 +4,8 @@ namespace App\Models;
 
 use App\Exceptions\InternalServerException;
 use PDO;
-use Exception;
+use Core\Util\DotEnv ;
+
 
 class SheetFile extends Model
 {
@@ -41,9 +42,12 @@ class SheetFile extends Model
 
 
     public function getBySheet($sheetId)
-    {
-        try {
-            $query = 'SELECT * FROM ' . $this->table . ' WHERE sheet_id=:sheet_id';
+    { 
+        try { 
+            $query = 'SELECT * FROM ' . $this->table . ' WHERE sheet_id=:sheet_id' ; 
+            if (false === DotEnv::isDocInPrivateMode()):
+                $query .= " and type=1";
+            endif;
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();

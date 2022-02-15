@@ -53,4 +53,12 @@ class DotEnv
             }
         }
     }
+    
+    /**
+     * 
+     * @return boolean
+     */
+    public static function isDocInPrivateMode():bool{
+        return (isset($_ENV["SHOW_PRIVATE_DOC"]) && filter_var($_ENV["SHOW_PRIVATE_DOC"], FILTER_VALIDATE_BOOLEAN)) ;
+    }
 }
