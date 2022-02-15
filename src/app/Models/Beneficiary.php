@@ -15,12 +15,14 @@ class Beneficiary extends Model
     {
         try {
             $query = '
-        INSERT INTO ' . $this->table . ' (name) VALUES (:name) ON CONFLICT DO NOTHING;
+        INSERT INTO ' . $this->table . ' (name) VALUES (:name) ON CONFLICT("name") DO UPDATE SET name=:name RETURNING id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
             $sth->execute();
+            return  $sth->fetch(PDO::FETCH_ASSOC)['id'];
         } catch (\Exception $e) {
+            
             throw new InternalServerException();
         }
     }
@@ -73,5 +75,21 @@ class Beneficiary extends Model
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
+    }
+
+    
+    public function getById($id)
+    {
+
+        try {
+            $query = 'SELECT * FROM ' . $this->table . ' WHERE id=:id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException($e->getMessage());
+        }
+        
     }
 }
