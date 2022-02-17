@@ -130,6 +130,7 @@ class DaitManager extends MigrateManager
                     $data['lots'] = [];
                     $data['files'] = [];
                     if (!empty($list['kit_de_deploiement_dait'])) {
+                        $list['kit_de_deploiement_dait']  = str_replace(" ", "_", $list['kit_de_deploiement_dait']) ;
                         if (is_dir($sourceDepDoc . $list['kit_de_deploiement_dait'])) {
                             $docDep = scandir($sourceDepDoc . $list['kit_de_deploiement_dait']);
                             if ($docDep !== false) {
@@ -158,6 +159,7 @@ class DaitManager extends MigrateManager
                         }
                     }
                     if (!empty($list['contenu_prive_dait'])) {
+                         $list['contenu_prive_dait']  = str_replace(" ", "_", $list['contenu_prive_dait']) ;
                         if (is_dir($sourceContract . $list['contenu_prive_dait'])) {
                             $docContrat = scandir($sourceContract . $list['contenu_prive_dait']);
                             if ($docContrat !== false) {

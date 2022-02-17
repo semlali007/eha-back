@@ -122,6 +122,7 @@ class DatpaManager extends MigrateManager
                     $data['files'] = [];
 
                     if (!empty($list2['kit_de_deploiement_datp'])) {
+                         $list2['kit_de_deploiement_datp']  = str_replace(" ", "_", $list2['kit_de_deploiement_datp']) ;
                         if (is_dir($sourceDepDoc . $list2['kit_de_deploiement_datp'])) {
                             $docDep = scandir($sourceDepDoc . $list2['kit_de_deploiement_datp']);
                             if ($docDep !== false) {
@@ -151,6 +152,7 @@ class DatpaManager extends MigrateManager
                     
 
                     if (!empty($list['contrats_enedis'])) {
+                        $list['contrats_enedis']  = str_replace(" ", "_", $list['contrats_enedis']) ;
                         if (is_dir($sourceContractEnedis . $list['contrats_enedis'])) {
                             $docContrat = scandir($sourceContractEnedis . $list['contrats_enedis']);
                             if ($docContrat !== false) {
@@ -177,6 +179,7 @@ class DatpaManager extends MigrateManager
                         }
                     }
                     if (!empty($list['contrats_groupe_edf_enedis'])) {
+                        $list['contrats_groupe_edf_enedis']  = str_replace(" ", "_", $list['contrats_groupe_edf_enedis']) ;
                         if (is_dir($sourceContractEdfEnedis . $list['contrats_groupe_edf_enedis'])) {
                             $docContrat = scandir($sourceContractEdfEnedis . $list['contrats_groupe_edf_enedis']);
                             if ($docContrat !== false) {
