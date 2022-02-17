@@ -144,7 +144,8 @@ class DapiManager extends MigrateManager
                     $data['lots'] = [];
                     $data['files'] = [];
                     if(!empty($list['kit_de_deploiement_dapi']) ){
-        
+                    $list['kit_de_deploiement_dapi']  = str_replace(" ", "_", $list['kit_de_deploiement_dapi']) ;
+                 
                     if (is_dir($sourceDepDoc . $list['kit_de_deploiement_dapi'])) {
                         $docDep = scandir($sourceDepDoc . $list['kit_de_deploiement_dapi']);
                         if ($docDep !== false) {
@@ -173,6 +174,7 @@ class DapiManager extends MigrateManager
                 }
         
                     if(!empty($list['contenu_prive_dapi']) ){
+                         $list['contenu_prive_dapi']  = str_replace(" ", "_", $list['contenu_prive_dapi']) ;
                                    if ( is_dir($sourceContract . $list['contenu_prive_dapi'])) {
                         $docContrat = scandir($sourceContract . $list['contenu_prive_dapi']);
                         if ($docContrat !== false) {
