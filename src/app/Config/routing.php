@@ -84,6 +84,8 @@ $router->get('/documentations/delete/:id', 'App\Controllers\Admin\DocumentationC
 $router->get('/documentations/show/:id', 'App\Controllers\Admin\DocumentationController@show', ["roles"=>['ADMIN']]);
 $router->post('/documentations/update', 'App\Controllers\Admin\DocumentationController@update', ["roles"=>['ADMIN']]);
 $router->post('/documentations/sort', 'App\Controllers\Admin\DocumentationController@sort', ["roles"=>['ADMIN']]);
+$router->get('/documentations/export', 'App\Controllers\Admin\DocumentationController@export', ["roles"=>['ADMIN']]);
+$router->post('/documentations/import', 'App\Controllers\Admin\DocumentationController@import', ["roles"=>['ADMIN']]);
 // Gestion des admins
 $router->get('/administrators', 'App\Controllers\Admin\AdministratorController@index', ["roles"=>['ADMIN']]);
 $router->post('/administrators/create', 'App\Controllers\Admin\AdministratorController@create', ["roles"=>['ADMIN']]);

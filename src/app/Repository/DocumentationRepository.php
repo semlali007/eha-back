@@ -97,4 +97,27 @@ class DocumentationRepository extends AbstractRepository {
             ]);
         }
     }
+
+    
+    public function getForExport(): ?array {
+        return (new Documentation())->getForExport();
+    }
+
+    public function import($data) {
+        $documentation = new Documentation();
+        try {
+            $this->db->getPDO()->beginTransaction();
+            $documentation->clearAll();
+            foreach ($data['data'] as $line) {
+                $documentation->addImport($line);
+            }
+
+            $this->db->getPDO()->commit();
+        } catch (\Exception $e) {
+            if ($this->db->getPDO()->inTransaction()) {
+                $this->db->getPDO()->rollback();
+            }
+            var_dump($e->getMessage());exit;
+        }
+    }
 }

@@ -55,4 +55,30 @@ class DocumentationController extends Controller {
         return $this->response($this->documentationRepository->sort(Request::input()));
     }
 
+
+    public function export() {
+        $data = $this->documentationRepository->getForExport();
+        $header = [
+            'id',
+            'label',
+            'description',
+            'shortdescription',
+            'breadcrumb',
+            'external',
+            'link',
+            'parent',
+            'position',
+            'warning',
+        ];
+       
+        return $this->response([
+            'header' => $header,
+            'data' =>  $data 
+        ]);
+    }
+
+    public function import(){
+        return $this->response($this->documentationRepository->import(Request::input()));
+    }
+
    }
