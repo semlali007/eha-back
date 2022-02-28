@@ -134,6 +134,35 @@ class Documentation extends Model {
         }
     }
 
+ /**
+     * 
+     * @param type $data
+     * @return type
+     * @throws Exception
+     */
+    public function addImport(array $data) {
+      
+        try {
+            $query = '
+        INSERT INTO ' . $this->table . ' (id, label, shortdescription ,position, parent, link, breadcrumb, external, warning, description) VALUES (:id, :label,:shortdescription, (select coalesce(max(position), 0) + 1 FROM ' . $this->table . ' WHERE  parent=:parent_id), :parent, :link, :breadcrumb, :external, :warning, :description);
+        ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $data['id'], PDO::PARAM_INT);
+            $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
+            $sth->bindParam(':shortdescription', $data['shortdescription'], PDO::PARAM_STR);
+            $sth->bindParam(':parent_id', $data['parent'], PDO::PARAM_STR);
+            $sth->bindParam(':parent', $data['parent'], PDO::PARAM_STR);
+            $sth->bindParam(':link', $data['link'], PDO::PARAM_STR);
+            $sth->bindParam(':breadcrumb', $data['breadcrumb'], PDO::PARAM_STR);
+            $sth->bindParam(':external', $data['external'], PDO::PARAM_BOOL);
+            $sth->bindParam(':warning', $data['warning'], PDO::PARAM_STR);
+            $sth->bindParam(':description', $data['description'], PDO::PARAM_STR);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new \Exception('erreur d\'ajout de contact' . $e->getMessage());
+        }
+    }
+
     /**
      * 
      * @param type $data
@@ -238,5 +267,30 @@ class Documentation extends Model {
         }
     }
 
+  /**
+     * 
+     * @return array
+     * @throws Exception
+     */
+    public function getForExport(): array {
+        try {
+            $sth = $this->db->getPDO()->prepare('SELECT id, label, description, shortdescription, breadcrumb, external, link, parent, position, warning     FROM ' . $this->table .' ORDER BY position asc');
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+    
+    public function clearAll() {
+        try {
+            $sth = $this->db->getPDO()->prepare("DELETE FROM {$this->table}");
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    
+    }
+    
 
 }
