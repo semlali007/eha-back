@@ -117,7 +117,6 @@ class DocumentationRepository extends AbstractRepository {
             if ($this->db->getPDO()->inTransaction()) {
                 $this->db->getPDO()->rollback();
             }
-            var_dump($e->getMessage());exit;
         }
     }
 }
