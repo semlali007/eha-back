@@ -6,7 +6,6 @@ use App\Security\{
     User,
     Role
 };
-use Core\Http\Response ;
 use App\Exceptions\AccessDeniedException;
 use Core\Cache\{
     ApcuCachePool as cache,
@@ -14,8 +13,8 @@ use Core\Cache\{
 } ;
 
 class UserService {
-
-   
+    
+    
     /**
      * Chercher les informations de l'utilisateur
      * @return mixed
@@ -46,8 +45,8 @@ class UserService {
      */
     public static function create(string $accessToken, User $user): User {
         $userInfo = self::getInfo($accessToken,$user);
-        self::checkSessionIfExpired($userInfo,$user); // session expire apres temps paramétrés
         
+        self::checkSessionIfExpired($userInfo,$user); // session expire apres temps paramétrés
         // verifier si sub existe dans les userinfo
         if (array_key_exists("sub", $userInfo)&& is_null($user->getNni())) {
             $user->setNni($userInfo['sub']);
