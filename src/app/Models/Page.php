@@ -21,8 +21,7 @@ class Page extends Model
             $sth->bindParam(':page', $page, PDO::PARAM_STR);
             $sth->execute();
             return  $sth->fetch(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+        } catch (\Exception $e) {  
             throw new InternalServerException();
         }
     }
