@@ -21,23 +21,22 @@ class SheetRepository extends AbstractRepository {
     public function search($options, $userNni = null) {
 
         $sheet = new Sheet();
-        $sheet->initSearchCondition($options);
         return
                 [
                     'sheets' => $sheet->search($options, $userNni),
-                    'total' => $sheet->getCount(),
+                    'total' => $sheet->getCount($options),
                     'filter' => [
-                        'edf_open' => $sheet->groupedByOpenEdf(),
-                        'showcase' => $sheet->groupedByShowcase(),
-                        'status' => $sheet->groupedByStatus(),
-                        'partnership' => $sheet->groupedByPartnership(),
-                        'protected_sector' => $sheet->groupedBySector(),
-                        'dauphin' => $sheet->groupedByDauphin(),
-                        'beneficiaries' => $sheet->groupedByFiliale(),
-                        'areas' => $sheet->groupedByZone(),
-                        'providers' => $sheet->groupedByProvider(),
-                        'directions' => $sheet->groupedByDirections(),
-                        'committees' => $sheet->groupedByCommittees(),
+                        'edf_open' => $sheet->groupedByOpenEdf($options),
+                        'showcase' => $sheet->groupedByShowcase($options),
+                        'status' => $sheet->groupedByStatus($options),
+                        'partnership' => $sheet->groupedByPartnership($options),
+                        'protected_sector' => $sheet->groupedBySector($options),
+                        'dauphin' => $sheet->groupedByDauphin($options),
+                        'beneficiaries' => $sheet->groupedByFiliale($options),
+                        'areas' => $sheet->groupedByZone($options),
+                        'providers' => $sheet->groupedByProvider($options),
+                        'directions' => $sheet->groupedByDirections($options),
+                        'committees' => $sheet->groupedByCommittees($options),
                     ],
         ];
     }
@@ -138,7 +137,7 @@ class SheetRepository extends AbstractRepository {
         $sheetGroup = new SheetGroup();
         $committee = new Committee();
         $sheetContract = new SheetContract();
-        $sheet->initSearchCondition($options);
+       // $sheet->initSearchCondition($options);
         $result = $sheet->searchWithoutPagination($options);
         $header = [
             'Id',
