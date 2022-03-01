@@ -47,7 +47,7 @@ abstract class Controller
      */
     protected function response($data)
     {
-        return json_encode($data);
+        return json_encode($data,JSON_INVALID_UTF8_IGNORE);
     }
 
     /**
