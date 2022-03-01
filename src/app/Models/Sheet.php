@@ -53,7 +53,7 @@ class Sheet extends Model
             $orderBy = $options['order_by'] ?? 'id';
             $direction = $options['direction'] ?? 'asc';
             $data = [];
-            $query = 'SELECT s.id, s.label, s.status, s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee   FROM ' . $this->table . '  as s ' . $this->searchCondition . '  ORDER BY s.' . $orderBy . ' ' . $direction;
+            $query = 'SELECT s.id, s.label, s.status, s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee   FROM ' . $this->table . '  as s ' . $this->getSearchCondition($options) . '  ORDER BY s.' . $orderBy . ' ' . $direction;
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             $data['sheets'] = $sth->fetchall(PDO::FETCH_ASSOC);
@@ -71,7 +71,7 @@ class Sheet extends Model
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
-            $query = "SELECT s.id, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, 
+            $query = "SELECT distinct s.id, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, 
                       CASE 
                       WHEN sub.sheet_id is not NULL THEN true
                       ELSE false
@@ -79,7 +79,7 @@ class Sheet extends Model
                       FROM {$this->table}  as s 
                       LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = S.ID and user_nni=:userNni
 
-                      {$this->searchCondition}  ORDER BY s.{$orderBy} {$direction} LIMIT {$perpage} offset {$page} ";
+                      {$this->getSearchCondition($options)}  ORDER BY s.{$orderBy} {$direction} LIMIT {$perpage} offset {$page} ";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
             $sth->execute();
@@ -90,10 +90,10 @@ class Sheet extends Model
     }
 
 
-    public function getCount()
+    public function getCount($options)
     {
         try {
-            $query = "SELECT COUNT(s.*) FROM " . $this->table . " s $this->searchCondition";
+            $query = "SELECT COUNT(distinct s.*) FROM " . $this->table . " s {$this->getSearchCondition($options)}";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             
@@ -103,53 +103,51 @@ class Sheet extends Model
         }
     }
 
-    public function initSearchCondition($params)
+    public function getSearchCondition($params, $forFilter=null)
     {
-        $options = $params['search'] ?? [];
-        $beneficiariesList = $options['beneficiaries'] ?? [];
-        $areas = $options['areas'] ??  [];
-        $providersList = $options['providers'] ?? [];
-        $providers = [];
-        foreach ($providersList as $provider) {
-            $providers[] = $provider['code'];
-        }
-        $beneficiaries = [];
-        foreach ($beneficiariesList as $beneficiary) {
-            $beneficiaries[] = $beneficiary['code'];
-        }
-
-
-        $directions = $options['directions'] ?? [];
-        
         $search = '';
-
-        if (count($beneficiaries) > 0) {
-            $beneficiariesStr = '(' . implode(', ', $beneficiaries) . ')';
-            $beneficiariesCount = count($beneficiaries);
-            $search .= " INNER JOIN (select sheet_id from {$this->sheetBeneficiaryTable}  where filiale_id in $beneficiariesStr  group by sheet_id having count(filiale_id)=$beneficiariesCount) sf on sf.sheet_id = s.id  ";
+        $options = $params['search'] ?? [];
+        if (!is_array($forFilter) || !array_key_exists('beneficiary', $forFilter)) {
+            $beneficiariesList = $options['beneficiaries'] ?? [];
+            $beneficiaries = [];
+            foreach ($beneficiariesList as $beneficiary) {
+                $beneficiaries[] = $beneficiary['code'];
+            }
+            if (count($beneficiaries) > 0) {
+                $beneficiariesStr = '(' . implode(', ', $beneficiaries) . ')';
+                $search .= " INNER JOIN {$this->sheetBeneficiaryTable} sf on sf.sheet_id = s.id and sf.filiale_id in $beneficiariesStr  ";
+            }
         }
 
-        if (count($areas) > 0) {
-            $areasStr = '(' . implode(', ', $areas) . ')';
-            $areasCount = count($areas);
-            $search .= " INNER JOIN (select sheet_id from {$this->sheetAreaTable}  where zone_id in $areasStr  group by sheet_id having count(zone_id)=$areasCount) sz on sz.sheet_id = s.id  ";
+        if (!is_array($forFilter) || !array_key_exists('direction', $forFilter)) {
+            $directions = $options['directions'] ?? [];
+            if (count($directions) > 0) {
+                $directionsStr = '(' . implode(', ', $directions) . ')';
+                $search .= " INNER JOIN {$this->sheetGroupTable} sg on sg.sheet_id = s.id and sg.group_id in $directionsStr";
+            }
         }
 
-        if (count($providers) > 0) {
-            $providersStr = '(\'' . implode('\',\'', $providers) . '\')';
-            $providersCount = count($providers);
-            $search .= " INNER JOIN (select sheet_id from {$this->sheetProviderTable}  where provider_code in $providersStr  group by sheet_id having count(provider_code) = $providersCount) sp on sp.sheet_id = s.id  ";
+        if (!is_array($forFilter) || !array_key_exists('area', $forFilter)) {
+            $areas = $options['areas'] ??  [];
+            if (count($areas) > 0) {
+                $areasStr = '(' . implode(', ', $areas) . ')';
+                $search .= " INNER JOIN {$this->sheetAreaTable} sz on sz.sheet_id = s.id  and sz.zone_id in $areasStr";
+            }
         }
 
-        if (count($directions) > 0) {
-            $directionsStr = '(' . implode(', ', $directions) . ')';
-            $directionsCount = count($directions);
-            $search .= " INNER JOIN (select sheet_id from {$this->sheetGroupTable}  where group_id in $directionsStr  group by sheet_id having count(group_id)=$directionsCount) sg on sg.sheet_id = s.id  ";
+        if (!is_array($forFilter) || !array_key_exists('provider', $forFilter)) {
+            $providersList = $options['providers'] ?? [];
+            $providers = [];
+            foreach ($providersList as $provider) {
+                $providers[] = $provider['code'];
+            }
+            if (count($providers) > 0) {
+                $providersStr = '(\'' . implode('\',\'', $providers) . '\')';
+                $search .= " INNER JOIN {$this->sheetProviderTable} sp on sp.sheet_id = s.id and sp. provider_code in $providersStr ";
+            }
         }
-
-        $search_input = strtolower($options['searchText'] ?? "");
+       
         $searchProvider = strtolower($options['searchProvider'] ?? "");
-
         if (($searchProvider != '')) {
             $searchProvider = strtolower($searchProvider);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  lower(provider_label) LIKE '%$searchProvider%' ) ";
@@ -163,54 +161,67 @@ class Sheet extends Model
             on spa.sheet_id = s.id  ";
         }
 
-        $status = $options['status'] ?? '';
-        $edfOpen = $options['edf_open'] ?? '';
-        $showcase = $options['showcase'] ?? '';
-        $partnership = $options['partnership'] ?? '';
-        $protectedSector = $options['protected_sector'] ?? '';
-        $committees = $options['committees'] ?? [];
-        $dauphin = $options['dauphin'] ?? '';
         $search .= ' WHERE 1= 1 ';
+
+        $search_input = strtolower($options['searchText'] ?? "");
         if ($search_input !== '') {
             $search .= " AND ( lower(s.label) LIKE '%$search_input%' OR lower(s.description) like '%$search_input%' ) ";
         }
-
-        if ($status !== '') {
-            $this->addCondition($search, 's.status', $status);
+        if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
+            $status = $options['status'] ?? [];
+            if (!empty($status)) {
+                $this->addCondition($search, 's.status', $status);
+            }
         }
 
-        if ($edfOpen !== '') {
-            $this->addCondition($search, 's.edf_open', ($edfOpen == true) ? 'true' : 'false');
+        if (!is_array($forFilter) || !array_key_exists('edf_open', $forFilter)) {
+            $edfOpen = $options['edf_open'] ?? '';
+            if ($edfOpen !== '') {
+                $this->addCondition($search, 's.edf_open', [($edfOpen == true) ? 'true' : 'false']);
+            }
         }
 
-        if ($protectedSector  !== '') {
-            $this->addCondition($search, 's.protected_sector', ($protectedSector  == true) ? 'true' : 'false');
+        if (!is_array($forFilter) || !array_key_exists('protected_sector', $forFilter)) {
+            $protectedSector = $options['protected_sector'] ?? '';
+            if ($protectedSector  !== '') {
+                $this->addCondition($search, 's.protected_sector', [($protectedSector  == true) ? 'true' : 'false']);
+            }
         }
 
-        if ($dauphin !== '') {
-            $this->addCondition($search, 's.dauphin', ($dauphin == true) ? 'true' : 'false');
+        if (!is_array($forFilter) || !array_key_exists('dauphin', $forFilter)) {
+            $dauphin = $options['dauphin'] ?? '';
+            if ($dauphin !== '') {
+                $this->addCondition($search, 's.dauphin', [($dauphin == true) ? 'true' : 'false']);
+            }
         }
 
-        if ($partnership !== '') {
-            $this->addCondition($search, 's.partnership', ($partnership == true) ? 'true' : 'false');
+        if (!is_array($forFilter) || !array_key_exists('partnership', $forFilter)) {
+            $partnership = $options['partnership'] ?? '';
+            if ($partnership !== '') {
+                $this->addCondition($search, 's.partnership', [($partnership == true) ? 'true' : 'false']);
+            }
         }
-
+        if (!is_array($forFilter) || !array_key_exists('showcase', $forFilter)) {
+        $showcase = $options['showcase'] ?? '';
         if ($showcase !== '') {
-            $this->addCondition($search, 's.showcase', ($showcase == true) ? 'true' : 'false');
+            $this->addCondition($search, 's.showcase', [($showcase == true) ? 'true' : 'false']);
         }
-        
-        if (is_array($committees) && isset($committees[0])) {
-            $this->addCondition($search, 's.committee', $committees[0]);
+    }
+    if (!is_array($forFilter) || !array_key_exists('committees', $forFilter)) {
+        $committees = $options['committees'] ?? [];
+        if (!empty($committees)) {
+            $this->addCondition($search, 's.committee', $committees);
         }
-
-
-        $this->searchCondition  = $search;
     }
 
-    public function groupedByOpenEdf()
+
+        return $search;
+    }
+
+    public function groupedByOpenEdf($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.edf_open as code FROM " . $this->table . " s {$this->searchCondition}" . " GROUP BY edf_open";
+            $sql = "SELECT COUNT(s.*) as count, s.edf_open as code FROM " . $this->table . " s {$this->getSearchCondition($options,['edf_open'=>true])}" . " GROUP BY edf_open";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -219,10 +230,10 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByShowcase()
+    public function groupedByShowcase($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.showcase as code FROM " . $this->table . " s {$this->searchCondition}" . " GROUP BY showcase";
+            $sql = "SELECT COUNT(s.*) as count, s.showcase as code FROM " . $this->table . " s {$this->getSearchCondition($options,['showcase'=>true])}" . " GROUP BY showcase";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -231,10 +242,10 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByPartnership()
+    public function groupedByPartnership($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.partnership as code FROM " . $this->table . " s {$this->searchCondition}" . " GROUP BY partnership";
+            $sql = "SELECT COUNT(s.*) as count, s.partnership as code FROM " . $this->table . " s {$this->getSearchCondition($options,['partnership'=>true])}" . " GROUP BY partnership";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -242,22 +253,10 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
-    public function groupedBySector()
+    public function groupedBySector($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.protected_sector as code FROM " . $this->table . " s {$this->searchCondition}" . " GROUP BY protected_sector";
-            $sth = $this->db->getPDO()->prepare($sql);
-            $sth->execute();
-            return  $sth->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            throw new InternalServerException();
-        }
-    }
-
-    public function groupedByDauphin()
-    {
-        try {
-            $sql = "SELECT COUNT(s.*) as count, s.dauphin as code FROM " . $this->table . "  s {$this->searchCondition}" . " GROUP BY dauphin";
+            $sql = "SELECT COUNT(s.*) as count, s.protected_sector as code FROM " . $this->table . " s {$this->getSearchCondition($options,['protected_sector'=>true])}" . " GROUP BY protected_sector";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -266,10 +265,10 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByStatus()
+    public function groupedByDauphin($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.status as code FROM " . $this->table . "  s {$this->searchCondition}" . " GROUP BY status";
+            $sql = "SELECT COUNT(s.*) as count, s.dauphin as code FROM " . $this->table . "  s {$this->getSearchCondition($options,['dauphin'=>true])}" . " GROUP BY dauphin";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -278,13 +277,29 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByFiliale()
+    public function groupedByStatus($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.status as code FROM " . $this->table . "  s {$this->getSearchCondition($options,['status'=>true])}" . " GROUP BY status";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function groupedByFiliale($options)
     {
         try {
             $sql = "
-       SELECT f.name , f.id as code , 1 as count  from {$this->beneficiaryTable} f 
-       
+       SELECT f.name , f.id as code , benificiaries.count, f.id  from {$this->beneficiaryTable} f  INNER join  
+        (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetBeneficiaryTable} sb WHERE sb.sheet_id  in
+         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['beneficiary'=>true])} ) GROUP BY sb.filiale_id)  benificiaries on f.id =  benificiaries.code
+         
+         order by benificiaries.count desc, f.id 
          ";
+
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -293,14 +308,14 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByProvider()
+    public function groupedByProvider($options)
     {
         try {
             $sql = "
        SELECT p.provider_label as name , p.provider_code as code , providers.count  from {$this->providerTable} p INNER join 
          
         (SELECT  count(sp.*) as count, sp.provider_code as code FROM   {$this->sheetProviderTable} sp WHERE sp.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->searchCondition} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
+         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
          
          order by providers.count desc, p.provider_label 
          ";
@@ -313,14 +328,14 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByZone()
+    public function groupedByZone($options)
     {
         try {
             $sql = "
        SELECT z.name , z.id as code , areas.count  from {$this->areaTable} z INNER join 
          
         (SELECT  count(sz.*) as count, sz.zone_id as code FROM   {$this->sheetAreaTable} sz WHERE sz.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->searchCondition} ) GROUP BY sz.zone_id)  areas on z.id =  areas.code
+         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['area'=>true])} ) GROUP BY sz.zone_id)  areas on z.id =  areas.code
          
          order by areas.count desc,z.name limit 15
          ";
@@ -332,14 +347,14 @@ class Sheet extends Model
         }
     }
 
-    public function groupedByDirections()
+    public function groupedByDirections($options)
     {
         try {
             $sql = "
        SELECT d.name , d.id as code , directions.count  from {$this->groupTable} d INNER join 
          
         (SELECT  count(sd.*) as count, sd.group_id as code FROM   {$this->sheetGroupTable} sd WHERE sd.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->searchCondition} ) GROUP BY sd.group_id)  directions on d.id =  directions.code
+         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['direction'=>true])} ) GROUP BY sd.group_id)  directions on d.id =  directions.code
          
          order by directions.count desc,d.name limit 15
          ";
@@ -353,11 +368,11 @@ class Sheet extends Model
 
 
 
-    public function groupedByCommittees()
+    public function groupedByCommittees($options)
     {
         try {
             $sql = "SELECT COUNT(s.*) as count, s.committee as code, c.label as name FROM " . $this->table . "  s " . " INNER join {$this->committeeTable} c
-             ON c.code = s.committee {$this->searchCondition} GROUP BY committee, c.label";
+             ON c.code = s.committee {$this->getSearchCondition($options,['committees'=>true])} GROUP BY committee, c.label";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -373,7 +388,9 @@ class Sheet extends Model
             return $this;
         }
 
-        $sql .= " AND ($key = $value) ";
+        $valueStr = '(' . implode(', ', $value) . ')';
+        $sql .= " AND ($key IN $valueStr) ";
+
         return $this;
     }
 
