@@ -147,10 +147,10 @@ class Sheet extends Model
             }
         }
        
-        $searchProvider = strtolower($options['searchProvider'] ?? "");
+        $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
             $searchProvider = strtolower($searchProvider);
-            $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  lower(provider_label) LIKE '%$searchProvider%' ) ";
+            $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  \"EHA\".unaccent(lower(provider_label)) LIKE \"EHA\".unaccent('%$searchProvider%') ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " INNER JOIN 
             (
@@ -163,9 +163,9 @@ class Sheet extends Model
 
         $search .= ' WHERE 1= 1 ';
 
-        $search_input = strtolower($options['searchText'] ?? "");
+        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
         if ($search_input !== '') {
-            $search .= " AND ( lower(s.label) LIKE '%$search_input%' OR lower(s.description) like '%$search_input%' ) ";
+            $search .= " AND ( \"EHA\".unaccent(lower(s.label)) LIKE \"EHA\".unaccent('%$search_input%') OR \"EHA\".unaccent(lower(s.description)) like \"EHA\".unaccent('%$search_input%') ) ";
         }
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
