@@ -27,8 +27,7 @@ class NotificationsController extends Controller{
      * @return Array
      */
     public function index(string $nni) {
-        
-        return $this->response($this->notificationsRepository->getListByNni($nni),$nni);
+        return $this->response($this->notificationsRepository->getListByNni($nni));
     }
     
      
