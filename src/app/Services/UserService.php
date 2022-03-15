@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repository\NotificationsRepository ;
 use App\Security\{
     User,
     Role
@@ -45,8 +46,7 @@ class UserService {
      */
     public static function create(string $accessToken, User $user): User {
         $userInfo = self::getInfo($accessToken,$user);
-        
-        //self::checkSessionIfExpired($userInfo,$user); // session expire apres temps paramétrés
+        self::checkNotif($user->getNni())   ;
         // verifier si sub existe dans les userinfo
         if (array_key_exists("sub", $userInfo)&& is_null($user->getNni())) {
             $user->setNni($userInfo['sub']);
@@ -85,5 +85,15 @@ class UserService {
             $userInfo['last_acted_on'] = time();
             cache::storeItemInCache(new CacheItem(User::INFOKEY . $user->getNni(), $userInfo));
         endif;
+    }
+    
+    public static function checkNotif($userNni) {
+        $total = 0 ;
+        if(!is_null($userNni)){
+        $total = (new NotificationsRepository())
+            ->getLengthNotifsByNni($userNni) ;
+        }
+        header('TOTAL_NOTIFICATION: '.$total);
+        header('NNI_USER: '.$userNni);
     }
 }

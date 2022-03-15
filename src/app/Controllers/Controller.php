@@ -7,7 +7,7 @@ use App\Exceptions\InvalidParameterException;
 use App\Security\AuthorizationSecurity;
 use Core\Database\DBConnection;
 use Exception;
-
+use App\Repository\NotificationsRepository ;
 abstract class Controller
 {
     /**
@@ -46,7 +46,7 @@ abstract class Controller
      * @param $data
      */
     protected function response($data)
-    {
+    {   
         return json_encode($data,JSON_INVALID_UTF8_IGNORE);
     }
 

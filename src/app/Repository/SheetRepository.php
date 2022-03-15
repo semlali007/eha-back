@@ -76,7 +76,7 @@ class SheetRepository extends AbstractRepository {
      * @param int $days
      * @return int|null
      */
-    public function archiverByEndDatePlus(int $days = 30):?int{
+    public function archiverByEndDatePlus(int $days = 25):?int{
         // Generer le jour Datetime format + 30 (exemple)
         return (new Sheet())->archiverFichesByDate(Date::generateDateMoins($days));
     }

@@ -6,7 +6,8 @@ use Symfony\Component\Console\Application;
 use App\Command\Command\{
     ArchivageFicheMarche,
     AutoNotifArchivageFiche,
-    SearchNoReplyHotline
+    SearchNoReplyHotline,
+    RemoveExpiredNotifications
 };
 
 /**
@@ -41,7 +42,8 @@ class Bootstrap {
         $this->commands = [
             new ArchivageFicheMarche(),
             new AutoNotifArchivageFiche(),
-            new SearchNoReplyHotline()
+            new SearchNoReplyHotline(),
+            new RemoveExpiredNotifications()
         ] ;
     }
 

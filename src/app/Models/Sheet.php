@@ -422,7 +422,7 @@ class Sheet extends Model
     public function archiverFichesByDate(string $date):?int {
         
         $sth = $this->db->getPDO() // Execution de la requete
-                ->prepare('UPDATE ' . $this->table . ' SET status=\'-1\' WHERE end_date<=:endDate and (status=1 or status=0)');
+                ->prepare('UPDATE ' . $this->table . ' SET status=\'-1\' WHERE updated_at >=:endDate and (status=1 or status=0)');
          // Bind params
         $sth->bindParam(':endDate', $date, PDO::PARAM_INT);
         $sth->execute(); // Lancer la requete
