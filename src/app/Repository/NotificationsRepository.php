@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Models\Notification ;
+use Core\Util\Date ;
 use Core\Http\Request ;
 
 /**
@@ -25,8 +26,7 @@ class NotificationsRepository {
      * @return array
      */
     public function updateNotified(int $id):void{
-        
-         (new Notification())
+        (new Notification())
                  ->updateNotified($id) ;
     }
     
@@ -47,5 +47,11 @@ class NotificationsRepository {
     
     public function getLengthNotifsByNni($nni){
         return count($this->getListByNni($nni));
+    }
+    
+    public function autoRemoveNotifsAfter(int $days  = 30){
+        $endDate = Date::generateDateMoins($days) ;
+        return (new Notification())// Generer le jour Datetime format + 30 (exemple)
+                ->findByEndDateWithIn($endDate); 
     }
 }

@@ -83,5 +83,14 @@ class Notification extends Model {
             throw new InternalServerException($e->getMessage());
         }
     }
+    
+    public function findByEndDateWithIn($endDate){
+        $sth = $this->db->getPDO() // Execution de la requete
+                ->prepare('SELECT * FROM ' . $this->table . ' WHERE updated_at<=:endDate and is_notified != true'); 
+        $sth->bindParam(':endDate', $endDate, \PDO::PARAM_STR); // Bind params
+        $sth->execute(); // Lancer la requete
+        
+        return $sth->fetchAll(\PDO::FETCH_ASSOC); // Recupérer les infos sous forme une table
+    }
 
 }
