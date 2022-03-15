@@ -28,19 +28,21 @@ class Notification extends Model {
      * @return type
      * @throws InternalServerException
      */
-    public function getList(string $userNni = ''): array {
+    public function getList($userNni = ''): array {
+       
         try {
-
+            
             $query = "SELECT n.* FROM {$this->table} n INNER JOIN {$this->subscriberTable} s on n.sheet_id = s.sheet_id ";
-            if (!empty($userNni)):
-                $query .= "where n.user_nni=:userNni ;";
+            if (!empty($userNni) && !is_null($userNni)):
+                $query .= "where n.user_nni= :user_nni";
             endif;
-
+           
             $sth = ($this->db->getPDO()->prepare($query));
-            $sth->bindValue('userNni', $userNni, \PDO::PARAM_STR);
+            $sth->bindParam(':user_nni', $userNni, \PDO::PARAM_STR);
             $sth->execute();
             return $sth->fetchall(\PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
+           
             throw new InternalServerException();
         }
     }

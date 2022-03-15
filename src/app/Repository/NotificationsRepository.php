@@ -16,7 +16,7 @@ class NotificationsRepository {
      * retourner la liste des notifs par user ou all
      * @return array
      */
-    public function getListByNni(string $userNni = ''):array{
+    public function getListByNni($userNni ):array{
         return (new Notification())->getList($userNni) ;
     }
     
@@ -43,5 +43,9 @@ class NotificationsRepository {
             (new Notification())
                  ->insertNotification($valeurNotif) ;
         }
+    }
+    
+    public function getLengthNotifsByNni($nni){
+        return count($this->getListByNni($nni));
     }
 }
