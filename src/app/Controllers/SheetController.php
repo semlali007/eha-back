@@ -5,12 +5,14 @@ namespace App\Controllers;
 use App\Manager\SheetManager;
 use App\Repository\SheetRepository;
 use App\Services\FileService;
+use App\Repository\NotificationsRepository ;
 use Core\Http\Request;
 
 class SheetController extends Controller {
 
     private $sheetRepository;
     private $sheetManager;
+    private $notificationsRepository;
     private $currentNni  ;
 
     public function __construct($roles = [])
@@ -19,6 +21,7 @@ class SheetController extends Controller {
 
         $this->sheetRepository = new SheetRepository();
         $this->sheetManager = new SheetManager();
+        $this->notificationsRepository = new NotificationsRepository();
     }
 
     public function index() {
@@ -40,6 +43,7 @@ class SheetController extends Controller {
 
     public function update() {
         $sheetData = json_decode($_POST['model'], true);
+        $this->notificationsRepository->insertNotification($this->currentUser->getNni(), $sheetData['id']);
         return $this->sheetManager->update($this->currentUser,$sheetData);
     }
 

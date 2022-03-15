@@ -36,7 +36,8 @@ class NotificationsController extends Controller{
      * @return Array
      */
     public function update() {
-        return $this->response($this->notificationsRepository->updateNotified(Request::request("id")));
+        $input = Request::input();
+        return $this->response($this->notificationsRepository->updateNotified($input['id']));
     }
     
     /**
