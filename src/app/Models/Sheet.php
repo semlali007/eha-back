@@ -106,6 +106,7 @@ class Sheet extends Model
     public function getSearchCondition($params, $forFilter=null)
     {
         $search = '';
+        $schema = pg_escape_string(getenv("DB_SCHEMA"));
         $options = $params['search'] ?? [];
         if (!is_array($forFilter) || !array_key_exists('beneficiary', $forFilter)) {
             $beneficiariesList = $options['beneficiaries'] ?? [];
@@ -147,10 +148,10 @@ class Sheet extends Model
             }
         }
        
-        $searchProvider = strtolower($options['searchProvider'] ?? "");
+        $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
             $searchProvider = strtolower($searchProvider);
-            $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  lower(provider_label) LIKE '%$searchProvider%' ) ";
+            $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  {$schema}unaccent(lower(provider_label)) LIKE {$schema}unaccent('%$searchProvider%') ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " INNER JOIN 
             (
@@ -163,9 +164,9 @@ class Sheet extends Model
 
         $search .= ' WHERE 1= 1 ';
 
-        $search_input = strtolower($options['searchText'] ?? "");
+        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
         if ($search_input !== '') {
-            $search .= " AND ( lower(s.label) LIKE '%$search_input%' OR lower(s.description) like '%$search_input%' ) ";
+            $search .= " AND ( {$schema}unaccent(lower(s.label)) LIKE {$schema}unaccent('%$search_input%') OR {$schema}unaccent(lower(s.description)) like {$schema}unaccent('%$search_input%') ) ";
         }
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
