@@ -1,6 +1,6 @@
-CREATE TABLE "EHA".notifications
+CREATE table if not exists "EHA".notifications
 (
-    id integer NOT NULL,
+    id serial NOT NULL,
     user_nni character varying(255) COLLATE pg_catalog."default",
     is_notified boolean,
     sheet_id bigint,
