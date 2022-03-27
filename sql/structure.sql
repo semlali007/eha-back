@@ -1785,3 +1785,14 @@ CREATE TABLE "EHA".subscription
     user_nni character varying(100) NOT NULL,
     CONSTRAINT subscription_pkey PRIMARY KEY (user_nni, sheet_id)
 )
+
+
+
+ALTER TABLE "EHA".sheet_headers 
+    ADD COLUMN netachat_id integer;
+
+    ALTER TABLE "EHA".sheet_headers 
+    ADD COLUMN content text;
+
+       ALTER TABLE "EHA".sheet_headers 
+    ADD COLUMN netachat_type text;

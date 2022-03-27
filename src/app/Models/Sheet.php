@@ -511,8 +511,11 @@ class Sheet extends Model
     public function add($data)
     {
         try {
+            $data['content'] = $data['content']?? '';
+            $data['netachat_type'] = $data['netachat_type']?? '';
+            $data['netachat_id'] = $data['netachat_id']?? 0;
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, showcase) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :showcase);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, showcase, content, netachat_id, netachat_type) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :showcase, :content, :netachat_id, :netachat_type);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -533,6 +536,9 @@ class Sheet extends Model
             $sth->bindParam(':protected_sector', $data['protected_sector'], PDO::PARAM_BOOL);
             $sth->bindParam(':committee', $data['committee'], PDO::PARAM_INT);
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
+            $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
+            $sth->bindParam(':netachat_type', $data['netachat_type'], PDO::PARAM_STR);
+            $sth->bindParam(':netachat_id', $data['netachat_id'], PDO::PARAM_INT);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
@@ -582,4 +588,23 @@ class Sheet extends Model
             throw new Exception('erreur de suppression de sheet_headers');
         }
     }
+
+    /**
+     * 
+     * @param string $date
+     * @return mixed
+     */
+    public function getNetAchatSheet(): mixed
+    {
+        try {
+
+            $query = 'SELECT id,netachat_id FROM ' . $this->table . ' WHERE netachat_id is not null';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException($e->getMessage());
+        }
+    }
+   
 }

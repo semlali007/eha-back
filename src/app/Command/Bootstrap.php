@@ -7,7 +7,9 @@ use App\Command\Command\{
     ArchivageFicheMarche,
     AutoNotifArchivageFiche,
     SearchNoReplyHotline,
-    RemoveExpiredNotifications
+    RemoveExpiredNotifications,
+    Migration,
+    DeleteMigration
 };
 
 /**
@@ -37,13 +39,17 @@ class Bootstrap {
     /**
      * Constructeur
      */
+
+
     public function __construct() {
         $this->application = new Application();
         $this->commands = [
             new ArchivageFicheMarche(),
             new AutoNotifArchivageFiche(),
             new SearchNoReplyHotline(),
-            new RemoveExpiredNotifications()
+            new RemoveExpiredNotifications(),
+            new Migration(),
+            new DeleteMigration()
         ] ;
     }
 
