@@ -381,12 +381,11 @@ class Sheet extends Model
     }
 
 
-
     public function groupedByCommittees($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.committee as code, c.label as name FROM " . $this->table . "  s " . " INNER join {$this->committeeTable} c
-             ON c.code = s.committee {$this->getSearchCondition($options,['committees'=>true])} GROUP BY committee, c.label";
+            $sql = "SELECT COUNT(s.*) as count, c.code as code, c.label as name FROM " . $this->committeeTable . "  c " . " LEFT join {$this->table} s
+             ON c.code = s.committee {$this->getSearchCondition($options,['committees'=>true])} GROUP BY c.code, c.label order by COUNT desc, c.label";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -394,7 +393,6 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
-   
     
     function addCondition(&$sql, $key, $value)
     {
