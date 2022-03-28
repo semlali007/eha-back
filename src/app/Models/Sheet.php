@@ -294,11 +294,14 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT f.name , f.id as code , benificiaries.count, f.id  from {$this->beneficiaryTable} f  INNER join  
+       SELECT f.name , f.id as code , CASE WHEN BENIFICIARIES.COUNT IS NULL 
+       THEN 0 
+       ELSE BENIFICIARIES.COUNT 
+       END AS COUNT, f.id  from {$this->beneficiaryTable} f  LEFT join  
         (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetBeneficiaryTable} sb WHERE sb.sheet_id  in
          ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['beneficiary'=>true])} ) GROUP BY sb.filiale_id)  benificiaries on f.id =  benificiaries.code
          
-         order by benificiaries.count desc, f.id 
+         order by COUNT desc, f.id 
          ";
 
             $sth = $this->db->getPDO()->prepare($sql);
@@ -313,12 +316,15 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT p.provider_label as name , p.provider_code as code , providers.count  from {$this->providerTable} p INNER join 
+       SELECT p.provider_label as name , p.provider_code as code , CASE WHEN PROVIDERS.COUNT IS NULL 
+       THEN 0 
+       ELSE PROVIDERS.COUNT 
+       END AS COUNT  from {$this->providerTable} p LEFT join 
          
         (SELECT  count(sp.*) as count, sp.provider_code as code FROM   {$this->sheetProviderTable} sp WHERE sp.sheet_id  in
          ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
          
-         order by providers.count desc, p.provider_label 
+         order by COUNT desc, p.provider_label 
          ";
 
             $sth = $this->db->getPDO()->prepare($sql);
@@ -333,12 +339,16 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT z.name , z.id as code , areas.count  from {$this->areaTable} z INNER join 
+       SELECT z.name , z.id as code , CASE WHEN AREAS.COUNT IS NULL 
+        THEN 0 
+        ELSE AREAS.COUNT 
+        END AS COUNT
+            from {$this->areaTable} z LEFT join 
          
         (SELECT  count(sz.*) as count, sz.zone_id as code FROM   {$this->sheetAreaTable} sz WHERE sz.sheet_id  in
          ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['area'=>true])} ) GROUP BY sz.zone_id)  areas on z.id =  areas.code
          
-         order by areas.count desc,z.name limit 15
+         order by COUNT desc,z.name 
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
@@ -352,12 +362,15 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT d.name , d.id as code , directions.count  from {$this->groupTable} d INNER join 
+       SELECT d.name , d.id as code , CASE WHEN DIRECTIONS.COUNT IS NULL 
+       THEN 0 
+       ELSE DIRECTIONS.COUNT 
+       END AS COUNT  from {$this->groupTable} d LEFT join 
          
         (SELECT  count(sd.*) as count, sd.group_id as code FROM   {$this->sheetGroupTable} sd WHERE sd.sheet_id  in
          ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['direction'=>true])} ) GROUP BY sd.group_id)  directions on d.id =  directions.code
          
-         order by directions.count desc,d.name limit 15
+         order by COUNT desc,d.name limit 15
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
