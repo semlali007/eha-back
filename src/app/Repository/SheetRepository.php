@@ -21,17 +21,23 @@ class SheetRepository extends AbstractRepository {
     public function search($options, $userNni = null) {
 
         $sheet = new Sheet();
+        $sectors = $sheet->groupedBySector($options);
+        $openEdfs = $sheet->groupedByOpenEdf($options);
+        $dauphins = $sheet->groupedByDauphin($options);
+        $partnerships = $sheet->groupedByPartnership($options);
+        $status = $sheet->groupedByStatus($options);
+        
         return
                 [
                     'sheets' => $sheet->search($options, $userNni),
                     'total' => $sheet->getCount($options),
                     'filter' => [
-                        'edf_open' => $sheet->groupedByOpenEdf($options),
+                        'edf_open' =>  self::addAttribute($openEdfs),
                         'showcase' => $sheet->groupedByShowcase($options),
-                        'status' => $sheet->groupedByStatus($options),
-                        'partnership' => $sheet->groupedByPartnership($options),
-                        'protected_sector' => $sheet->groupedBySector($options),
-                        'dauphin' => $sheet->groupedByDauphin($options),
+                        'status' => self::addStatus($status),
+                        'partnership' => self::addAttribute($partnerships),
+                        'protected_sector' => self::addAttribute($sectors),
+                        'dauphin' => self::addAttribute($dauphins),
                         'beneficiaries' => $sheet->groupedByFiliale($options),
                         'areas' => $sheet->groupedByZone($options),
                         'providers' => $sheet->groupedByProvider($options),
@@ -39,6 +45,26 @@ class SheetRepository extends AbstractRepository {
                         'committees' => $sheet->groupedByCommittees($options),
                     ],
         ];
+    }
+
+
+    public static function addAttribute($items){
+        return self::addElements($items, [true,false]);
+    }
+
+    public static function addStatus($items){
+        return self::addElements($items, [-1,0,1]);
+    }
+
+    public static function addElements($firstElements, $allCodes){
+        $firstElementsCode = array_column($firstElements, 'code');
+         
+            foreach($allCodes as $code){
+                if(!in_array($code, $firstElementsCode)){
+                    $firstElements[] = ["code" => $code, "count" => 0];
+                }
+            }
+        return $firstElements;
     }
 
     /**
