@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Repository\PurchaseRepository;
-
+use Core\Http\Request ;
 class PurchaseController extends Controller
 {
     private  $purchaseRepository;
@@ -31,4 +31,27 @@ class PurchaseController extends Controller
             ]
         );
     }
+    
+    /**
+     * Lister les DA 
+     * @return mixed
+     */
+    public function list(): mixed {
+        $trans = $GLOBALS['configuration']['hlk']['config'];
+        $options = Request::input();
+        
+        if (!array_key_exists("words", $options)):
+            $options['words'] = ""; // Afficher toute la listes des DA
+        endif;
+        
+        $resultat = $this->purchaseRepository->getAll($options['words']);
+        $firstElements = array_slice($resultat, $options['offset'] * 10, 10);
+        $filtered = array_map(function ($valeur)use ($trans) {
+            $valeur["last_status_event"] = $trans[$valeur["last_status_event"]];
+            return $valeur;
+        }, $firstElements);
+
+        return $this->response(['purchases' => $filtered]);
+    }
+
 }
