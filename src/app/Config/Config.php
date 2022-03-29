@@ -26,11 +26,16 @@ $configuration = [
             'items' => [
                 "search" => "search_items", // Action
                 "get" => "get_item", // verbe à utiliser
-            ],
+            ], 
             'purchases' => [
                 "search" => "get_purchase_situation_id", // Action
+                "list"=>"list_purchase_situations",
             ]
-        ]
+        ],
+        "config"=>[
+                    "PGI Création"=> 1 , // Création
+                    "PGI Validation"=> 2 // Instruction
+                ]
     ]
     , 
     'roles' => [

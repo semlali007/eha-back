@@ -20,4 +20,20 @@ class PurchaseRepository extends AbstractRepository {
 
             return HttpClientService::exec_post($hlk['url'], $queryData); 
     }
+    
+    /**
+     * 
+     * @param string $options
+     * @return type
+     */
+    public function getAll(string $word) {
+            $hlk = $GLOBALS['configuration']['hlk'];
+            $queryData = [
+                'password' => $hlk['pwd'],
+                'action_code' => $hlk["actions"]["purchases"]["list"],
+                'action_info' => $word
+            ];
+
+            return HttpClientService::exec_post($hlk['url'], $queryData); 
+    }
 }
