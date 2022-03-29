@@ -48,6 +48,7 @@ class Migration extends Command {
         $this
                 ->setDescription('Cette commande permet de migrer les données netachat')
                 ->addArgument('type', InputArgument::REQUIRED, 'Le type de fiche marchée?')
+                ->addArgument('id', InputArgument::OPTIONAL, 'id fiche')
                 ;
     }
 
@@ -69,9 +70,10 @@ class Migration extends Command {
                 "<info>le type de fiche marchée est obligatoire</>",
             ]);
         }
+
           
         // le chargement de la mise a jour des fiches marché
-        $count =  $this->sheetRepository->migrate($type); // Récupérer les ids et les dates des fiches
+        $count =  $this->sheetRepository->migrate($type, $input->getArgument("id")); // Récupérer les ids et les dates des fiches
         
         $io->success("Migration terminée !") ;
         

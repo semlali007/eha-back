@@ -15,9 +15,9 @@ use App\Models\SheetProvider;
 use App\Models\Subscription;
 use App\Services\FileUpload;
 use App\Services\UserService;
-use App\Models\Provider;
 use Exception;
 use App\Security\User;
+use App\Models\Provider;
 use App\Models\Beneficiary;
 use App\Models\Area;
 use App\Models\Group;
@@ -25,27 +25,7 @@ use phpDocumentor\Reflection\Types\Null_;
 
 class SheetManager extends AbstractManager
 {
-    public static $MigrateConfig = [
-        'source' => '',
-        'dait' =>
-        [
-            'contrat' => 'Contrats_DAIT/',
-            'doc_dep' => 'Doc_Dep_DAIT/',
-        ],
-        'dapi' =>
-        [
-            'contrat' => 'Contrats_DAPI/',
-            'doc_dep' => 'Doc_Dep_DAPI/',
-        ],
-        'datp' =>
-        [
-            'contrat' => [
-                'edf_enedis' => 'Contrats_EDF_Enedis/',
-                'enedis' => 'Contrats_Enedis/',
-            ],
-            'doc_dep' => 'Doc_Dep_DATP/',
-        ]
-    ];
+
     public function update($user, $sheetData)
     {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
@@ -371,8 +351,28 @@ class SheetManager extends AbstractManager
         return (new Subscription())->remove($sheetId, $userNni);
     }
 
-
-    public function migrate($type)
+    public static $MigrateConfig = [
+        'source' => '',
+        'dait' =>
+            [
+                'contrat' => 'Contrats_DAIT/',
+                'doc_dep' => 'Doc_Dep_DAIT/',
+            ],
+        'dapi' =>
+            [
+                'contrat' => 'Contrats_DAPI/',
+                'doc_dep' => 'Doc_Dep_DAPI/',
+            ],
+        'datp' =>
+            [
+                'contrat' => [
+                    'edf_enedis' => 'Contrats_EDF_Enedis/',
+                    'enedis' => 'Contrats_Enedis/',
+                ],
+                'doc_dep' => 'Doc_Dep_DATP/',
+            ]
+    ];
+    public function migrate($type, $netAchatId = null)
     {
         $data = [];
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
@@ -399,12 +399,17 @@ class SheetManager extends AbstractManager
 
         $result = array_merge($source1['Row'], $source2['Row']);
         foreach ($result as $row) {
+            if(isset($netAchatId) && is_numeric($netAchatId) && $netAchatId != $row['ID']){
+                    continue;
+            }
+
             $data['contracts'] = [];
             $data['lots'] = [];
             $data['netachat_id'] = $row['ID'] ?? '';
             $data['label'] = self::formateHtml($row['Title']);
             $data['content'] = self::formateHtml($row['Contenu']);
             $data['description'] = self::formateHtml($row['Desc']);
+
             $origDateDebut = trim($row['DateDeb']);
             $dateDebut = str_replace('/', '-', $origDateDebut);
             $newDateDebut = date("Y-m-d", strtotime($dateDebut));
@@ -429,7 +434,7 @@ class SheetManager extends AbstractManager
             $data['stipulation_for_others'] = boolval($row['StipulationPourAutrui.value']);
             $data = array_merge($data, $this->migrateOptions($row));
             $data =  array_merge($data, $this->kitDep($row, $type));
-            $ficheId = $this->addSheet($data);
+            $this->addSheet($data);
         }
     }
 
@@ -548,6 +553,7 @@ class SheetManager extends AbstractManager
     }
 
     public static function formateHtml($content){
+        
         $content = preg_replace('/\>\s+\</m', '><', $content);
         $content = html_entity_decode($content);
         $content = preg_replace('/\>\s+\</m', '><', $content);
@@ -561,14 +567,6 @@ class SheetManager extends AbstractManager
         $content = preg_replace('/\>\s+</', '><', $content);
         $content = str_replace('<p>&#160;</p>', '', $content);
         $content = preg_replace('/\>[\x00-\x1F\x80-\xFF]+</', '><', $content);
-        preg_match_all('/(<a href="<a href=").*("\>).*(<\/a\>")/', $content, $tttt, PREG_PATTERN_ORDER);
-        foreach ($tttt[0] as $code) {
-            if (preg_match('/<a href="<a href="/', $code)) {
-                $c = substr($code, 17);
-                $explode = explode('"', $c);
-                $content = str_replace($code, '<a href="' . $explode[1] . '"', $content);
-            }
-        }
 
         preg_match_all('/<a href="mailto:[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+.[a-zA-Z]+">mailto:[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+.[a-zA-Z]+<\/a>/', $content, $emails, PREG_PATTERN_ORDER);
         foreach ($emails[0] as $code) {
@@ -578,12 +576,24 @@ class SheetManager extends AbstractManager
             }
         }
 
+        preg_match_all('/(<a href="<a href=").*("\>).*(<\/a\>")/', $content, $tttt, PREG_PATTERN_ORDER);
+      
+        foreach ($tttt[0] as $code) {
+            
+            if (preg_match('/<a href="<a href="/', $code)) {
+                $c = substr($code, 17);
+                $explode = explode('"', $c);
+                $content = str_replace($code, '<a href="' . $explode[1] . '"', $content);
+            }
+        }
+
+       
         preg_match_all("/C[a-zA-Z_0-9]{9}</", $content, $matches1, PREG_PATTERN_ORDER);
 
         foreach ($matches1[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, '<a href="/app/contrat/details/' . $c . '" target="_blank" class="link">' . $c . '</a><', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" class="link">' . $c . '</a><', $content);
             }
         }
 
@@ -592,7 +602,7 @@ class SheetManager extends AbstractManager
         foreach ($matches[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, ' <a href="/app/contrat/details/' . $code . '" target="_blank" class="link">' . $c . '</a> ', $content);
+                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" class="link">' . $c . '</a> ', $content);
             }
         }
 
@@ -602,7 +612,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -18);
                 $i = substr($code, 17, -9);
-                $content = str_replace($code, '<a href="/app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
             }
         }
 
@@ -612,7 +622,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, 9);
                 $i = substr($code, -8, -7);
-                $content = str_replace($code, '<a href="/app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
             }
         }
         $content = str_replace('&#39;', "'", $content);
@@ -626,5 +636,4 @@ class SheetManager extends AbstractManager
         $sheet = new Sheet();
         return $sheet->getNetAchatSheet();
     }
-
 }
