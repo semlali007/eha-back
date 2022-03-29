@@ -17,10 +17,17 @@ use App\Services\FileUpload;
 use App\Services\UserService;
 use Exception;
 use App\Security\User;
+use App\Models\Provider;
+use App\Models\Beneficiary;
+use App\Models\Area;
+use App\Models\Group;
+use phpDocumentor\Reflection\Types\Null_;
 
-class SheetManager extends AbstractManager {
+class SheetManager extends AbstractManager
+{
 
-    public function update($user, $sheetData) {
+    public function update($user, $sheetData)
+    {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
         try {
             $data['id'] = $sheetData['id'];
@@ -344,4 +351,289 @@ class SheetManager extends AbstractManager {
         return (new Subscription())->remove($sheetId, $userNni);
     }
 
+    public static $MigrateConfig = [
+        'source' => '',
+        'dait' =>
+            [
+                'contrat' => 'Contrats_DAIT/',
+                'doc_dep' => 'Doc_Dep_DAIT/',
+            ],
+        'dapi' =>
+            [
+                'contrat' => 'Contrats_DAPI/',
+                'doc_dep' => 'Doc_Dep_DAPI/',
+            ],
+        'datp' =>
+            [
+                'contrat' => [
+                    'edf_enedis' => 'Contrats_EDF_Enedis/',
+                    'enedis' => 'Contrats_Enedis/',
+                ],
+                'doc_dep' => 'Doc_Dep_DATP/',
+            ]
+    ];
+    public function migrate($type, $netAchatId = null)
+    {
+        $data = [];
+        $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
+        switch ($type) {
+            case 'dait':
+                $source1 =  json_decode(file_get_contents($destinationMigrationPath."dait1.json"), true);
+                $source2 =  json_decode(file_get_contents($destinationMigrationPath."dait2.json"), true);
+                $data['netachat_type'] = 'dait';
+                break;
+            case 'dapi':
+                $source1 =  json_decode(file_get_contents($destinationMigrationPath."dapi1.json"), true);
+                $source2 =  json_decode(file_get_contents($destinationMigrationPath."dapi2.json"), true);
+                $data['netachat_type'] = 'dapi';
+                break;
+            case 'datp':
+                $source1 =  json_decode(file_get_contents($destinationMigrationPath."datp1.json"), true);
+                $source2 =  json_decode(file_get_contents($destinationMigrationPath."datp2.json"), true);
+                $data['netachat_type'] = 'datp';
+                break;
+            default:
+                throw new Exception('type de contact inconnu');
+                break;
+        }
+
+        $result = array_merge($source1['Row'], $source2['Row']);
+        foreach ($result as $row) {
+            if(isset($netAchatId) && is_numeric($netAchatId) && $netAchatId != $row['ID']){
+                    continue;
+            }
+
+            $data['contracts'] = [];
+            $data['lots'] = [];
+            $data['netachat_id'] = $row['ID'] ?? '';
+            $data['label'] = self::formateHtml($row['Title']);
+            $data['content'] = self::formateHtml($row['Contenu']);
+            $data['description'] = self::formateHtml($row['Desc']);
+
+            $origDateDebut = trim($row['DateDeb']);
+            $dateDebut = str_replace('/', '-', $origDateDebut);
+            $newDateDebut = date("Y-m-d", strtotime($dateDebut));
+            $origDateFin = trim($row['DateFin']);
+            $dateFin = str_replace('/', '-', $origDateFin);
+            $newDateFin = date("Y-m-d", strtotime($dateFin));
+            $data['start_date'] = $newDateDebut;
+            $data['end_date'] = $newDateFin;
+            $data['dauphin'] = boolval($row['ApproDauphin.value']);
+            $data['status'] = '1';
+            $date = date('Y-m-d H:i:s');
+            $data['created_at'] = $date;
+            $data['updated_at'] = $date;
+            $data['created_by'] = 'MIGRATION';
+            $data['updated_by'] = 'MIGRATION';
+            $data['created_by_full_name'] = 'MIGRATION';
+            $data['updated_by_full_name'] = 'MIGRATION';
+            $data['edf_open'] = boolval($row['MarcheOuvertPersEDF.value']);
+            $data['showcase'] = false;
+            $data['partnership'] = boolval($row['PartenariatProd.value']);
+            $data['protected_sector'] = boolval($row['SecteurProt.value']);
+            $data['stipulation_for_others'] = boolval($row['StipulationPourAutrui.value']);
+            $data = array_merge($data, $this->migrateOptions($row));
+            $data =  array_merge($data, $this->kitDep($row, $type));
+            $this->addSheet($data);
+        }
+    }
+
+    public function kitDep($list, $type)
+    {
+        $data = [];
+        $data['files'] = [];
+        $migrateConfig = self::$MigrateConfig;
+        switch ($type) {
+            case 'dait':
+                $config = $migrateConfig['dait'];
+                $foldersList = $list['KitDAIT'];
+                break;
+            case 'dapi':
+                $config = $migrateConfig['dapi'];
+                $foldersList = $list['KitDAPI'];
+                break;
+            case 'datp':
+                $config = $migrateConfig['datp'];
+                $foldersList = $list['KitDATP'];
+                break;
+            default:
+                throw new Exception('type de contact inconnu');
+                break;
+        }
+
+        $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
+        $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Actifs/";
+        if(is_null($migrateConfig) || !is_array($foldersList)){
+            return $data;
+        }
+        foreach ($foldersList as $kit) {
+            $kitFolderName = $kit['lookupValue'];
+            if (!empty($kitFolderName)) {
+                if (is_dir($sourceDepDoc . $kitFolderName)) {
+                    $docDep = scandir($sourceDepDoc . $kitFolderName);
+                    if ($docDep !== false) {
+                        foreach ($docDep as $fileName) {
+                            if ('.' !== $fileName && '..' !== $fileName) {
+                                $ext    =   pathinfo($fileName, PATHINFO_EXTENSION);
+                                $name    =   pathinfo($fileName, PATHINFO_FILENAME);
+                                $destFileName = uniqid('D_' . $name . '_') . '.' . $ext;
+                                $path = $sourceDepDoc . $kitFolderName . '/' . basename($fileName);
+                                if (copy($path, $destinationMigrationPath . $destFileName)) {
+                                    $data['files'][] = ['file_name' => $destFileName, 'file_url' => $destFileName, 'file_size' => 12333, 'node_id' => null, 'type' => 1];
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+
+        return $data;
+    }
+
+    public function migrateOptions($row)
+    {
+        $data = [];
+        $data['providers'] = [];
+        $data['filiales'] = [];
+        $data['zones'] = [];
+        $data['groups'] = [];
+        $filiale = new Beneficiary();
+        $provider = new Provider();
+        $zone = new Area();
+        $group = new Group();
+
+        foreach ($row['Fournisseur'] as $item) {
+            if (!is_numeric($item)  && !empty($item)) {
+                $provider->add(['provider_label' => substr($item["Label"], 0, 50), 'provider_code' => $item["Label"]]);
+                $p = $provider->get(['provider_label' => $item["Label"], 'provider_code' => $item["Label"]]);
+                if (count($p) > 0) {
+                    $data['providers'][] = ['id' => $p[0]['provider_code']];
+                }
+            }
+        }
+
+        foreach ($row['Beneficiaires'] as $itemB) {
+            $filiale->add(['name' => $itemB['Label']]);
+            $p = $filiale->get(['name' => $itemB['Label']]);
+            if (count($p) > 0) {
+                $data['filiales'][] = ['id' => $p[0]['id']];
+            }
+        }
+
+
+        foreach ($row['ZoneGeo'] as $itemZ) {
+            $zone->add(['name' => $itemZ['Label']]);
+            $p = $zone->get(['name' => $itemZ['Label']]);
+            if (count($p) > 0) {
+                $data['zones'][] = ['id' => $p[0]['id']];
+            }
+        }
+
+        $groupLabel = $row['DAGROUPE']['Label'];
+        if (!is_numeric($groupLabel)  && !empty($groupLabel)) {
+            if ($groupLabel === 'DAPI') {
+                $groupLabel = 'DOA PRODUCTION';
+            }
+
+            if ($groupLabel === 'DAIT' || $groupLabel === 'DATP') {
+                $groupLabel = 'DOA TP&IT';
+            }
+
+            $group->add(['name' => $groupLabel]);
+            $p = $group->get(['name' => $groupLabel]);
+            if (count($p) > 0) {
+                $data['groups'][] = ['id' => $p[0]['id']];
+            }
+        }
+
+
+        return $data;
+    }
+
+    public static function formateHtml($content){
+        
+        $content = preg_replace('/\>\s+\</m', '><', $content);
+        $content = html_entity_decode($content);
+        $content = preg_replace('/\>\s+\</m', '><', $content);
+        $content = str_replace("<br>", "", $content);
+        $content = str_replace("<br/>", "<br>", $content);
+        $content = str_replace('<br><t', '<t', $content);
+        $content = str_replace('<br></t', '</t', $content);
+        $content = str_replace('&#160;', ' ', $content);
+        $content = str_replace('<p>&#160;</p>', '', $content);
+        $content = preg_replace('/\>\ +\</m', '><', $content);
+        $content = preg_replace('/\>\s+</', '><', $content);
+        $content = str_replace('<p>&#160;</p>', '', $content);
+        $content = preg_replace('/\>[\x00-\x1F\x80-\xFF]+</', '><', $content);
+
+        preg_match_all('/<a href="mailto:[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+.[a-zA-Z]+">mailto:[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+.[a-zA-Z]+<\/a>/', $content, $emails, PREG_PATTERN_ORDER);
+        foreach ($emails[0] as $code) {
+            if (preg_match("/@/", $code)) {
+                $explode = explode('"', $code);
+                $content = str_replace($code, $explode[1], $content);
+            }
+        }
+
+        preg_match_all('/(<a href="<a href=").*("\>).*(<\/a\>")/', $content, $tttt, PREG_PATTERN_ORDER);
+      
+        foreach ($tttt[0] as $code) {
+            
+            if (preg_match('/<a href="<a href="/', $code)) {
+                $c = substr($code, 17);
+                $explode = explode('"', $c);
+                $content = str_replace($code, '<a href="' . $explode[1] . '"', $content);
+            }
+        }
+
+       
+        preg_match_all("/C[a-zA-Z_0-9]{9}</", $content, $matches1, PREG_PATTERN_ORDER);
+
+        foreach ($matches1[0] as $code) {
+            if (preg_match("#\d#", $code)) {
+                $c = substr($code, 0, -1);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" class="link">' . $c . '</a><', $content);
+            }
+        }
+
+        preg_match_all("/C[a-zA-Z_0-9]{9}\s/", $content, $matches, PREG_PATTERN_ORDER);
+
+        foreach ($matches[0] as $code) {
+            if (preg_match("#\d#", $code)) {
+                $c = substr($code, 0, -1);
+                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" class="link">' . $c . '</a> ', $content);
+            }
+        }
+
+        preg_match_all("/C[a-zA-Z_0-9]{8}<strong>[a-zA-Z_0-9]{1}<\/strong>/", $content, $matches2, PREG_PATTERN_ORDER);
+
+        foreach ($matches2[0] as $code) {
+            if (preg_match("#\d#", $code)) {
+                $c = substr($code, 0, -18);
+                $i = substr($code, 17, -9);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+            }
+        }
+
+        preg_match_all('/C[a-zA-Z_0-9]{8}<span class="ms-rteForeColor-2">[a-zA-Z_0-9]{1}<\/span>/', $content, $matches22, PREG_PATTERN_ORDER);
+
+        foreach ($matches22[0] as $code) {
+            if (preg_match("#\d#", $code)) {
+                $c = substr($code, 0, 9);
+                $i = substr($code, -8, -7);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+            }
+        }
+        $content = str_replace('&#39;', "'", $content);
+        $content = str_replace('class="ms-rteTable-8"', 'border="1"', $content);
+        $content = preg_replace('/class="ms-rteTable[-0-9a-zA-Z.+_\s]+"/', 'border="1"', $content);
+        return $content;
+
+    }
+
+    public function getNetAchatSheet(){
+        $sheet = new Sheet();
+        return $sheet->getNetAchatSheet();
+    }
 }
