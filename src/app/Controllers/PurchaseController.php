@@ -7,6 +7,7 @@ use Core\Http\Request ;
 class PurchaseController extends Controller
 {
     private  $purchaseRepository;
+    private $currentNni   ;
     public function __construct($roles = [])
     {
         parent::__construct($roles);
@@ -37,21 +38,40 @@ class PurchaseController extends Controller
      * @return mixed
      */
     public function list(): mixed {
-        $trans = $GLOBALS['configuration']['hlk']['config'];
-        $options = Request::input();
+        $hlk = $GLOBALS['configuration']['hlk'] ;
+        $apiConfigPurchses= $hlk["actions"]["purchases"]["list"];
+        $trans =$hlk['config'];
         
-        if (!array_key_exists("words", $options)):
-            $options['words'] = ""; // Afficher toute la listes des DA
-        endif;
+        if (strpos($apiConfigPurchses, '.json') !== false) {
+            $data = json_decode(file_get_contents(__DIR__ . "/../../public/" . $apiConfigPurchses),true) ;
+            return $this->response(['purchases' => $this->formaTData($data,$trans)]);
+        }
         
-        $resultat = $this->purchaseRepository->getAll($options['words']);
-        $firstElements = array_slice($resultat, $options['offset'] * 10, 10);
-        $filtered = array_map(function ($valeur)use ($trans) {
-            $valeur["last_status_event"] = $trans[$valeur["last_status_event"]];
-            return $valeur;
-        }, $firstElements);
-
-        return $this->response(['purchases' => $filtered]);
+        $nni = $this->getCurrentUser()->getNni();
+        if(is_null($nni)){
+            return $this->response(['purchases' =>[]]) ;
+        }
+        
+        $resultat = $this->purchaseRepository->getAll($nni); 
+        return $this->response(['purchases' => $this->formaTData($resultat, $trans)]);
     }
 
+    /**
+     * 
+     * @param array $data
+     * @param array $trans
+     * @return array
+     */
+    public function formaTData($data,$trans){
+        
+         return array_map(function ($valeur)use ($trans) {
+            $valeur["last_status_event_label"] =  $valeur["last_status_event"] ;
+            if(array_key_exists($valeur["last_status_event"], $trans)){
+                $valeur["last_status_event"] = $trans[$valeur["last_status_event"]];
+            }else {
+                 $valeur["last_status_event"] = 1;
+            }
+            return $valeur;
+        }, $data);
+    }
 }
