@@ -1,5 +1,5 @@
 <?php
-$router->post('/purchases/list', 'App\Controllers\PurchaseController@list');
+$router->post('/purchases/list', 'App\Controllers\PurchaseController@list',["roles"=>['USER']]);
 $router->get('/notifications/list/:nni', 'App\Controllers\NotificationsController@index');
 $router->post('/notifications/update', 'App\Controllers\NotificationsController@update');
 $router->post('/notifications/add', 'App\Controllers\NotificationsController@add');
