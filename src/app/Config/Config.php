@@ -29,13 +29,16 @@ $configuration = [
             ], 
             'purchases' => [
                 "search" => "get_purchase_situation_id", // Action
-                "list"=>"list_purchase_situations",
+                "list"=>"data-mock/purchases.json",
+               // "list"=>"list_purchase_situations",
             ]
         ],
-        "config"=>[
-                    "PGI Création"=> 1 , // Création
-                    "PGI Validation"=> 2 // Instruction
-                ]
+        "config" => [
+            "PGI Création" => 1, // Création
+            "PGI Validation" => 2, // Instruction,
+            "PHA, consultation Validation Acheteur => Validé" => 2,
+            "PHA, panier Manager achat - Affecter / Refuser => Refusé" => 3, // Refusée
+        ]
     ]
     , 
     'roles' => [
