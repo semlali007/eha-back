@@ -29,8 +29,8 @@ $configuration = [
             ], 
             'purchases' => [
                 "search" => "get_purchase_situation_id", // Action
-                "list"=>"data-mock/purchases.json",
-               // "list"=>"list_purchase_situations",
+                //"list"=>"data-mock/purchases.json",
+                "list"=>"list_purchase_situations",
             ]
         ],
         "config" => [
