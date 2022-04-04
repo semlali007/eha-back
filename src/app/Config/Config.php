@@ -20,7 +20,7 @@ $configuration = [
                 "get" => "get_provider", // verbe à utiliser
             ],
             'anchors' => [
-                "search" => "data-mock/anchors.json", // search_anchors
+                "search" => "search_anchors", // search_anchors
                 "get" => "get_anchor", // verbe à utiliser
             ],
             'items' => [
@@ -29,7 +29,6 @@ $configuration = [
             ], 
             'purchases' => [
                 "search" => "get_purchase_situation_id", // Action
-                //"list"=>"data-mock/purchases.json",
                 "list"=>"list_purchase_situations",
             ]
         ],

@@ -7,7 +7,6 @@ use Core\Http\Request ;
 class PurchaseController extends Controller
 {
     private  $purchaseRepository;
-    private $currentNni   ;
     public function __construct($roles = [])
     {
         parent::__construct($roles);
@@ -39,13 +38,7 @@ class PurchaseController extends Controller
      */
     public function list(): mixed {
         $hlk = $GLOBALS['configuration']['hlk'] ;
-        $apiConfigPurchses= $hlk["actions"]["purchases"]["list"];
-        $trans =$hlk['config'];
-        
-        if (strpos($apiConfigPurchses, '.json') !== false) {
-            $data = json_decode(file_get_contents(__DIR__ . "/../../public/" . $apiConfigPurchses),true) ;
-            return $this->response(['purchases' => $this->formaTData($data,$trans)]);
-        }
+        $trans = $hlk['config'];
         
         $nni = $this->getCurrentUser()->getNni();
         if(is_null($nni)){
@@ -68,8 +61,8 @@ class PurchaseController extends Controller
             $valeur["last_status_event_label"] =  $valeur["last_status_event"] ;
             if(array_key_exists($valeur["last_status_event"], $trans)){
                 $valeur["last_status_event"] = $trans[$valeur["last_status_event"]];
-            }else {
-                 $valeur["last_status_event"] = 1;
+            }else{
+                 $valeur["last_status_event"] = -1; 
             }
             return $valeur;
         }, $data);
