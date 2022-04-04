@@ -16,7 +16,11 @@ class HttpClientService {
      * @throws Exception
      */
     public static function exec_post(string $url, array $query, array $headers = Json::DEFAULT_HEADER) {
-
+        // Check call if HLK is enabled
+        if (strtoupper(getenv("ENV")) === "DEV" && (str_contains($url, getenv("HLK_API_BASE_URL")))) {
+            return json_decode(file_get_contents(__DIR__ . "/../../public/data-mock/" . $query["action_code"] . '.json'), true);
+        }
+        
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
