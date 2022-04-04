@@ -13,7 +13,7 @@ class PurchaseController extends Controller
         $this->purchaseRepository = new PurchaseRepository();
     }
 
-        /**
+    /**
      * Lister les DA 
      * @return mixed
      */
