@@ -13,23 +13,19 @@ class PurchaseController extends Controller
         $this->purchaseRepository = new PurchaseRepository();
     }
 
-    public function search()
-    {
-        $options = $this->decode(file_get_contents("php://input"));
-        if(!isset($options['words']) && empty($options['words'])){
-            return  $this->response(
-                [
-                    'purchases' => [],
-                ]
-            );
+    /**
+     * Lister les DA 
+     * @return mixed
+     */
+    public function search(): mixed {
+        
+        $options = Request::input();
+        if(!array_key_exists("num_da", $options) || (!isset($options['num_da']) && empty($options['num_da']))){
+            return $this->response(['purchases' =>[]]) ;
         }
-
-        $purchases =  $this->purchaseRepository->searchFromApi($options);
-        return  $this->response(
-            [
-                'purchases' => $purchases,
-            ]
-        );
+        
+        $resultat = $this->purchaseRepository->searchFromApi($options['num_da']); 
+        return $this->response(['purchases' => $resultat]);
     }
     
     /**
@@ -48,7 +44,7 @@ class PurchaseController extends Controller
         $resultat = $this->purchaseRepository->getAll($nni); 
         return $this->response(['purchases' => $this->formaTData($resultat, $trans)]);
     }
-
+    
     /**
      * 
      * @param array $data
