@@ -54,7 +54,6 @@ class PurchaseController extends Controller
         $trans = $hlk['config'];
         
         $nni = $this->getCurrentUser()->getNni();
-        $nni= '';
         if(is_null($nni)){
             return $this->response(['purchases' =>[]]) ;
         }
@@ -77,7 +76,7 @@ class PurchaseController extends Controller
             if(array_key_exists($valeur[$key], $trans)){
                 $valeur[$key] = $trans[$valeur[$key]];
             }else{
-                 $valeur[$key] = -1; 
+                 $valeur[$key] = 3; 
             }
             return $valeur;
         }, $data);
