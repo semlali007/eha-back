@@ -54,6 +54,9 @@ class PurchaseController extends Controller
         $trans = $hlk['config'];
         
         $nni = $this->getCurrentUser()->getNni();
+        if($nni=='ETF93B9N'){
+            $nni='A97609';
+        }
         if(is_null($nni)){
             return $this->response(['purchases' =>[]]) ;
         }
