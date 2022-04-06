@@ -26,7 +26,6 @@ class PurchaseController extends Controller
             return $this->response(['purchase' => []]);
         }
         $options['words'] = $options['num_da'];
-        $statuses = $hlk['status'];
 
         $resultat = $this->purchaseRepository->searchFromApi($options);
         $resultat = $this->formaTData($resultat, $trans, 'event_label');
