@@ -44,6 +44,7 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
 
+
             if (empty($data['label'])) {
                 throw SheetException::forSheetSave('Le titre est obligatoire');
             }
@@ -519,7 +520,7 @@ class SheetManager extends AbstractManager
             return $data;
         }
         foreach ($foldersList as $kit) {
-            $kitFolderName = $kit['lookupValue'];
+            $kitFolderName = str_replace(" ", "_", $kit['lookupValue']) ;
             if (!empty($kitFolderName)) {
                 if (is_dir($sourceDepDoc . $kitFolderName)) {
                     $docDep = scandir($sourceDepDoc . $kitFolderName);
