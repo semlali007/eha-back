@@ -371,72 +371,106 @@ class SheetManager extends AbstractManager
                 ],
                 'doc_dep' => 'Doc_Dep_DATP/',
             ]
+            ,
+        'datp_archivage' =>
+            [
+                'contrat' => [
+                    'edf_enedis' => 'Contrats_EDF_Enedis/',
+                    'enedis' => 'Contrats_Enedis/',
+                ],
+                'doc_dep' => 'Doc_Dep_DATP/',
+            ]
     ];
-    public function migrate($type, $netAchatId = null)
+    public function migrate($type)
     {
-        $data = [];
+        $type = trim($type);
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
-        switch ($type) {
-            case 'dait':
-                $source1 =  json_decode(file_get_contents($destinationMigrationPath."dait1.json"), true);
-                $source2 =  json_decode(file_get_contents($destinationMigrationPath."dait2.json"), true);
-                $data['netachat_type'] = 'dait';
-                break;
-            case 'dapi':
-                $source1 =  json_decode(file_get_contents($destinationMigrationPath."dapi1.json"), true);
-                $source2 =  json_decode(file_get_contents($destinationMigrationPath."dapi2.json"), true);
-                $data['netachat_type'] = 'dapi';
-                break;
-            case 'datp':
-                $source1 =  json_decode(file_get_contents($destinationMigrationPath."datp1.json"), true);
-                $source2 =  json_decode(file_get_contents($destinationMigrationPath."datp2.json"), true);
-                $data['netachat_type'] = 'datp';
-                break;
-            default:
-                throw new Exception('type de contact inconnu');
-                break;
+        $sources = [
+            "dait" => [
+                "files" => ["dait1.json", "dait2.json"],
+                "status" => '1'
+            ],
+            "dapi" => [
+                "files" => ["dapi1.json", "dapi2.json"],
+                "status" => '1'
+            ],
+            "datp" => [
+                "files" => ["datp1.json", "datp2.json"],
+                "status" => '1'
+            ],
+            "datp_archivage" => [
+                "files" => ["datp_archivage1.json", "datp_archivage2.json"],
+                "status" => '-1'
+            ],
+            "dapi_archivage" => [
+                "files" => ["dapi_archivage.json"],
+                "status" => '-1'
+            ],
+            "dait_archivage" => [
+                "files" => ["dait_archivage"],
+                "status" => '-1'
+            ],
+        ];
+
+        if(!array_key_exists($type, $sources)){
+            throw new Exception('type de fiche inconnu');
+            exit;
         }
 
-        $result = array_merge($source1['Row'], $source2['Row']);
-        foreach ($result as $row) {
-            if(isset($netAchatId) && is_numeric($netAchatId) && $netAchatId != $row['ID']){
-                    continue;
-            }
-
-            $data['contracts'] = [];
-            $data['lots'] = [];
-            $data['netachat_id'] = $row['ID'] ?? '';
-            $data['label'] = self::formateHtml($row['Title']);
-            $data['content'] = self::formateHtml($row['Contenu']);
-            $data['description'] = self::formateHtml($row['Desc']);
-
-            $origDateDebut = trim($row['DateDeb']);
-            $dateDebut = str_replace('/', '-', $origDateDebut);
-            $newDateDebut = date("Y-m-d", strtotime($dateDebut));
-            $origDateFin = trim($row['DateFin']);
-            $dateFin = str_replace('/', '-', $origDateFin);
-            $newDateFin = date("Y-m-d", strtotime($dateFin));
-            $data['start_date'] = $newDateDebut;
-            $data['end_date'] = $newDateFin;
-            $data['dauphin'] = boolval($row['ApproDauphin.value']);
-            $data['status'] = '1';
-            $date = date('Y-m-d H:i:s');
-            $data['created_at'] = $date;
-            $data['updated_at'] = $date;
-            $data['created_by'] = 'MIGRATION';
-            $data['updated_by'] = 'MIGRATION';
-            $data['created_by_full_name'] = 'MIGRATION';
-            $data['updated_by_full_name'] = 'MIGRATION';
-            $data['edf_open'] = boolval($row['MarcheOuvertPersEDF.value']);
-            $data['showcase'] = false;
-            $data['partnership'] = boolval($row['PartenariatProd.value']);
-            $data['protected_sector'] = boolval($row['SecteurProt.value']);
-            $data['stipulation_for_others'] = boolval($row['StipulationPourAutrui.value']);
-            $data = array_merge($data, $this->migrateOptions($row));
-            $data =  array_merge($data, $this->kitDep($row, $type));
-            $this->addSheet($data);
+        $netachatData = [];
+        foreach ($sources[$type]['files'] as $i => $f) {
+            $s = json_decode(file_get_contents($destinationMigrationPath . $f), true);
+            $netachatData = array_merge($netachatData,$s['Row']);
+        }
+        
+       
+        foreach ($netachatData as $row) {
+            $this->migrateOneSheet(['sheet'=>$row ,'type'=>$type, 'status'=>$sources[$type]['status']]);
         }
     }
+    public function migrateOneSheet($options)
+    {
+        $data = [];
+        $sheet = $options['sheet'];
+        $data['netachat_type'] = $options['type'];
+        $data['status'] = $options['status'];
+        $data['contracts'] = [];
+        $data['lots'] = [];
+        $data['netachat_id'] = $sheet['ID'] ?? '';
+        $data['label'] = self::formateHtml($sheet['Title']);
+        $data['content'] = self::formateHtml($sheet['Contenu']);
+        $data['description'] = self::formateHtml($sheet['Desc']);
+        $origDateDebut = trim($sheet['DateDeb']);
+        $dateDebut = str_replace('/', '-', $origDateDebut);
+        $newDateDebut = date("Y-m-d", strtotime($dateDebut));
+        $origDateFin = trim($sheet['DateFin']);
+        $dateFin = str_replace('/', '-', $origDateFin);
+        $newDateFin = date("Y-m-d", strtotime($dateFin));
+        $data['start_date'] = $newDateDebut;
+        $data['end_date'] = $newDateFin;
+        $data['dauphin'] = boolval($sheet['ApproDauphin.value']);
+        $date = date('Y-m-d H:i:s');
+        $data['created_at'] = $date;
+        $data['updated_at'] = $date;
+        $data['created_by'] = 'MIGRATION';
+        $data['updated_by'] = 'MIGRATION';
+        $data['created_by_full_name'] = 'MIGRATION';
+        $data['updated_by_full_name'] = 'MIGRATION';
+        $data['edf_open'] = boolval($sheet['MarcheOuvertPersEDF.value']);
+        $data['showcase'] = false;
+        $data['partnership'] = boolval($sheet['PartenariatProd.value']);
+        $data['protected_sector'] = boolval($sheet['SecteurProt.value']);
+        $data['stipulation_for_others'] = boolval($sheet['StipulationPourAutrui.value']);
+        $data['providers'] = [];
+        $data['filiales'] = [];
+        $data['zones'] = [];
+        $data['groups'] = [];
+        $data['files'] = [];
+        $data = array_merge($data, $this->migrateOptions($sheet));
+        $data =  array_merge($data, $this->kitDep($sheet, $options['type']));
+        $this->addSheet($data);
+    }
+
 
     public function kitDep($list, $type)
     {
@@ -446,15 +480,33 @@ class SheetManager extends AbstractManager
         switch ($type) {
             case 'dait':
                 $config = $migrateConfig['dait'];
+                $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Actifs/";
                 $foldersList = $list['KitDAIT'];
                 break;
             case 'dapi':
                 $config = $migrateConfig['dapi'];
                 $foldersList = $list['KitDAPI'];
+                $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Actifs/";
                 break;
             case 'datp':
                 $config = $migrateConfig['datp'];
                 $foldersList = $list['KitDATP'];
+                $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Actifs/";
+                break;
+            case 'datp_archivage':
+                $config = $migrateConfig['datp_archivage'];
+                $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Archives/";
+                $foldersList = $list['KitDATP'];
+                break;
+            case 'dait_archivage':
+                $config = $migrateConfig['dait_archivage'];
+                $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Archives/";
+                $foldersList = $list['KitDAIT'];
+                break;
+            case 'dapi_archivage':
+                $config = $migrateConfig['dapi_archivage'];
+                $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Archives/";
+                $foldersList = $list['KitDAPI'];
                 break;
             default:
                 throw new Exception('type de contact inconnu');
@@ -462,7 +514,7 @@ class SheetManager extends AbstractManager
         }
 
         $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
-        $sourceDepDoc =  getenv("CONFIG_MIGRATION_SOURCE") . $config['doc_dep'] . "Actifs/";
+
         if(is_null($migrateConfig) || !is_array($foldersList)){
             return $data;
         }
@@ -555,7 +607,10 @@ class SheetManager extends AbstractManager
     public static function formateHtml($content){
         
         $content = preg_replace('/\>\s+\</m', '><', $content);
+        $content = str_replace('&nbsp;', 'replacedwords', $content);
         $content = html_entity_decode($content);
+        $content = preg_replace('/\>[\x00-\x1F\x80-\xFF]+</', '><', $content);
+        $content = preg_replace( '/[\x{200B}-\x{200D}]/u', '', $content );
         $content = preg_replace('/\>\s+\</m', '><', $content);
         $content = str_replace("<br>", "", $content);
         $content = str_replace("<br/>", "<br>", $content);
@@ -564,10 +619,38 @@ class SheetManager extends AbstractManager
         $content = str_replace('&#160;', ' ', $content);
         $content = str_replace('<p>&#160;</p>', '', $content);
         $content = preg_replace('/\>\ +\</m', '><', $content);
-        $content = preg_replace('/\>\s+</', '><', $content);
-        $content = str_replace('<p>&#160;</p>', '', $content);
-        $content = preg_replace('/\>[\x00-\x1F\x80-\xFF]+</', '><', $content);
+        $content = preg_replace('/\>(replacedwords)+/', '>', $content);
+        $content = preg_replace('/(replacedwords)+<\//', '</', $content);
+        $content = preg_replace('/class="ms-rteTable[-0-9a-zA-Z.+_\s]+"/', 'border="1"', $content);
 
+        $htmlReplace = [
+            'replacedwords' => '',
+            '<p>&#160;</p>' => '',
+            '<strong>N° de contrat PGI</strong></td>' => '<p><strong>N° de contrat PGI</strong></p></td>',
+            '<strong>Fournisseur</strong></td>' => '<p><strong>Fournisseur</strong></p></td>',
+            '<strong>Fournisseurs</strong></td>' => '<p><strong>Fournisseurs</strong></p></td>',
+            '<strong>Contact DAIT</strong></td>' => '<p><strong>Contact DAIT</strong></p></td>',
+            '<strong>N° de contrat</strong></td>' => '<p><strong>N° de contrat</strong></p></td>',
+            '<strong>contacts</strong></td>' => '<p><strong>contacts</strong></p></td>',
+            '<strong>Contact</strong></td>' => '<p><strong>Contact</strong></p></td>',
+            '<strong>N° de marché</strong></td>' => '<p><strong>N° de marché</strong></p></td>',
+            '<strong>N° Marché</strong></td>' => '<p><strong>N° Marché</strong></p></td>',
+            '<strong>Contact fournisseur</strong></td>' => '<p><strong>Contact fournisseur</strong></p></td>',
+            '<strong>Interlocuteurs</strong></td>' => '<p><strong>Interlocuteurs</strong></p></td>',
+            '<strong>Contacts fournisseur</strong></td>' => '<p><strong>Contacts fournisseur</strong></p></td>',
+            '<strong>No de marché</strong></td>' => '<p><strong>No de marché</strong></p></td>',
+            '<strong>ENEDIS n° de contrat</strong></td>' => '<p><strong>ENEDIS n° de contrat</strong></p></td>',
+            '<strong>Fournisseur</strong></td>' => '<p><strong>Fournisseur</strong></p></td>',
+            '<strong>EDF HYDRO N° de contrat</strong></td>' => '<p><strong>EDF HYDRO N° de contrat</strong></p></td>',
+            '<strong>Contact </strong></td>' => '<p><strong>Contact</strong></p></td>',
+            '&#39;' => "'",
+            'class="ms-rteTable-8"' => 'border="1"'
+        ];
+
+        foreach ($htmlReplace as $src => $dest) {
+            $content = str_replace($src, $dest, $content);
+        }
+        
         preg_match_all('/<a href="mailto:[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+.[a-zA-Z]+">mailto:[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+.[a-zA-Z]+<\/a>/', $content, $emails, PREG_PATTERN_ORDER);
         foreach ($emails[0] as $code) {
             if (preg_match("/@/", $code)) {
@@ -625,9 +708,7 @@ class SheetManager extends AbstractManager
                 $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
             }
         }
-        $content = str_replace('&#39;', "'", $content);
-        $content = str_replace('class="ms-rteTable-8"', 'border="1"', $content);
-        $content = preg_replace('/class="ms-rteTable[-0-9a-zA-Z.+_\s]+"/', 'border="1"', $content);
+        
         return $content;
 
     }
