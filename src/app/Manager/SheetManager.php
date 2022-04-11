@@ -33,6 +33,7 @@ class SheetManager extends AbstractManager
             $data['id'] = $sheetData['id'];
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
+            $data['content'] = $sheetData['content'] ?? '';
             $data['start_date'] = $sheetData['start_date'] ?? '';
             $data['end_date'] = $sheetData['end_date'] ?? '';
             $data['dauphin'] = $sheetData['dauphin'];
@@ -42,7 +43,6 @@ class SheetManager extends AbstractManager
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
-
 
             if (empty($data['label'])) {
                 throw SheetException::forSheetSave('Le titre est obligatoire');

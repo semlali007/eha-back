@@ -494,7 +494,7 @@ class Sheet extends Model
         $id = $data['id'];
         try {
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, showcase=:showcase WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, showcase=:showcase, content=:content WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -512,6 +512,7 @@ class Sheet extends Model
             $sth->bindParam(':protected_sector', $data['protected_sector'], PDO::PARAM_BOOL);
             $sth->bindParam(':committee', $data['committee'], PDO::PARAM_INT);
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
+            $sth->bindParam(':content', $data['content'], PDO::PARAM_BOOL);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
