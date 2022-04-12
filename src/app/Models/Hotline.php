@@ -209,14 +209,55 @@ class Hotline extends Model {
         }
 
         $sth->execute();
-        $res = $sth->fetchall(PDO::FETCH_ASSOC);
-
-        $to = '';
-        foreach ($res as $row) {
-            $to .= $row['email'] . ', ';
+        $recepients =  $sth->fetchall(PDO::FETCH_ASSOC);
+        $emails = [];
+        foreach ($recepients as $recepient) {
+            if (isset($recepient['email']) && !empty($recepient['email'])) {
+                $emails[$recepient['email']] = $recepient['email'];
+            }
         }
-        $to = substr($to, 0, -2);
-        return $to;
+        return $emails;
     }
 
+
+    public function close($id, $note)
+    {
+        try {
+            $query = ' UPDATE ' . $this->table . ' SET closed_at = now(), closed_note =:note WHERE discussion =:id AND closed_at IS NULL ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':note', $note, PDO::PARAM_INT);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+
+    public function getAllRecepients($id) {
+        try {
+            $query = '
+            SELECT DISTINCT u.email FROM (
+                (SELECT email_from as email FROM  ' . $this->table . ' WHERE discussion =:id)
+                UNION ALL
+                (SELECT email FROM ' . $this->hotelineFileTable . ' WHERE discussion =:idd)
+            ) as u
+       ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->bindParam(':idd', $id, PDO::PARAM_INT);
+            $sth->execute();
+            $recepients = $sth->fetchall(PDO::FETCH_ASSOC);
+            $emails = [];
+            foreach ($recepients as $recepient) {
+                if (isset($recepient['email']) && !empty($recepient['email'])) {
+                    $emails[$recepient['email']] = $recepient['email'];
+                }
+            }
+            return $emails;
+
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
 }

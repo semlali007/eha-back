@@ -150,7 +150,7 @@ class Builder {
      */
     public function html(string $pathFileHtml, array $params = []): self {
         $html = $this->render($pathFileHtml, $params);
-        $this->mail->msgHTML($html, __DIR__);
+        $this->mail->msgHTML($html, dirname(__DIR__). '/../' . self::PATH_TEMPLATING.'mail');
         return $this;
     }
     /**

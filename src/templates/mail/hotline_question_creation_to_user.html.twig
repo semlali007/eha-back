@@ -1,2 +1,7 @@
-<p>{{ message }}</p>
-<p><a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha_demandeur }}">Achatpédia - Discussion n°{{ id }}</a></p>
+{% extends "mail/base.html.twig" %}
+{% block message %}
+Vous pouvez à tout moment retrouver votre question en cliquant sur le lien suivant :
+{% endblock %}
+{% block link %}
+<a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha_demandeur }}">Achatpédia - Discussion n°{{ id }}</a>
+{% endblock %}

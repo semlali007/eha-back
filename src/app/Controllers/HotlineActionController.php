@@ -76,13 +76,13 @@ class HotlineActionController extends Controller
 
     public function close()
     {
-        return  $this->response([
-            'status' => true,
-            'message' => 'Fonctionnalité en attente'
-        ]);
+        try {
+            $options = $this->decode(file_get_contents("php://input"));
+            return $this->response($this->hotlineActionManager->close($options));
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
     }
-
-   
 
     public function dump()
     {

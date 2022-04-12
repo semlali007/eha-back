@@ -15,13 +15,12 @@ use App\Services\StaticTextService;
 use App\Services\UserService;
 use App\Validation\Validator;
 use Exception;
+use Core\Mailer\Builder as Mailer;
 
 class HotlineActionManager extends AbstractManager
 {
-
     public function upload($options, $file)
     {
-
         $id = $options['id'];
         $sha = $options['sha'];
         $name = $options['name'];
@@ -72,25 +71,96 @@ class HotlineActionManager extends AbstractManager
 
         $answer['status'] = true;
         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['34'] . '</p>';
-        $email = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
+        $emails = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
 
-        if (empty($email)) {
+        if (empty($emails)) {
             return $answer;
         }
 
         try {
             $sha = ($isHotline) ? $infos['sha_demandeur'] : $infos['sha_hotline'];
 
-            EmailService::sendEmail('hotline_question_upload_file', $email, [
+            $this->sendMail($emails, "Achatpédia - Q$id - Pièce jointe ajoutée", "mail/hotline_question_upload_file.html.twig", [
                 'id' => $id,
-                'sha_hotline' =>  $sha,
-                'config_domain' => CONFIG_DOMAIN,
+                'sha' => $sha,
             ]);
+
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['34'] . '</p>';
         } catch (EmailException $ex) {
             $answer['status'] = false;
         }
 
         return $answer;
+    }
+
+
+    public function close($options)
+    {
+        $validator = new Validator($_POST);
+        $errors = $validator->validate([
+            'id' => ['required'],
+            'sha' => ['required'],
+            'note' => ['required'],
+        ]);
+
+
+        $id = $options['id'];
+        $sha = $options['sha'];
+        $note = $options['note'];
+        $feedback = isset($options['feedback']) ? $options['feedback'] : '';
+        $infos = (new Hotline())->getInfos($id, $sha);
+        $isHotline = $infos['status'];
+        if ($isHotline === null) {
+            $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
+            return $answer;
+        }
+        $hotlineFilTime = new HotlineFil();
+        if (!empty($feedback)) {
+            $hotlineFilTime->insert([
+                'discussion' => $id,
+                'nature' => 'E',
+                'is_hotline' => false,
+                'email' => '',
+                'message' => $feedback,
+            ]);
+        }
+        $hotlineFilTime->insert([
+            'discussion' => $id,
+            'nature' => 'C',
+            'is_hotline' => false,
+            'email' => '',
+            'message' => 'Discussion fermée',
+        ]);
+
+        $hotlineFilTime->insert([
+            'discussion' => $id,
+            'nature' => 'N',
+            'is_hotline' => false,
+            'email' => '',
+            'message' => $note,
+        ]);
+
+        $infos = (new Hotline())->close($id, $note);
+        $emails = (new Hotline())->getAllRecepients($id);
+       
+        if (!empty($emails)) {
+            $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
+                'id' => $id,
+                'sha' => $sha,
+            ]);
+        }
+
+        return ['status'  =>  true];
+    }
+
+    public function sendMail($recepients, $subject, $template, $params)
+    {
+        $params['config_domain'] = getenv('CONFIG_DOMAINE');
+        $mailer =  (new Mailer())
+            ->setSubject($subject)
+            ->setRecepients($recepients)
+            ->html($template, $params);
+        $mailer->send(); // Envoyer l'email 
+
     }
 }

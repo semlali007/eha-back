@@ -1,0 +1,8 @@
+{% extends "mail/base.html.twig" %}
+{% block message %}
+Une discussion vient d\'être fermée.
+{% endblock %}
+{% block link %}
+Pour consulter la demande connectez-vous via le lien <br>
+suivant : <a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha }}">Achatpédia - Discussion n°{{ id }}</a>
+{% endblock %}
