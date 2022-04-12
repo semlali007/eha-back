@@ -75,7 +75,7 @@ class HotlineManager extends AbstractManager
                 'message' => 'Question affectée automatiquement à ' . $emailTo,
             ]);
 
-            $this->sendMail($email, "Achatpedia - Q$id - Creation", "mail/hotline_question_creation_to_user.html.twig", [
+            $this->sendMail($email, "Achatpédia - Q$id - Création", "mail/hotline_question_creation_to_user.html.twig", [
                 'id' => $id,
                 'sha' => $sha_demandeur,
             ]);
@@ -84,7 +84,7 @@ class HotlineManager extends AbstractManager
             if (isset($themeData['label'])) {
                 $label = (empty($categoryLabel)) ? '' : ' - ' . $categoryLabel;
                 $theme = $themeData['label'];
-                $subject = preg_replace('~&([a-z]{1,2})(acute|cedil|circ|Grave|lig|orn|ring|slash|th|tilde|uml);~i', '$1', htmlentities("Achatpedia - Q{$id} - Creation {$theme} {$label}", ENT_QUOTES, 'UTF-8'));
+                $subject = preg_replace('~&([a-z]{1,2})(acute|cedil|circ|Grave|lig|orn|ring|slash|th|tilde|uml);~i', '$1', htmlentities("Achatpédia - Q{$id} - Création {$theme} {$label}", ENT_QUOTES, 'UTF-8'));
                
                 $this->sendMail($emailTo, $subject, "mail/hotline_question_creation_to_hotliner.html.twig", [
                     'id' => $id,
@@ -192,7 +192,6 @@ class HotlineManager extends AbstractManager
             return $answer;
         }
 
-        $groupe = $infos['groupe'];
         $isHotline = $infos['status'];
         $hotlineFilTime = new HotlineFil();
         $lastId = $hotlineFilTime->insert([
@@ -210,20 +209,18 @@ class HotlineManager extends AbstractManager
 
         $answer['status'] = true;
         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['25'] . '</p>';
-        $email = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
-
-        if (empty($email)) {
+        $emails = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
+        if (empty($emails)) {
             return $answer;
         }
-
         try {
             if ($isHotline) {
-                $this->sendMail($email, "Achatpédia - Q$id - Nouveau message de la hotline", "mail/hotline_new_question_post_from_hotline.html.twig", [
+                $this->sendMail($emails, "Achatpédia - Q$id - Nouveau message de la hotline", "mail/hotline_new_question_post_from_hotline.html.twig", [
                     'id' => $id,
                     'sha' => $infos['sha_demandeur'],
                 ]);
             } else {
-                $this->sendMail($email, "Achatpédia - Q$id - Nouveau message du demandeur", "mail/hotline_new_question_post_from_user.html.twig", [
+                $this->sendMail($emails, "Achatpédia - Q$id - Nouveau message du demandeur", "mail/hotline_new_question_post_from_user.html.twig", [
                     'id' => $id,
                     'sha' => $infos['sha_hotline'],
                 ]);

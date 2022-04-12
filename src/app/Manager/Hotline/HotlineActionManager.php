@@ -21,7 +21,6 @@ class HotlineActionManager extends AbstractManager
 {
     public function upload($options, $file)
     {
-
         $id = $options['id'];
         $sha = $options['sha'];
         $name = $options['name'];
@@ -72,16 +71,16 @@ class HotlineActionManager extends AbstractManager
 
         $answer['status'] = true;
         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['34'] . '</p>';
-        $email = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
+        $emails = (new Hotline())->getCounterparts(['id' => $id, 'is_hotline' => $isHotline]);
 
-        if (empty($email)) {
+        if (empty($emails)) {
             return $answer;
         }
 
         try {
             $sha = ($isHotline) ? $infos['sha_demandeur'] : $infos['sha_hotline'];
 
-            $this->sendMail($email, "Achatpédia - Q' . $id . ' - Pièce jointe ajoutée", "mail/hotline_question_upload_file.html.twig", [
+            $this->sendMail($emails, "Achatpédia - Q$id - Pièce jointe ajoutée", "mail/hotline_question_upload_file.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
             ]);
@@ -142,15 +141,10 @@ class HotlineActionManager extends AbstractManager
         ]);
 
         $infos = (new Hotline())->close($id, $note);
-        $emails = [];
-
-        $recepients = (new Hotline())->getAllRecepients($id);
-        foreach ($recepients as $recepient) {
-            $emails[] = [$recepient['email'] => $recepient['email']];
-        }
-
+        $emails = (new Hotline())->getAllRecepients($id);
+       
         if (!empty($emails)) {
-            $this->sendMail($emails, "Achatpédia - Q' . $id . ' - Fin", "mail/hotline_question_closed.html.twig", [
+            $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
             ]);

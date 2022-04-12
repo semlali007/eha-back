@@ -209,14 +209,14 @@ class Hotline extends Model {
         }
 
         $sth->execute();
-        $res = $sth->fetchall(PDO::FETCH_ASSOC);
-
-        $to = '';
-        foreach ($res as $row) {
-            $to .= $row['email'] . ', ';
+        $recepients =  $sth->fetchall(PDO::FETCH_ASSOC);
+        $emails = [];
+        foreach ($recepients as $recepient) {
+            if (isset($recepient['email']) && !empty($recepient['email'])) {
+                $emails[$recepient['email']] = $recepient['email'];
+            }
         }
-        $to = substr($to, 0, -2);
-        return $to;
+        return $emails;
     }
 
 
@@ -247,7 +247,15 @@ class Hotline extends Model {
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->bindParam(':idd', $id, PDO::PARAM_INT);
             $sth->execute();
-            return $sth->fetchall(PDO::FETCH_ASSOC);
+            $recepients = $sth->fetchall(PDO::FETCH_ASSOC);
+            $emails = [];
+            foreach ($recepients as $recepient) {
+                if (isset($recepient['email']) && !empty($recepient['email'])) {
+                    $emails[$recepient['email']] = $recepient['email'];
+                }
+            }
+            return $emails;
+
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
