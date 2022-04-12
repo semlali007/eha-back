@@ -42,7 +42,7 @@ class User {
     
     
     public function __construct() {
-        $this->email = getenv("DEFAULT_SEND_EMAIL");
+        
     }
 
         /**

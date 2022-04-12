@@ -65,6 +65,12 @@ class UserService {
             $formatedRoles = Role::format($userInfo["isMemberOf"]);
             $user->addRoles($formatedRoles);
         }
+
+        $user->setEmail(getenv("DEFAULT_SEND_EMAIL"));
+        if (array_key_exists("email", $userInfo) && !empty($userInfo['email'])) {
+            $user->setEmail($userInfo['email']);
+        }
+
         return $user;
     }
     

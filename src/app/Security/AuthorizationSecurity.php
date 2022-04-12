@@ -52,9 +52,7 @@ class AuthorizationSecurity extends AbstractSecurity {
             $user->setNni($decodedToken->sub);
         endif;
         // Mettre à jour l'email en cas d'existance de parametre email
-        if (is_object($decodedToken)&&property_exists($decodedToken, "email")):
-            $user->setEmail($decodedToken->email) ;
-        endif;
+       
         
         return $user;
     }
