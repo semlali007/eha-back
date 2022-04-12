@@ -147,7 +147,12 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->sheetProviderTable} sp on sp.sheet_id = s.id and sp. provider_code in $providersStr ";
             }
         }
-       
+
+        if (isset($options['subscribe']) && $options['subscribe'] == true) {
+                $userNni = $params['userNni'];
+                $search .= " INNER JOIN {$this->subscriptionTable} ss on ss.sheet_id = s.id and ss.user_nni = '$userNni' ";
+        }
+
         $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
             $searchProvider = strtolower($searchProvider);
@@ -285,6 +290,19 @@ class Sheet extends Model
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function groupedBySubscribed($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count FROM " . $this->table . "  s INNER JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = s.id and user_nni=:userNniCount {$this->getSearchCondition($options,['subscribe'=>true])}";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->bindParam(':userNniCount', $options['userNni'], PDO::PARAM_STR);
+            $sth->execute();
+            return  $sth->fetch(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

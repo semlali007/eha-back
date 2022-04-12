@@ -21,6 +21,7 @@ class SheetRepository extends AbstractRepository {
     public function search($options, $userNni = null) {
 
         $sheet = new Sheet();
+        $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
         $openEdfs = $sheet->groupedByOpenEdf($options);
         $dauphins = $sheet->groupedByDauphin($options);
@@ -32,6 +33,7 @@ class SheetRepository extends AbstractRepository {
                     'sheets' => $sheet->search($options, $userNni),
                     'total' => $sheet->getCount($options),
                     'filter' => [
+                        'subscribe' => $sheet->groupedBySubscribed($options),
                         'edf_open' =>  self::addAttribute($openEdfs),
                         'showcase' => $sheet->groupedByShowcase($options),
                         'status' => self::addStatus($status),
