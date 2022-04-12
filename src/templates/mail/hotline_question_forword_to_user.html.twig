@@ -1,0 +1,7 @@
+{% extends "mail/base.html.twig" %}
+{% block message %}Un collègue vient de vous transférer une question posée à la Direction des Achats Groupe.
+{% endblock %}
+{% block link %}
+Vous pouvez y accéder en cliquant sur le lien <br>
+suivant : <a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha }}">Achatpédia - Discussion n°{{ id }}</a>
+{% endblock %}

@@ -51,7 +51,7 @@ class Mailer
      *
      * @var string
      */
-    public $CharSet = self::CHARSET_ISO88591;
+    public $CharSet = self::CHARSET_UTF8;
 
     /**
      * The MIME Content-type of the message.
@@ -847,6 +847,7 @@ class Mailer
         $this->edebug("To: {$to}");
         $this->edebug("Subject: {$subject}");
         $this->edebug("Headers: {$header}");
+
         if (!$this->UseSendmailOptions || null === $params) {
             $result = @mail($to, $subject, $body, $header);
         } else {
@@ -1616,6 +1617,7 @@ class Mailer
     public function postSend()
     {
         try {
+            
             //Choose the mailer and send through it
             switch ($this->Mailer) {
                 case 'sendmail':
@@ -1842,8 +1844,8 @@ class Mailer
      */
     protected function mailSend($header, $body)
     {
-        $header = static::stripTrailingWSP($header) . static::$LE . static::$LE;
 
+        $header = static::stripTrailingWSP($header) . static::$LE . static::$LE;
         $toArr = [];
         foreach ($this->to as $toaddr) {
             $toArr[] = $this->addrFormat($toaddr);
@@ -4255,7 +4257,6 @@ class Mailer
             $this->AltBody = 'This is an HTML-only message. To view it, activate HTML in your email application.'
                 . static::$LE;
         }
-
         return $this->Body;
     }
 

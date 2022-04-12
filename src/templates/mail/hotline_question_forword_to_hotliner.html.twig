@@ -1,6 +1,7 @@
-<p><strong>Bonjour,</strong></p>
-<p>{{ message }}</p><p><a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha_hotline }}">Achatpédia - Discussion n°{{ id }}</a></p>
-
-<p></p>
-
-<p>Cordialement,<br><strong>L'équipe Achatpédia</strong></p>
+{% extends "mail/base.html.twig" %}
+{% block message %}Un collègue vient de vous transférer une question.
+{% endblock %}
+{% block link %}
+Pour consulter la demande et y répondre, connectez-vous via le lien <br>
+suivant : <a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha }}">Achatpédia - Discussion n°{{ id }}</a>
+{% endblock %}

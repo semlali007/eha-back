@@ -1,12 +1,9 @@
-<p><strong>Bonjour,</strong></p>
-<p></p>
-<p>Vous avez été sollicité par l'équipe des gestionnaires d'Achatpédia pour la question</p>
-<p>suivante : <ins><strong><a class="external-link" href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha_hotline }}" rel="nofollow noopener" target="_blank">Achatpédia</a></strong></ins> <ins><strong>
-
-<a class="external-link" target="_blank"  href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha_hotline }}">
-- Q{{ id }}</a></strong></ins></p>
-
-<p>Sauf erreur de notre part, cette demande est toujours en attente de traitement.</p>
-<p>Nous vous remercions par avance pour votre réponse.</p>
-<p></p>
-<p>Cordialement,<br><strong>L'équipe Achatpédia</strong></p>
+{% extends "mail/base.html.twig" %}
+{% block message %}Vous êtes sollicités par l’équipe des gestionnaires d’Achatpédia afin <br>
+    d’apporter une réponse dans le cadre d’une question posée par un <br>
+    utilisateur.
+{% endblock %}
+{% block link %}
+Pour consulter la demande et y répondre, connectez-vous via le lien <br>
+suivant : <a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha }}">Achatpédia - Discussion n°{{ id }}</a>
+{% endblock %}
