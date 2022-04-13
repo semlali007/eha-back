@@ -465,8 +465,25 @@ class SheetManager extends AbstractManager
         $data['providers'] = [];
         $data['filiales'] = [];
         $data['zones'] = [];
-        $data['groups'] = [];
         $data['files'] = [];
+        $data['groups'] = [];
+        $group = new Group();
+        $groupLabel = $options['type'];
+        if (!is_numeric($groupLabel)  && !empty($groupLabel)) {
+            if ($groupLabel === 'dapi') {
+                $groupLabel = 'DOA PRODUCTION';
+            }
+
+            if ($groupLabel === 'dait' || $groupLabel === 'datp') {
+                $groupLabel = 'DOA TP&IT';
+            }
+
+            $group->add(['name' => $groupLabel]);
+            $p = $group->get(['name' => $groupLabel]);
+            if (count($p) > 0) {
+                $data['groups'][] = ['id' => $p[0]['id']];
+            }
+        }
         $data = array_merge($data, $this->migrateOptions($sheet));
         $data =  array_merge($data, $this->kitDep($sheet, $options['type']));
         $this->addSheet($data);
@@ -551,11 +568,11 @@ class SheetManager extends AbstractManager
         $data['providers'] = [];
         $data['filiales'] = [];
         $data['zones'] = [];
-        $data['groups'] = [];
+       
         $filiale = new Beneficiary();
         $provider = new Provider();
         $zone = new Area();
-        $group = new Group();
+        
 
         foreach ($row['Fournisseur'] as $item) {
             if (!is_numeric($item)  && !empty($item)) {
@@ -583,23 +600,7 @@ class SheetManager extends AbstractManager
                 $data['zones'][] = ['id' => $p[0]['id']];
             }
         }
-
-        $groupLabel = $row['DAGROUPE']['Label'];
-        if (!is_numeric($groupLabel)  && !empty($groupLabel)) {
-            if ($groupLabel === 'DAPI') {
-                $groupLabel = 'DOA PRODUCTION';
-            }
-
-            if ($groupLabel === 'DAIT' || $groupLabel === 'DATP') {
-                $groupLabel = 'DOA TP&IT';
-            }
-
-            $group->add(['name' => $groupLabel]);
-            $p = $group->get(['name' => $groupLabel]);
-            if (count($p) > 0) {
-                $data['groups'][] = ['id' => $p[0]['id']];
-            }
-        }
+        
 
 
         return $data;
