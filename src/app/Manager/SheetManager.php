@@ -420,7 +420,7 @@ class SheetManager extends AbstractManager
 
         $netachatData = [];
         foreach ($sources[$type]['files'] as $i => $f) {
-            $s = json_decode(file_get_contents($destinationMigrationPath . $f), true);
+            $s = json_decode(file_get_contents($destinationMigrationPath .'netachat/'.$f), true);
             $netachatData = array_merge($netachatData,$s['Row']);
         }
         
@@ -537,7 +537,7 @@ class SheetManager extends AbstractManager
             return $data;
         }
         foreach ($foldersList as $kit) {
-            $kitFolderName = str_replace(" ", "_", $kit['lookupValue']) ;
+            $kitFolderName = str_replace(" ", "_", $kit['lookupValue']);
             if (!empty($kitFolderName)) {
                 if (is_dir($sourceDepDoc . $kitFolderName)) {
                     $docDep = scandir($sourceDepDoc . $kitFolderName);
