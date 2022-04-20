@@ -6,7 +6,7 @@ use App\Repository\ContractRepository;
 use App\Repository\DauphinRepository;
 use App\Repository\ItemRepository;
 use App\Repository\ProviderRepository;
-
+use Core\Http\Request ;
 class SearchController extends Controller
 {
     private  $providerRepository;
@@ -38,12 +38,16 @@ class SearchController extends Controller
             ]
         );
     }
-
-    public function getAnchors()
+    
+    /**
+     * 
+     * @return mixed
+     */
+    public function getAnchors():mixed
     {
-        $options = $this->decode(file_get_contents("php://input"));
-        $anchors =  $this->providerRepository->searchAnchors($options);
-        return  $this->response($anchors);
+        $providers = $this->providerRepository->searchAnchors(Request::input()) ;
+        return  $this
+                ->response(["statut" => true,"providers" => $providers]);
     }
     
 }

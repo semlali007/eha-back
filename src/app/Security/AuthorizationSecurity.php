@@ -53,7 +53,6 @@ class AuthorizationSecurity extends AbstractSecurity {
         endif;
         // Mettre à jour l'email en cas d'existance de parametre email
        
-        
         return $user;
     }
 

@@ -20,7 +20,7 @@ $configuration = [
                 "get" => "get_provider", // verbe à utiliser
             ],
             'anchors' => [
-                "search" => "search_anchors", // search_anchors
+                "search" => "search_around_zipcode", // search_anchors
                 "get" => "get_anchor", // verbe à utiliser
             ],
             'items' => [

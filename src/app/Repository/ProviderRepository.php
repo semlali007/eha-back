@@ -38,7 +38,7 @@ class ProviderRepository extends AbstractRepository {
                 'action_code' => $hlk["actions"]["providers"]["search"],
                 'action_info' => $options['words']
             ];
-            
+           
             return HttpClientService::exec_post($hlk['url'], $queryData); 
     }
 
@@ -65,12 +65,7 @@ class ProviderRepository extends AbstractRepository {
 
     public function searchAnchors($options) {
         $hlk = $GLOBALS['configuration']['hlk'];
-        $apiConfigAnchors = $hlk["actions"]["anchors"]["search"];
-
-        if (strpos($apiConfigAnchors, '.json') !== false) {
-            return json_decode(file_get_contents(__DIR__ . "/../../public/" . $apiConfigAnchors), true);
-        }
-
+        
         $queryData = [
             'password' => $hlk['pwd'],
             'action_code' => $hlk["actions"]["anchors"]["search"],
