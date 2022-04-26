@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Models\Committee;
+use App\Models\Provider;
 use App\Models\Sheet;
 use App\Models\SheetArea;
 use App\Models\SheetBeneficiary;
@@ -274,5 +275,45 @@ class SheetRepository extends AbstractRepository {
 
         return $str;
     }
+
+    public function getSheetByBeneficiary($beneficiaryId)
+    {
+        try {
+           
+            $sheet = new Sheet();
+            return [
+                'status' => true,
+                'sheets' => $sheet->getSheetByBeneficiary($beneficiaryId)
+            ];
+        } catch (Exception $ex) {
+            http_response_code(500);
+            return [
+                'error' => $ex->getCode(),
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
+
+
+    public function getSheetByProvider($pId)
+    {
+        try {
+           
+            $sheet = new Sheet();
+            return [
+                'status' => true,
+                'sheets' => $sheet->getSheetByProvider($pId)
+            ];
+        } catch (Exception $ex) {
+            http_response_code(500);
+            return [
+                'error' => $ex->getCode(),
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
+
+
+
 
 }

@@ -90,4 +90,22 @@ class SheetController extends Controller {
     }
 
 
+    public function filter()
+    {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        switch ($options['type']) {
+            case 'beneficiary':
+                return $this->response($this->sheetRepository->getSheetByBeneficiary($options['code']));
+                break;
+            case 'provider':
+                return $this->response($this->sheetRepository->getSheetByProvider($options['code']));
+                break;
+            default:
+            //
+                break;
+
+        }
+        
+    }
+
 }

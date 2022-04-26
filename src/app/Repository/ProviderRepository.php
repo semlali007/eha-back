@@ -106,4 +106,18 @@ class ProviderRepository extends AbstractRepository {
             ];
         }
     }
+
+    public function delete($providerId)
+    {
+        try {
+            $this->db->getPDO()->beginTransaction();
+            (new SheetProvider())->deleteByProviderId($providerId);
+            (new Provider())->delete($providerId);
+            $this->db->getPDO()->commit();
+        } catch (\Exception $e) {
+            if ($this->db->getPDO()->inTransaction()) {
+                $this->db->getPDO()->rollback();
+            }
+        }
+    }
 }

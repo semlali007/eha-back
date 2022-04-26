@@ -74,4 +74,19 @@ class SheetProvider extends Model
         }
     }
 
+    public function deleteByProviderId($pId)
+    {
+
+        try {
+            $query = '
+                DELETE FROM  ' . $this->table . "  WHERE provider_code = :provider_code  
+                ";
+
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':provider_code', $pId, PDO::PARAM_STR);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
 }

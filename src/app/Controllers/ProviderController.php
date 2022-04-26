@@ -35,4 +35,9 @@ class ProviderController extends Controller
         return  $this->response($this->providerRepository->create($options));
     }
 
+    public function remove() {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        return $this->response($this->providerRepository->delete($options['code']));
+    }
+
 }
