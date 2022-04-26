@@ -46,6 +46,12 @@ class SearchController extends Controller
     public function getAnchors():mixed
     {
         $providers = $this->providerRepository->searchAnchors(Request::input()) ;
+        // dans le cas ou l'element n'existe pas
+        foreach ($providers as &$provider) {
+            if(!array_key_exists("activities", $provider)):
+                $provider["activities"] = ["TP:1"]; // en dur
+            endif ;
+        }
         return  $this
                 ->response(["statut" => true,"providers" => $providers]);
     }

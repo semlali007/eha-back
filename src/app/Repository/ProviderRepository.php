@@ -9,37 +9,42 @@ use Exception;
 
 class ProviderRepository extends AbstractRepository {
 
-    public function autocomplete($word) {
+    /**
+     * 
+     * @param string $word
+     * @return mixed
+     */
+    public function autocomplete(?string $word):mixed {
         $provider = new Provider();
         return $provider->getList(['name' => $word]);
     }
 
-    public function search($options) {
+    public function search(?array $options):mixed {
         $provider = new Provider();
 
         return
                 $provider->getPaginatedList($options);
     }
 
-    public function get($id) {
+    public function get(mixed $id):mixed {
         $sheetProvider = new SheetProvider();
         return $sheetProvider->getBySheet($id);
     }
 
     /**
      * 
-     * @param string $word
+     * @param array $options
      * @return type
      */
-    public function searchFromApi($options) {
-            $hlk = $GLOBALS['configuration']['hlk'];
+    public function searchFromApi(?array $options):mixed {
+            
             $queryData = [
-                'password' => $hlk['pwd'],
-                'action_code' => $hlk["actions"]["providers"]["search"],
+                'password' => HLK['pwd'],
+                'action_code' => HLK["actions"]["providers"]["search"],
                 'action_info' => $options['words']
             ];
-           
-            return HttpClientService::exec_post($hlk['url'], $queryData); 
+            
+            return HttpClientService::exec_post(HLK['url'], $queryData); 
     }
 
     /**
@@ -47,32 +52,35 @@ class ProviderRepository extends AbstractRepository {
      * @param string $word
      * @return type
      */
-    public function getProvider(string $word) {
+    public function getProvider(string $word):mixed {
       
-            $hlk = $GLOBALS['configuration']['hlk'];
             $queryData = [
-                'password' => $hlk['pwd'],
-                'action_code' => $hlk["actions"]["providers"]["get"],
+                'password' => HLK['pwd'],
+                'action_code' => HLK["actions"]["providers"]["get"],
                 'action_info' => $word 
             ];
              
-            $response =  HttpClientService::exec_post($hlk['url'], $queryData); 
+            $response =  HttpClientService::exec_post(HLK['url'], $queryData); 
             if(is_null($response)|| empty($response)){
                 return [] ;
             }
             return $response ;
     }
 
-    public function searchAnchors($options) {
-        $hlk = $GLOBALS['configuration']['hlk'];
-        
+    /**
+     * 
+     * @param array|null $options
+     * @return mixed
+     */
+    public function searchAnchors(?array $options):mixed {
+       
         $queryData = [
-            'password' => $hlk['pwd'],
-            'action_code' => $hlk["actions"]["anchors"]["search"],
+            'password' => HLK['pwd'],
+            'action_code' => HLK["actions"]["anchors"]["search"],
             'action_info' => $options['zipcode']
         ];
 
-        return HttpClientService::exec_post($hlk['url'], $queryData);
+        return HttpClientService::exec_post(HLK['url'], $queryData);
     }
 
 

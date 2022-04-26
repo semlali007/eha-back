@@ -13,4 +13,5 @@ ErrorManager::enable();//Activer la gestion centrale des erreurs et des exceptio
 $router = new Router($_SERVER['REQUEST_URI']);
 
 include '../app/Config/Config.php';
+include '../app/Config/Globals.php' ;
 include '../app/Config/routing.php';// Création des routes
