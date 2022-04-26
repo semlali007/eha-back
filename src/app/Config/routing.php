@@ -40,6 +40,8 @@ $router->get('/products/search/:code', 'App\Controllers\ProductController@search
 $router->get('/providers/show/:code', 'App\Controllers\ProviderController@show', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->get('/providers/search/:code', 'App\Controllers\ProviderController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->post('/providers/add', 'App\Controllers\ProviderController@add', ["roles"=>['ADMIN']]);
+$router->post('/providers/remove', 'App\Controllers\ProviderController@remove', ["roles"=>['ADMIN']]);
+
 
 $router->post('/sheets', 'App\Controllers\SheetController@index', ["roles"=>['USER']]);
 $router->get('/sheets/show/:id', 'App\Controllers\SheetController@show', ["roles"=>['USER']]);
@@ -50,6 +52,7 @@ $router->post('/sheets/download', 'App\Controllers\SheetController@download', ["
 $router->get('/sheets/remove/:id', 'App\Controllers\SheetController@remove', ["roles"=>['ADMIN']]);
 $router->post('/sheets/subscribe', 'App\Controllers\SheetController@subscribe', ["roles"=>['USER']]);
 $router->post('/sheets/unsubscribe', 'App\Controllers\SheetController@unsubscribe', ["roles"=>['USER']]);
+$router->post('/sheets/filter', 'App\Controllers\SheetController@filter', ["roles"=>['ADMIN']]);
 
 
 $router->get('/committees', 'App\Controllers\CommitteeController@index', ["roles"=>['USER']]);
@@ -59,6 +62,8 @@ $router->post('/providers/search', 'App\Controllers\ProviderController@search', 
 $router->get('/beneficiaries/autocomplete/:word', 'App\Controllers\BeneficiaryController@autocomplete', ["roles"=>['USER']]);
 $router->post('/beneficiaries/search', 'App\Controllers\BeneficiaryController@search', ["roles"=>['USER']]);
 $router->post('/beneficiaries/add', 'App\Controllers\BeneficiaryController@add', ["roles"=>['ADMIN']]);
+$router->get('/beneficiaries/remove/:id', 'App\Controllers\BeneficiaryController@remove', ["roles"=>['ADMIN']]);
+
 
 $router->get('/areas/autocomplete/:word', 'App\Controllers\AreaController@autocomplete', ["roles"=>['USER']]);
 $router->post('/areas/search', 'App\Controllers\AreaController@search', ["roles"=>['USER']]);

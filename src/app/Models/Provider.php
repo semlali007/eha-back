@@ -95,6 +95,23 @@ class Provider extends Model
             throw new InternalServerException();
         }
     }
+    public function delete($code)
+    {
 
-    
+      
+
+        try {
+            $query = '
+                DELETE FROM  ' . $this->table . "  WHERE provider_code = :code  
+                ";
+
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':code', $code, PDO::PARAM_STR);
+            $sth->execute();
+        } catch (\Exception $e) {
+            var_dump($e->getMessage());exit;
+            throw new InternalServerException();
+        }
+    }
+
 }

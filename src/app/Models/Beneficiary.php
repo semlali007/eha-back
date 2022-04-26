@@ -90,6 +90,25 @@ class Beneficiary extends Model
         } catch (\Exception $e) {
             throw new InternalServerException($e->getMessage());
         }
-        
+    }
+
+    public function delete($beneficiaryId)
+    {
+
+        if (!is_numeric($beneficiaryId)) {
+            return true;
+        }
+
+        try {
+            $query = '
+                DELETE FROM  ' . $this->table . "  WHERE id = :id  
+                ";
+
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $beneficiaryId, PDO::PARAM_INT);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
     }
 }

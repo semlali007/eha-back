@@ -32,4 +32,9 @@ class BeneficiaryController extends Controller
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
         return  $this->response($this->beneficiaryManager->create($options));
     }
+
+    public function remove(int $id) {
+        return $this->response($this->beneficiaryManager->delete($id));
+    }
+
 }

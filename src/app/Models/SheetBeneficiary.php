@@ -78,5 +78,24 @@ class SheetBeneficiary extends Model
         }
     }
 
+    public function deleteByBeneficiaryId($beneficiaryId)
+    {
+
+        if (!is_numeric($beneficiaryId)) {
+            return true;
+        }
+
+        try {
+            $query = '
+                DELETE FROM  ' . $this->table . "  WHERE filiale_id = :filiale_id  
+                ";
+
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':filiale_id', $beneficiaryId, PDO::PARAM_INT);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
     
 }

@@ -3,6 +3,7 @@
 namespace App\Manager;
 
 use App\Models\Beneficiary;
+use App\Models\SheetBeneficiary;
 use Exception;
 
 class BeneficiaryManager extends AbstractManager
@@ -27,4 +28,20 @@ class BeneficiaryManager extends AbstractManager
             ];
         }
     }
+
+
+    public function delete($id)
+    {
+        try {
+            $this->db->getPDO()->beginTransaction();
+            (new SheetBeneficiary())->deleteByBeneficiaryId($id);
+            (new Beneficiary)->delete($id);
+            $this->db->getPDO()->commit();
+        } catch (\Exception $e) {
+            if ($this->db->getPDO()->inTransaction()) {
+                $this->db->getPDO()->rollback();
+            }
+        }
+    }
+
 }

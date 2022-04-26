@@ -636,5 +636,35 @@ class Sheet extends Model
             throw new InternalServerException($e->getMessage());
         }
     }
+
+
+    public function getSheetByBeneficiary($bId)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id, s.label FROM ' . $this->table . ' s INNER JOIN ' . $this->sheetBeneficiaryTable . ' sf ON sf.sheet_id = s.id WHERE sf.filiale_id = :filiale_id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':filiale_id', $bId, PDO::PARAM_INT);
+            $sth->execute();
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+
+    public function getSheetByProvider($pId)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id, s.label FROM ' . $this->table . ' s INNER JOIN ' . $this->sheetProviderTable . ' sp ON sp.sheet_id = s.id WHERE sp.provider_code = :provider_code';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':provider_code', $pId, PDO::PARAM_INT);
+            $sth->execute();
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+
    
 }
