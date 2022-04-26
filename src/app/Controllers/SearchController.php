@@ -7,6 +7,9 @@ use App\Repository\DauphinRepository;
 use App\Repository\ItemRepository;
 use App\Repository\ProviderRepository;
 use Core\Http\Request ;
+
+use function PHPSTORM_META\type;
+
 class SearchController extends Controller
 {
     private  $providerRepository;
@@ -45,15 +48,35 @@ class SearchController extends Controller
      */
     public function getAnchors():mixed
     {
-        $providers = $this->providerRepository->searchAnchors(Request::input()) ;
+        $options = $this->decode(file_get_contents("php://input"));
+        $providers = $this->providerRepository->searchAnchors($options) ;
+ 
+        $result = [];
+      
         // dans le cas ou l'element n'existe pas
-        foreach ($providers as &$provider) {
+        foreach ($providers as $provider) {
+
+            if (isset($options['nace']) && !empty($options['nace'])) {
+                if ($provider['provider_nace'] != $options['nace']) {
+                    continue;
+                }
+            }
+
+            if (isset($options['articles']) && !empty($options['articles'])) {
+                $articles = explode(',',$options['articles']);
+                if (!is_array($articles) || !in_array($provider['provider_code'], $articles)) {
+                    continue;
+                }
+            }
+
             if(!array_key_exists("activities", $provider)):
                 $provider["activities"] = ["TP:1"]; // en dur
             endif ;
+
+            $result[]=$provider;
         }
         return  $this
-                ->response(["statut" => true,"providers" => $providers]);
+                ->response(["statut" => true,"providers" => $result]);
     }
     
 }
