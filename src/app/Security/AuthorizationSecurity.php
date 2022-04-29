@@ -20,7 +20,9 @@ class AuthorizationSecurity extends AbstractSecurity {
 
         if (isset($roles) && is_array($roles) && !empty($roles)) { 
                 $headers = array_change_key_case(getallheaders(),CASE_LOWER) ;
+               
                 $authorization = explode(" ", $headers['authorization']);
+                // var_dump($authorization) ;die ;
                 $this->idToken = $authorization[1];
                 $this->accessToken = $authorization[2];
 
