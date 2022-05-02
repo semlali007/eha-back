@@ -55,13 +55,16 @@ class HealthCheck {
      * @return boolean
      */
     public static function callAPI(string $url) {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+       $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HEADER, true);    // we want headers
+        curl_setopt($ch, CURLOPT_NOBODY, true);    // we don't need body
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+        curl_setopt($ch, CURLOPT_TIMEOUT,10);
         curl_exec($ch);
-        $retcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        return ($retcode > 0) ;
+        var_dump("---- ---",$httpcode) ;
+        return ($retcode > 0 || $retcode >= 500) ;
     }
 
 }
