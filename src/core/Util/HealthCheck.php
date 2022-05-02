@@ -39,7 +39,7 @@ class HealthCheck {
      * @return bool
      */
     public static function isServerEnable(string $serverUrl, int $port = 80): bool {
-        return self::callAPI(HLK['url']) ;
+        return self::callAPI($serverUrl) ;
     }
 
     /**
@@ -49,7 +49,7 @@ class HealthCheck {
         return self::isServerEnable(getenv("HLK_API_BASE_URL")) ;
     } 
     
-    /**
+     /**
      * 
      * @param string $url
      * @return boolean
@@ -61,11 +61,7 @@ class HealthCheck {
         curl_exec($ch);
         $retcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        if ($retcode == 200) {
-           return true ;
-        } else {
-           return false ;
-        }
+        return ($retcode > 0) ;
     }
 
 }
