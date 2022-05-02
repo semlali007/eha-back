@@ -63,8 +63,7 @@ class HealthCheck {
         curl_exec($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        var_dump("---- ---",$httpcode) ;
-        return ($retcode > 0 || $retcode >= 500) ;
+        return ($retcode > 0) ;
     }
 
 }
