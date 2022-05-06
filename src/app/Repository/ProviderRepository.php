@@ -37,14 +37,19 @@ class ProviderRepository extends AbstractRepository {
      * @return type
      */
     public function searchFromApi(?array $options):mixed {
-            
-            $queryData = [
-                'password' => HLK['pwd'],
-                'action_code' => HLK["actions"]["providers"]["search"],
-                'action_info' => $options['words']
-            ];
-            
-            return HttpClientService::exec_post(HLK['url'], $queryData); 
+        
+        $actionCode = HLK["actions"]["providers"]["search"];
+        
+        if (\Core\Util\DotEnv::isDev()) {
+            return \App\Services\MockService::createStatic($actionCode);
+        }
+        $queryData = [
+            'password' => HLK['pwd'],
+            'action_code' => $actionCode,
+            'action_info' => $options['words']
+        ];
+
+        return HttpClientService::exec_post(HLK['url'], $queryData);
     }
 
     /**
@@ -52,19 +57,23 @@ class ProviderRepository extends AbstractRepository {
      * @param string $word
      * @return type
      */
-    public function getProvider(string $word):mixed {
-      
-            $queryData = [
-                'password' => HLK['pwd'],
-                'action_code' => HLK["actions"]["providers"]["get"],
-                'action_info' => $word 
-            ];
-             
-            $response =  HttpClientService::exec_post(HLK['url'], $queryData); 
+    public function getProvider(?string $word):mixed {
+        $actionCode = HLK["actions"]["providers"]["get"];
+
+        if (\Core\Util\DotEnv::isDev()) {
+            return \App\Services\MockService::createStatic($actionCode);
+        }
+        $queryData = [
+            'password' => HLK['pwd'],
+            'action_code' => $actionCode,
+            'action_info' => $word
+        ];
+
+        $response =  HttpClientService::exec_post(HLK['url'], $queryData); 
             if(is_null($response)|| empty($response)){
                 return [] ;
             }
-            return $response ;
+        return $response ;
     }
 
     /**
@@ -73,10 +82,15 @@ class ProviderRepository extends AbstractRepository {
      * @return mixed
      */
     public function searchAnchors(?array $options):mixed {
-       
+        $actionCode = HLK["actions"]["anchors"]["search"] ;
+        
+        if(\Core\Util\DotEnv::isDev()){
+            return \App\Services\MockService::createStatic($actionCode) ;
+        }
+        
         $queryData = [
             'password' => HLK['pwd'],
-            'action_code' => HLK["actions"]["anchors"]["search"],
+            'action_code' => $actionCode,
             'action_info' => $options['zipcode']
         ];
 
@@ -99,7 +113,7 @@ class ProviderRepository extends AbstractRepository {
                 'element' => $provider->get(['provider_label'=>$options['provider_label']])[0]
             ];
         } catch (Exception $ex) {
-            http_response_code(500);
+            http_response_code(\Core\Http\Response::HTTP_INTERNAL_SERVER_ERROR);
             return [
                 'error' => $ex->getCode(),
                 'message' => $ex->getMessage(),

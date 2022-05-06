@@ -2,10 +2,11 @@
 
 namespace App\Controllers;
 
-use App\Exception\AccessDeniedException;
-use App\Exceptions\InvalidParameterException;
+use App\Exceptions\{AccessDeniedException,InvalidParameterException };
 use App\Security\AuthorizationSecurity;
 use Core\Database\DBConnection;
+use Core\Util\HealthCheck as health ;
+use Core\Http\Response ;
 use Exception;
 use App\Repository\NotificationsRepository ;
 abstract class Controller
@@ -103,5 +104,18 @@ abstract class Controller
      */
     function getCurrentUser(): mixed {
         return $this->currentUser;
+    }
+    
+    /**
+     * 
+     * @return mixed
+     */
+     public function hlkErrorResponse():mixed {
+        http_response_code(Response::HTTP_SERVICE_UNAVAILABLE);
+        return $this->response([
+            "source" => health::HLK_SOURCE,
+            "error" => health::HLK_ERROR_MSG,
+            "status" => Response::HTTP_SERVICE_UNAVAILABLE
+        ]);
     }
 }

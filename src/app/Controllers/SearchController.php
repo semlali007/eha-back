@@ -7,6 +7,9 @@ use App\Repository\DauphinRepository;
 use App\Repository\ItemRepository;
 use App\Repository\ProviderRepository;
 use Core\Http\Request ;
+use Core\Http\Response ;
+use App\Exceptions\HttpException ;
+use Core\Util\HealthCheck as health;
 
 use function PHPSTORM_META\type;
 
@@ -27,19 +30,24 @@ class SearchController extends Controller
 
     public function search()
     {
-        $options = $this->decode(file_get_contents("php://input"));
-        $providers =  $this->providerRepository->searchFromApi($options);
-        $contracts =  $this->contractRepository->searchFromApi($options);
-        $dauphins =  $this->dauphinRepository->searchFromApi($options);
-        $items =  $this->itemRepository->searchFromApi($options);
-        return  $this->response(
-            [
-                'provider' => $providers,
-                'contract' => $contracts,
-                'dauphin' => $dauphins,
-                'item_generic' => $items,
-            ]
-        );
+        $options = Request::input();
+        try {
+            $providers = $this->providerRepository->searchFromApi($options);
+            $contracts = $this->contractRepository->searchFromApi($options);
+            $dauphins = $this->dauphinRepository->searchFromApi($options);
+            $items = $this->itemRepository->searchFromApi($options);
+            return $this->response(
+                            [
+                                'provider' => $providers,
+                                'contract' => $contracts,
+                                'dauphin' => $dauphins,
+                                'item_generic' => $items,
+                            ]
+            );
+        } catch (HttpException $ex) {
+            return $this
+                            ->hlkErrorResponse();
+        }
     }
     
     /**
@@ -48,9 +56,10 @@ class SearchController extends Controller
      */
     public function getAnchors():mixed
     {
-        $options = $this->decode(file_get_contents("php://input"));
+       
+        $options = Request::input();
+        try{
         $providers = $this->providerRepository->searchAnchors($options) ;
- 
         $result = [];
       
         // dans le cas ou l'element n'existe pas
@@ -77,6 +86,11 @@ class SearchController extends Controller
         }
         return  $this
                 ->response(["statut" => true,"providers" => $result]);
+        
+         } catch (HttpException $ex) {
+             return  $this
+                ->hlkErrorResponse();
+        } 
     }
     
 }

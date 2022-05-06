@@ -14,6 +14,7 @@ class ErrorManager {
      * @return void
      */
     public static function enable(): void {
+       
         set_error_handler('Core\Error\ErrorHandler::errorHandler');
         set_exception_handler('Core\Error\ErrorHandler::exceptionHandler');
     }
