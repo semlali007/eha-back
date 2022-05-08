@@ -79,6 +79,7 @@ $router->post('/hotlines', 'App\Controllers\HotlineController@index', ["roles"=>
 $router->get('/hotlines/configuration', 'App\Controllers\HotlineController@configuration', ["roles"=>['USER']]);
 $router->get('/hotlines/get/:id/sha/:sha', 'App\Controllers\HotlineController@show', ["roles"=>['USER']]);
 $router->post('/hotlines/create', 'App\Controllers\HotlineController@create', ["roles"=>['USER']]);
+$router->get('/hotlines/get/:id', 'App\Controllers\HotlineController@show', ["roles"=>['USER']]);
 
 $router->post('/hotlines/forward', 'App\Controllers\HotlineActionController@forward', ["roles"=>['USER']]);
 $router->post('/hotlines/post', 'App\Controllers\HotlineActionController@post', ["roles"=>['USER']]);
