@@ -57,7 +57,7 @@ class HotlineController extends Controller
         }
     }
 
-    public function show($id, $sha)
+    public function show($id, ?string $sha=null)
     {
         try {
             return $this->response($this->hotlineRepository->getHotline([
@@ -68,4 +68,5 @@ class HotlineController extends Controller
             return $this->error($ex);
         }
     }
+
 }
