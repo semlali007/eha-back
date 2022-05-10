@@ -155,12 +155,15 @@ class HotlineActionManager extends AbstractManager
 
     public function sendMail($recepients, $subject, $template, $params)
     {
+        try{
         $params['config_domain'] = getenv('CONFIG_DOMAINE');
         $mailer =  (new Mailer())
             ->setSubject($subject)
             ->setRecepients($recepients)
             ->html($template, $params);
         $mailer->send(); // Envoyer l'email 
-
+    } catch (Exception $e) {
+        throw new EmailException();
+    }
     }
 }

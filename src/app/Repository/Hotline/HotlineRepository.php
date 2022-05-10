@@ -126,7 +126,7 @@ class HotlineRepository extends AbstractRepository
         foreach ($res as $row) {
             if (in_array($row['natures'], array('O', 'OF', 'FO'))) {
                 $key = 'new';
-            } else if (strpos($row['natures'], 'C') !== false) {
+            } else if (strpos($row['natures'], 'C') !== false || $row['closed_at']!=null) {
                 $key = 'end';
             } else {
                 $key = 'progress';

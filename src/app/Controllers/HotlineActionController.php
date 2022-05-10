@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Exceptions\EmailException;
 use App\Exceptions\InvalidParameterException;
 use App\Manager\Hotline\HotlineActionManager;
 use App\Manager\Hotline\HotlineManager;

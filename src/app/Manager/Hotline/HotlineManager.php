@@ -227,7 +227,7 @@ class HotlineManager extends AbstractManager
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['20'] . '</p>';
         } catch (EmailException $ex) {
-            $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['21'] . '</p>';
+            $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['14'] . '</p>';
         }
         return $answer;
     }
@@ -236,12 +236,17 @@ class HotlineManager extends AbstractManager
 
     public function sendMail($recepients, $subject, $template, $params)
     {
-        $params['config_domain']= getenv('CONFIG_DOMAINE');
+        try {
+            $params['config_domain'] = getenv('CONFIG_DOMAINE');
 
-        $mailer =  (new Mailer())
-            ->setSubject($subject)
-            ->setRecepients($recepients)
-            ->html($template, $params);
-        $mailer->send(); // Envoyer l'email 
+            $mailer =  (new Mailer())
+                ->setSubject($subject)
+                ->setRecepients($recepients)
+                ->html($template, $params);
+            $mailer->send(); // Envoyer l'email
+        } catch (Exception $e) {
+            throw new EmailException();
+        }
+        
     }
 }
