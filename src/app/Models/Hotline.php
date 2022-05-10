@@ -260,4 +260,20 @@ class Hotline extends Model {
             throw new InternalServerException();
         }
     }
+
+    public function getHotlines(){
+
+            try {
+                $query = "
+                   SELECT f.discussion, t.label as theme, h.info_entity, e.groupe, e.category, f.row, date_trunc('second',f.quand) as quand, f.nature, f.is_hotline, f.email, f.message FROM ".$this->hotelineFileTable." AS f LEFT JOIN " . $this->table . " AS h ON f.discussion = h.discussion LEFT JOIN ".(new HotlineEmail())->table." AS e ON h.category_id = e.id LEFT JOIN ".(new HotlineTheme())->table." AS t ON h.theme_id = t.id
+           ";
+    
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->execute();
+                return $sth->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {
+                throw new InternalServerException();
+            }
+
+    }
 }

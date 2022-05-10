@@ -69,4 +69,14 @@ class HotlineController extends Controller
         }
     }
 
+    public function getList()
+    {
+        try {
+            return $this->response($this->hotlineRepository->getHotlines());
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
+    }
+
+
 }

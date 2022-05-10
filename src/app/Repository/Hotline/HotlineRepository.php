@@ -168,4 +168,8 @@ class HotlineRepository extends AbstractRepository
        return (new HotlineFil())->updateNotif() ;
     }
 
+
+    public function getHotlines(){
+        return  (new Hotline())->getHotlines();
+    }
 }
