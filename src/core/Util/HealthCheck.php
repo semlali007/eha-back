@@ -2,7 +2,6 @@
 
 namespace Core\Util;
 
-use App\Services\HttpClientService as client ;
 
 /**
  * Description of HealthCheck
@@ -30,40 +29,6 @@ class HealthCheck {
            return false;
         }
         return false;
-    }
-
-    /**
-     * 
-     * @param string $serverUrl
-     * @param int $port
-     * @return bool
-     */
-    public static function isServerEnable(string $serverUrl, int $port = 80): bool {
-        return self::callAPI($serverUrl) ;
-    }
-
-    /**
-     * Pinguer le serveur HLK pour retourner le Status du serveur si UP ou down 
-     */
-    public static function isActiveHlk():bool{
-        return self::isServerEnable(getenv("HLK_API_BASE_URL")) ;
-    } 
-    
-     /**
-     * 
-     * @param string $url
-     * @return boolean
-     */
-    public static function callAPI(string $url) {
-       $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_HEADER, true);    // we want headers
-        curl_setopt($ch, CURLOPT_NOBODY, true);    // we don't need body
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch, CURLOPT_TIMEOUT,10);
-        curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        return ($httpcode > 0) ;
     }
 
 }

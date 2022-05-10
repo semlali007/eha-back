@@ -9,9 +9,9 @@ use Core\{Router\Router,Util\DotEnv,Error\ErrorManager};
 
 Logger::configure(__DIR__.'/../app/Config/Logger.php') ; // Charger le fichier de configuration
 
-ErrorManager::enable();//Activer la gestion centrale des erreurs et des exception
 $router = new Router($_SERVER['REQUEST_URI']);
 
 include '../app/Config/Config.php';
 include '../app/Config/Globals.php' ;
 include '../app/Config/routing.php';// Création des routes
+ErrorManager::enable();//Activer la gestion centrale des erreurs et des exception

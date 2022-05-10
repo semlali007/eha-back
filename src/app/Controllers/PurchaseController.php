@@ -19,30 +19,33 @@ class PurchaseController extends Controller
      */
     public function search(): mixed
     {
-        $hlk = $GLOBALS['configuration']['hlk'] ;
-        $trans = $hlk['config'];
-        $options = Request::input();
-        if (!array_key_exists("num_da", $options) || (!isset($options['num_da']) && empty($options['num_da']))) {
-            return $this->response(['purchase' => []]);
+        try {
+            $trans = HLK['config'];
+            $options = Request::input();
+            if (!array_key_exists("num_da", $options) || (!isset($options['num_da']) && empty($options['num_da']))) {
+                return $this->response(['purchase' => []]);
+            }
+            $options['words'] = $options['num_da'];
+
+            $search = $this->purchaseRepository->searchFromApi($options);
+            $resultat = $this->formaTData($search, $trans, 'event_label');
+
+            $keys = array_unique(array_column($resultat, 'event_label')); // Les clés
+            $purchases = []; // initialiser les purchases
+            foreach ($keys as $key) { // Parcourir les clés
+                $ids = array_keys(array_column($resultat, 'event_label'), $key); // retourne les ids
+                $items = [];
+                foreach ($ids as $id) {
+                    array_push($items, $resultat[$id]);
+                }
+                array_push($purchases, ["statut" => $key, "items" => $items]);
+            }
+
+            return $this->response(['purchase' => $purchases]);
+        } catch (\Throwable|\Exception $ex) {
+            return $this
+                            ->hlkErrorResponse();
         }
-        $options['words'] = $options['num_da'];
-
-        $resultat = $this->purchaseRepository->searchFromApi($options);
-        $resultat = $this->formaTData($resultat, $trans, 'event_label');
-
-        $keys = array_unique(array_column($resultat, 'event_label')); // Les clés
-        $purchases = [] ; // initialiser les purchases
-        foreach ($keys as $key) { // Parcourir les clés
-             $ids = array_keys(array_column($resultat, 'event_label'),$key ); // retourne les ids
-             $items = [] ;
-             foreach($ids as $id){
-                 array_push($items, $resultat[$id]) ;
-             }
-             array_push($purchases,["statut"=>$key, "items"=>$items]) ;
-         }
-         
-       
-        return $this->response(['purchase' =>  $purchases]);
     }
     
     /**
@@ -50,20 +53,22 @@ class PurchaseController extends Controller
      * @return mixed
      */
     public function list(): mixed {
-        $hlk = $GLOBALS['configuration']['hlk'] ;
-        $trans = $hlk['config'];
-        
-        $nni = $this->getCurrentUser()->getNni();
-        if($nni=='ETF93B9N'){
-            $nni='A97609';
+        try {
+            $trans = HLK['config'];
+            $nni = $this->getCurrentUser()->getNni();
+            $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
+            if (in_array($nni, $arr)) {
+                $nni = 'A97609';
+            }
+            if (is_null($nni)) {
+                return $this->response(['purchases' => []]);
+            }
+           
+            $resultat = $this->purchaseRepository->getAll($nni);
+            return $this->response(['purchases' => $this->formaTData($resultat, $trans, 'last_status_event')]);
+        } catch (\Throwable|\Exception $ex) {
+            return $this->hlkErrorResponse();
         }
-        if(is_null($nni)){
-            return $this->response(['purchases' =>[]]) ;
-        }
-        
-        $resultat = $this->purchaseRepository->getAll($nni); 
-
-        return $this->response(['purchases' => $this->formaTData($resultat, $trans, 'last_status_event')]);
     }
     
     /**

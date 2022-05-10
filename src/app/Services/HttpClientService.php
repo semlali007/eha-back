@@ -4,9 +4,13 @@ namespace App\Services;
 
 use Exception;
 use Core\Util\Json;
+use App\Exceptions\HttpException ;
+ 
 
 class HttpClientService {
 
+    
+    
     /**
      * 
      * @param string $url
@@ -16,36 +20,22 @@ class HttpClientService {
      * @throws Exception
      */
     public static function exec_post(string $url, array $query, array $headers = Json::DEFAULT_HEADER) {
-        // Check call if HLK is enabled
-        if (strtoupper(getenv("ENV")) === "DEV" && (str_contains($url, getenv("HLK_API_BASE_URL")))) {
-            return json_decode(file_get_contents(__DIR__ . "/../../public/data-mock/" . $query["action_code"] . '.json'), true);
-        }
-        
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($curl, CURLOPT_POST, 1);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($query));
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
-        curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($curl, CURLOPT_VERBOSE, true);
-
+        $curl = self::init($url, $headers, $query);
         $responses = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
         if (curl_errno($curl)) {
             $error = curl_error($curl);
             curl_close($curl);
-            throw new Exception($error);
-        } else {
-            curl_close($curl);
+            throw new HttpException($error);
+        } 
+        
+        $json = json_decode($responses, true);
+        curl_close($curl);
+        if (json_last_error() != JSON_ERROR_NONE) {
+            throw new HttpException('json non valide', $httpCode);
         }
-        return json_decode($responses, true);
+        return $json;
     }
 
     /**
@@ -75,4 +65,31 @@ class HttpClientService {
         return $response;
     }
 
+    /**
+     * 
+     * @param string|null $url
+     * @param mixed $headers
+     * @param mixed $query
+     * @return mixed
+     */
+    static function init (string|null $url, mixed $headers,mixed $query): mixed{
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_POST, 1);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($query));
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
+        curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl, CURLOPT_VERBOSE, true);
+
+        return $curl ;
+        
+    }
 }

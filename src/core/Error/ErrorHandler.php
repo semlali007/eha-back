@@ -41,8 +41,7 @@ class ErrorHandler {
      * 
      * @param \Exception $exception
      */
-    public static function exceptionHandler($exception): void {
-
+    public static function exceptionHandler(\Exception $exception): void {
         http_response_code($exception->getCode()); // retourner le http status code 
         $handler = LoggerHandler::getInstance(self::DEFAULT_CHANNEL);
 

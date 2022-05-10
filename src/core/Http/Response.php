@@ -1,6 +1,7 @@
 <?php
 namespace Core\Http ;
 
+use Core\Util\HealthCheck as health  ;
 /**
  * Description of Response
  *
