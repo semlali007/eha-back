@@ -149,8 +149,7 @@ class HotlineActionManager extends AbstractManager
                 'sha' => $sha,
             ]);
         }
-
-        return ['status'  =>  true];
+        return ['status'  =>  true, 'message'=>'<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
     }
 
     public function sendMail($recepients, $subject, $template, $params)
