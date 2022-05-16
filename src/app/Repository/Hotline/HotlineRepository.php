@@ -74,31 +74,7 @@ class HotlineRepository extends AbstractRepository
             // Si on n'est pas hotliner, on supprime alors les noms des acheteurs.
             for ($i = 0; $i < $c; $i++) {
                 $row = $answer['data']['timeline'][$i];
-                if ($row['is_hotline']) {
-                    $p1 = strpos($row['message'], '@');
-                    if ($p1 !== false) {
-                        // On masque le nom dans l'email :
-                        $p0 = strrpos(substr($row['message'], 0, $p1), '.');
-                        if ($p0 !== false) {
-                            $answer['data']['timeline'][$i]['message'] =
-                                substr($row['message'], 0, $p0 + 1)
-                                . '******'
-                                . substr($row['message'], $p1);
-                        } else {
-                            $p0 = $p1;
-                            while ($p0 > 0) {
-                                $p0 -= 1;
-                                if (substr($row['message'], $p0, 1) === ' ') {
-                                    break;
-                                }
-                            }
-                            $answer['data']['timeline'][$i]['message'] =
-                                substr($row['message'], 0, $p0 + 1)
-                                . '******'
-                                . substr($row['message'], $p1);
-                        }
-                    }
-                }
+                $answer['data']['timeline'][$i]['message'] = $row['message'];
             }
         }
         // On met en forme les messages relatifs aux pièces jointes :
