@@ -13,6 +13,7 @@ use App\Models\SheetGroup;
 use App\Models\SheetBeneficiary;
 use App\Models\Committee;
 use App\Models\Subscription;
+use App\Services\SheetService ;
 
 use Exception;
 use PDO;
@@ -30,6 +31,7 @@ class Sheet extends Model
     protected $sheetGroupTable;
     protected $searchCondition;
     protected $committeeTable;
+    protected $sheetContract ;
 
     public function __construct()
     {
@@ -45,6 +47,7 @@ class Sheet extends Model
         $this->committeeTable = (new Committee())->table;
         $this->subscriptionTable = (new Subscription())->table;
         $this->searchCondition = null;
+        $this->sheetContract = (new SheetContract())->table ;
     }
 
     public function searchWithoutPagination($options)
@@ -119,6 +122,8 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->sheetBeneficiaryTable} sf on sf.sheet_id = s.id and sf.filiale_id in $beneficiariesStr  ";
             }
         }
+        
+
 
         if (!is_array($forFilter) || !array_key_exists('direction', $forFilter)) {
             $directions = $options['directions'] ?? [];
@@ -135,7 +140,12 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->sheetAreaTable} sz on sz.sheet_id = s.id  and sz.zone_id in $areasStr";
             }
         }
-
+        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
+        $isCode = SheetService::isCodeContract($search_input);
+        if ($isCode) :
+                $search .= " LEFT JOIN {$this->sheetContract} sc on sc.sheet_id = s.id and lower(sc.contract_code)='$search_input' ";
+        endif;
+        
         if (!is_array($forFilter) || !array_key_exists('provider', $forFilter)) {
             $providersList = $options['providers'] ?? [];
             $providers = [];
@@ -169,9 +179,15 @@ class Sheet extends Model
 
         $search .= ' WHERE 1= 1 ';
 
-        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
+      //  $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
         if ($search_input !== '') {
-            $search .= " AND ( {$schema}unaccent(lower(s.label)) LIKE {$schema}unaccent('%$search_input%') OR {$schema}unaccent(lower(s.description)) like {$schema}unaccent('%$search_input%') ) ";
+            $isCode = SheetService::isCodeContract($search_input);
+            $conditionContrat = ($isCode) ? " OR  {$schema}unaccent(lower(s.content)) LIKE {$schema}unaccent('%$search_input%') " : "";
+            if ($isCode) :
+             //  $search .= " LEFT JOIN {$this->sheetContract} sc on sc.sheet_id = s.id and lower(sc.contract_code)='$search_input' ";
+            endif;
+            
+            $search .= " AND ( {$schema}unaccent(lower(s.label)) LIKE {$schema}unaccent('%$search_input%') OR {$schema}unaccent(lower(s.description)) like {$schema}unaccent('%$search_input%') $conditionContrat ) ";
         }
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
