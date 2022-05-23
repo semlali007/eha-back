@@ -48,6 +48,8 @@ $router->get('/sheets/show/:id', 'App\Controllers\SheetController@show', ["roles
 $router->post('/sheets/export', 'App\Controllers\SheetController@export', ["roles"=>['USER']]);
 $router->post('/sheets/add', 'App\Controllers\SheetController@add', ["roles"=>['ADMIN']]);
 $router->post('/sheets/save', 'App\Controllers\SheetController@update', ["roles"=>['ADMIN']]);
+$router->post('/sheets/addDraft', 'App\Controllers\SheetController@addDraft', ["roles"=>['ADMIN']]);
+$router->post('/sheets/saveDraft', 'App\Controllers\SheetController@updateDraft', ["roles"=>['ADMIN']]);
 $router->post('/sheets/download', 'App\Controllers\SheetController@download', ["roles"=>['USER']]);
 $router->get('/sheets/remove/:id', 'App\Controllers\SheetController@remove', ["roles"=>['ADMIN']]);
 $router->post('/sheets/subscribe', 'App\Controllers\SheetController@subscribe', ["roles"=>['USER']]);

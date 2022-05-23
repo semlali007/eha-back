@@ -47,9 +47,20 @@ class SheetController extends Controller {
         return $this->sheetManager->update($this->currentUser,$sheetData);
     }
 
+    public function updateDraft() {
+        $sheetData = json_decode($_POST['model'], true);
+        $this->notificationsRepository->insertNotification($this->currentUser->getNni(), $sheetData['id']);
+        return $this->sheetManager->updateDraft($this->currentUser,$sheetData);
+    }
+
     public function add() {
         $sheetData = json_decode($_POST['model'], true);
         return $this->sheetManager->add($this->currentUser,$sheetData);
+    }
+
+    public function addDraft() {
+        $sheetData = json_decode($_POST['model'], true);
+        return $this->sheetManager->addDraft($this->currentUser,$sheetData);
     }
 
     public function download() {
