@@ -35,9 +35,7 @@ class PurchaseRepository extends AbstractRepository {
        
         $actionCode = HLK["actions"]["purchases"]["list"];
 
-        if (\Core\Util\DotEnv::isDev()) {
-            return \App\Services\MockService::createStatic($actionCode);
-        }
+        
         $queryData = [
             'password' => HLK['pwd'],
             'action_code' => $actionCode,
