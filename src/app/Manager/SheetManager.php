@@ -34,8 +34,8 @@ class SheetManager extends AbstractManager
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['content'] = $sheetData['content'] ?? '';
-            $data['start_date'] = $sheetData['start_date'] ?? '';
-            $data['end_date'] = $sheetData['end_date'] ?? '';
+            $data['start_date'] = ($sheetData['start_date'] || $sheetData['start_date'] == '') ?? null;
+            $data['end_date'] = ($sheetData['end_date'] || $sheetData['end_date'] == '') ?? null;
             $data['dauphin'] = $sheetData['dauphin'];
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
@@ -43,13 +43,15 @@ class SheetManager extends AbstractManager
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
-
-
-            if (empty($data['label'])) {
-                throw SheetException::forSheetSave('Le titre est obligatoire');
-            }
-
             $data['status'] = $sheetData['status'] ?? '0';
+            if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
+                $data['status'] = '0';
+            } else {
+                if (empty($data['label'])) {
+                    throw SheetException::forSheetSave('Le titre est obligatoire');
+                }
+            }
+            
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['updated_at'] = $date;
@@ -185,6 +187,8 @@ class SheetManager extends AbstractManager
         }
     }
 
+    
+
     public function add(User $user, $sheetData) {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
 
@@ -192,8 +196,8 @@ class SheetManager extends AbstractManager
 
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
-            $data['start_date'] = $sheetData['start_date'] ?? '';
-            $data['end_date'] = $sheetData['end_date'] ?? '';
+            $data['start_date'] = ($sheetData['start_date'] || $sheetData['start_date'] == '') ?? null;
+            $data['end_date'] = ($sheetData['end_date'] || $sheetData['end_date'] == '') ?? null;
             $data['dauphin'] = $sheetData['dauphin'];
             $data['committee'] = $sheetData['committee'] ?? 0;
             $data['edf_open'] = $sheetData['edf_open'];
@@ -206,11 +210,14 @@ class SheetManager extends AbstractManager
             $data['groups'] = $sheetData['groups'];
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
             $data['options'] = $sheetData['options'];
-            if (empty($data['label'])) {
-                throw SheetException::forSheetSave('Le titre est obligatoire');
-            }
-
             $data['status'] = $sheetData['status'] ?? '0';
+            if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
+                $data['status'] = '0';
+            } else {
+                if (empty($data['label'])) {
+                    throw SheetException::forSheetSave('Le titre est obligatoire');
+                }
+            }
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['created_at'] = $date;
@@ -244,6 +251,8 @@ class SheetManager extends AbstractManager
             ]);
         }
     }
+
+   
 
     public function addSheet($data) {
         $sheet = new Sheet();
