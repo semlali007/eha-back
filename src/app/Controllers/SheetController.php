@@ -50,7 +50,8 @@ class SheetController extends Controller {
     public function updateDraft() {
         $sheetData = json_decode($_POST['model'], true);
         $this->notificationsRepository->insertNotification($this->currentUser->getNni(), $sheetData['id']);
-        return $this->sheetManager->updateDraft($this->currentUser,$sheetData);
+        $sheetData['draft'] = true;
+        return $this->sheetManager->update($this->currentUser,$sheetData);
     }
 
     public function add() {
@@ -60,7 +61,8 @@ class SheetController extends Controller {
 
     public function addDraft() {
         $sheetData = json_decode($_POST['model'], true);
-        return $this->sheetManager->addDraft($this->currentUser,$sheetData);
+        $sheetData['draft'] = true;
+        return $this->sheetManager->add($this->currentUser,$sheetData);
     }
 
     public function download() {
