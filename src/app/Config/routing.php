@@ -137,6 +137,10 @@ $router->get('/informations/delete/:id', 'App\Controllers\InformationController@
 
 $router->get('/factsheets/list', 'App\Controllers\FactsheetController@getList', ["roles"=>['USER']]);
 $router->post('/factsheets/download', 'App\Controllers\FactsheetController@download', ["roles"=>['USER']]);
+$router->post('/factsheets/upload', 'App\Controllers\FactsheetController@upload', ["roles"=>['USER']]);
+$router->get('/factsheets/edit/:id', 'App\Controllers\FactsheetController@edit', ["roles"=>['USER']]);
+$router->post('/factsheets/save/:id', 'App\Controllers\FactsheetController@save', ["roles"=>['USER']]);
+$router->get('/factsheets/delete/:id', 'App\Controllers\FactsheetController@delete', ["roles"=>['USER']]);
 
 
 //try {

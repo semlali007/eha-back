@@ -21,15 +21,9 @@ class FactsheetController extends Controller
         return $this->response($this->mediaRepository->getList());
     }
 
-    public function show(string $code)
+    public function edit($id)
     {
-        return $this->response($this->providerRepository->getProvider($code));
-    }
-
-    public function add()
-    {
-        $options = json_decode(file_get_contents("php://input"), true) ?? [];
-        return  $this->response($this->mediaRepository->create($options));
+        return $this->response($this->mediaRepository->get($id));
     }
 
     public function upload()
@@ -49,6 +43,24 @@ class FactsheetController extends Controller
         $options = $this->decode(file_get_contents("php://input"));
         $media = $this->mediaRepository->get($options['id']);
         return FileService::download(['file'=>$media['file_name']]);
+    }
+
+
+    public function save($id)
+    {
+        try {
+            if (empty($_FILES['file'])) {
+                throw new Exception('le fichier est obligatoire');
+            }
+
+            return $this->response($this->mediaRepository->update($id, $_POST, $_FILES['file']));
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
+    }
+    public function delete($id)
+    {
+        return $this->response($this->mediaRepository->delete($id));
     }
 
 }

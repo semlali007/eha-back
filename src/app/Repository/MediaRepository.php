@@ -21,22 +21,39 @@ class MediaRepository extends AbstractRepository {
 
     public function create($options, $file)
     {
-        
-
         $e = explode('.', $file['name']);
         $e = end($e);
-        $filename =  basename($id . '_' . date('Ymdhis') . '.' . $e);
+        $filename =  basename(date('Ymdhis') . '.' . $e);
         if (!move_uploaded_file($file['tmp_name'], getenv("CONFIG_UPLOAD_PATH") . $filename)) {
-          throw new Exception('fichier non enregistré');
+            throw new Exception('fichier non enregistré');
         }
-
-
+       // var_dump($filename);exit;
         (new Media())->add([
-            'name' => $id,
-            'file_code' => $filename,
-            'file_name' => $name
+            'name' => $options['title'],
+            'file_name' => $filename,
         ]);
+    }
 
+    
+
+    public function update($id, $options, $file)
+    {
+        $e = explode('.', $file['name']);
+        $e = end($e);
+        $filename =  basename(date('Ymdhis') . '.' . $e);
+        if (!move_uploaded_file($file['tmp_name'], getenv("CONFIG_UPLOAD_PATH") . $filename)) {
+            throw new Exception('fichier non enregistré');
+        }
+        (new Media())->update($id, [
+            'name' => $options['title'],
+            'file_name' => $filename,
+        ]);
     }
    
+    
+    public function delete(mixed $id):mixed {
+        $media = new Media();
+        return $media->delete($id);
+    }
+
 }

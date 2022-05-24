@@ -24,11 +24,11 @@ class Media extends Model
     public function add($options)
     {
         try {
-            $query = "INSERT INTO {$this->table} VALUES (:name, :url, :description) ";
+            $query = "INSERT INTO {$this->table}  (name, file_name) VALUES (:name, :file_name) ";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
-            $sth->bindParam(':url', $options['url'], PDO::PARAM_STR);
-            $sth->bindParam(':description', $options['description'], PDO::PARAM_STR);
+            $sth->bindParam(':file_name', $options['file_name'], PDO::PARAM_STR);
+            
             return $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -60,4 +60,22 @@ class Media extends Model
             throw new InternalServerException();
         }
     }
+
+    
+
+    public function update($id, $options)
+    {
+        try {
+            $query = "UPDATE {$this->table}  set name=:name,file_name=:file_name where id=:id   ";
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
+            $sth->bindParam(':file_name', $options['file_name'], PDO::PARAM_STR);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            return $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
 }
