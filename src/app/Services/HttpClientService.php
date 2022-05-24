@@ -32,6 +32,7 @@ class HttpClientService {
         
         $json = json_decode($responses, true);
         curl_close($curl);
+       
         if (json_last_error() != JSON_ERROR_NONE) {
             throw new HttpException('json non valide', $httpCode);
         }
