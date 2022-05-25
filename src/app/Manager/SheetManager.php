@@ -224,8 +224,10 @@ class SheetManager extends AbstractManager
             $data['updated_at'] = $date;
             $data['created_by'] = $user->getNni();
             $data['updated_by'] = $user->getNni();
-            $data['created_by_full_name'] = $user->getFullname() ?? '';
-            $data['updated_by_full_name'] = $user->getFullname() ?? '';
+            
+            $data['created_by_full_name'] = $user->getNni() ?? '';
+            $data['updated_by_full_name'] = $user->getNni() ?? '';
+            
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
 
@@ -243,6 +245,7 @@ class SheetManager extends AbstractManager
                 'data' => $data
             ]);
         } catch (Exception $ex) {
+            var_dump($ex);exit;
             http_response_code(500);
             return json_encode([
                 'status' => 500,
