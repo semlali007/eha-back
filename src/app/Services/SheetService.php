@@ -15,6 +15,9 @@ class SheetService {
      * @return bool|null
      */
     static function isCodeContract(string $searchInput): ?bool {
+        if (strlen($searchInput) != 10) {
+            return false;
+        }
         preg_match_all("/c[a-zA-Z_0-9]{9}/", $searchInput, $matches, PREG_PATTERN_ORDER);
         foreach (reset($matches) as $code) {
             if (preg_match("#\d#", $code)) {

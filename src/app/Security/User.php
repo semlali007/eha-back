@@ -115,7 +115,7 @@ class User {
      * 
      * @return string
      */
-    function getFullname(): string {
+    public function getFullname(): string {
         return $this->fullname;
     }
 

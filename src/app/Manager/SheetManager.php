@@ -34,8 +34,8 @@ class SheetManager extends AbstractManager
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['content'] = $sheetData['content'] ?? '';
-            $data['start_date'] = ($sheetData['start_date'] || $sheetData['start_date'] == '') ?? null;
-            $data['end_date'] = ($sheetData['end_date'] || $sheetData['end_date'] == '') ?? null;
+            $data['start_date'] = ($sheetData['start_date'] && $sheetData['start_date'] != '')? $sheetData['start_date'] : null;
+            $data['end_date'] = ($sheetData['end_date'] && $sheetData['end_date'] != '') ?$sheetData['end_date'] : null;
             $data['dauphin'] = $sheetData['dauphin'];
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
@@ -196,8 +196,8 @@ class SheetManager extends AbstractManager
 
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
-            $data['start_date'] = ($sheetData['start_date'] || $sheetData['start_date'] == '') ?? null;
-            $data['end_date'] = ($sheetData['end_date'] || $sheetData['end_date'] == '') ?? null;
+            $data['start_date'] = ($sheetData['start_date'] && $sheetData['start_date'] != '') ? $sheetData['start_date']: null;
+            $data['end_date'] = ($sheetData['end_date'] && $sheetData['end_date'] != '') ?$sheetData['end_date']: null;
             $data['dauphin'] = $sheetData['dauphin'];
             $data['committee'] = $sheetData['committee'] ?? 0;
             $data['edf_open'] = $sheetData['edf_open'];
@@ -239,7 +239,7 @@ class SheetManager extends AbstractManager
 
             $id = $this->addSheet($data);
             return json_encode([
-                'data' => $id,
+                'id' => $id,
                 'data' => $data
             ]);
         } catch (Exception $ex) {
@@ -322,6 +322,7 @@ class SheetManager extends AbstractManager
             $this->db->getPDO()->commit();
             return $id;
         } catch (\Exception $e) {
+            
             if ($this->db->getPDO()->inTransaction()) {
                 $this->db->getPDO()->rollback();
             }
