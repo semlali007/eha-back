@@ -12,10 +12,10 @@ $router->get('/authentication/logout', 'App\Controllers\AuthenticationController
 $router->get('/news/:type', 'App\Controllers\Admin\NewsController@getNews',["roles"=>['USER']]);
 $router->post('/create-user-news', 'App\Controllers\Admin\NewsController@createUserNews',["roles"=>['USER']]);
 $router->get('/news/list/:type', 'App\Controllers\Admin\NewsController@getList',["roles"=>['USER']]);
-$router->post('/news/add', 'App\Controllers\Admin\NewsController@add',["roles"=>['USER']]);
+$router->post('/news/add', 'App\Controllers\Admin\NewsController@add',["roles"=>['ADMIN']]);
 $router->get('/news/edit/:id', 'App\Controllers\Admin\NewsController@getElement',["roles"=>['USER']]);
-$router->post('/news/update', 'App\Controllers\Admin\NewsController@update',["roles"=>['USER']]);
-$router->get('/news/delete/:id', 'App\Controllers\Admin\NewsController@delete',["roles"=>['USER']]);
+$router->post('/news/update', 'App\Controllers\Admin\NewsController@update',["roles"=>['ADMIN']]);
+$router->get('/news/delete/:id', 'App\Controllers\Admin\NewsController@delete',["roles"=>['ADMIN']]);
 
 $router->post('/search', 'App\Controllers\SearchController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->post('/search/anchors', 'App\Controllers\SearchController@getAnchors', ["roles"=>['USER'],"provider"=>["HLK"]]);
@@ -39,8 +39,8 @@ $router->get('/products/search/:code', 'App\Controllers\ProductController@search
 ### providers ###
 $router->get('/providers/show/:code', 'App\Controllers\ProviderController@show', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->get('/providers/search/:code', 'App\Controllers\ProviderController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
-$router->post('/providers/add', 'App\Controllers\ProviderController@add', ["roles"=>['USER']]);
-$router->post('/providers/remove', 'App\Controllers\ProviderController@remove', ["roles"=>['USER']]);
+$router->post('/providers/add', 'App\Controllers\ProviderController@add', ["roles"=>['ADMIN']]);
+$router->post('/providers/remove', 'App\Controllers\ProviderController@remove', ["roles"=>['ADMIN']]);
 
 
 $router->post('/sheets', 'App\Controllers\SheetController@index', ["roles"=>['USER']]);
@@ -63,17 +63,17 @@ $router->post('/providers/search', 'App\Controllers\ProviderController@search', 
 
 $router->get('/beneficiaries/autocomplete/:word', 'App\Controllers\BeneficiaryController@autocomplete', ["roles"=>['USER']]);
 $router->post('/beneficiaries/search', 'App\Controllers\BeneficiaryController@search', ["roles"=>['USER']]);
-$router->post('/beneficiaries/add', 'App\Controllers\BeneficiaryController@add', ["roles"=>['USER']]);
-$router->get('/beneficiaries/remove/:id', 'App\Controllers\BeneficiaryController@remove', ["roles"=>['USER']]);
+$router->post('/beneficiaries/add', 'App\Controllers\BeneficiaryController@add', ["roles"=>['ADMIN']]);
+$router->get('/beneficiaries/remove/:id', 'App\Controllers\BeneficiaryController@remove', ["roles"=>['ADMIN']]);
 
 
 $router->get('/areas/autocomplete/:word', 'App\Controllers\AreaController@autocomplete', ["roles"=>['USER']]);
 $router->post('/areas/search', 'App\Controllers\AreaController@search', ["roles"=>['USER']]);
-$router->post('/areas/add', 'App\Controllers\AreaController@add', ["roles"=>['USER']]);
+$router->post('/areas/add', 'App\Controllers\AreaController@add', ["roles"=>['ADMIN']]);
 
 $router->get('/groups/autocomplete/:word', 'App\Controllers\GroupController@autocomplete', ["roles"=>['USER']]);
 $router->post('/groups/search', 'App\Controllers\GroupController@search', ["roles"=>['USER']]);
-$router->post('/groups/add', 'App\Controllers\GroupController@add', ["roles"=>['USER']]);
+$router->post('/groups/add', 'App\Controllers\GroupController@add', ["roles"=>['ADMIN']]);
 // affichage de se documenter dans l'accueil ----
 $router->get('/documentations', 'App\Controllers\DocumentationController@index', ["roles"=>['USER']]);
 // Hotlines pos
@@ -99,10 +99,10 @@ $router->post('/documentations/sort', 'App\Controllers\Admin\DocumentationContro
 $router->get('/documentations/export', 'App\Controllers\Admin\DocumentationController@export', ["roles"=>['USER']]);
 $router->post('/documentations/import', 'App\Controllers\Admin\DocumentationController@import', ["roles"=>['USER']]);
 // Gestion des USERs
-$router->get('/USERistrators', 'App\Controllers\Admin\USERistratorController@index', ["roles"=>['USER']]);
-$router->post('/USERistrators/create', 'App\Controllers\Admin\USERistratorController@create', ["roles"=>['USER']]);
-$router->get('/USERistrators/delete/:email', 'App\Controllers\Admin\USERistratorController@delete', ["roles"=>['USER']]);
-$router->get('/USERistrators/delete/:email', 'App\Controllers\Admin\USERistratorController@delete', ["roles"=>['USER']]);
+$router->get('/administrators', 'App\Controllers\Admin\AdministratorController@index', ["roles"=>['USER']]);
+$router->post('/administrators/create', 'App\Controllers\Admin\AdministratorController@create', ["roles"=>['USER']]);
+$router->get('/administrators/delete/:email', 'App\Controllers\Admin\AdministratorController@delete', ["roles"=>['']]);
+$router->get('/administrators/delete/:email', 'App\Controllers\Admin\AdministratorController@delete', ["roles"=>['USER']]);
 // Externals
 $router->get('/externals', 'App\Controllers\Admin\ExternalController@index', ["roles"=>['USER']]);
 $router->post('/externals/create', 'App\Controllers\Admin\ExternalController@create', ["roles"=>['USER']]);
