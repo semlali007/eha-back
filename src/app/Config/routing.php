@@ -9,13 +9,13 @@ $router->post('/authentication/login', 'App\Controllers\AuthenticationController
 $router->get('/authentication/logout', 'App\Controllers\AuthenticationController@logout');
 
 ## Modal home ##
-$router->get('/news/:type', 'App\Controllers\USER\NewsController@getNews',["roles"=>['USER']]);
-$router->post('/create-user-news', 'App\Controllers\USER\NewsController@createUserNews',["roles"=>['USER']]);
-$router->get('/news/list/:type', 'App\Controllers\USER\NewsController@getList',["roles"=>['USER']]);
-$router->post('/news/add', 'App\Controllers\USER\NewsController@add',["roles"=>['USER']]);
-$router->get('/news/edit/:id', 'App\Controllers\USER\NewsController@getElement',["roles"=>['USER']]);
-$router->post('/news/update', 'App\Controllers\USER\NewsController@update',["roles"=>['USER']]);
-$router->get('/news/delete/:id', 'App\Controllers\USER\NewsController@delete',["roles"=>['USER']]);
+$router->get('/news/:type', 'App\Controllers\Admin\NewsController@getNews',["roles"=>['USER']]);
+$router->post('/create-user-news', 'App\Controllers\Admin\NewsController@createUserNews',["roles"=>['USER']]);
+$router->get('/news/list/:type', 'App\Controllers\Admin\NewsController@getList',["roles"=>['USER']]);
+$router->post('/news/add', 'App\Controllers\Admin\NewsController@add',["roles"=>['USER']]);
+$router->get('/news/edit/:id', 'App\Controllers\Admin\NewsController@getElement',["roles"=>['USER']]);
+$router->post('/news/update', 'App\Controllers\Admin\NewsController@update',["roles"=>['USER']]);
+$router->get('/news/delete/:id', 'App\Controllers\Admin\NewsController@delete',["roles"=>['USER']]);
 
 $router->post('/search', 'App\Controllers\SearchController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->post('/search/anchors', 'App\Controllers\SearchController@getAnchors', ["roles"=>['USER'],"provider"=>["HLK"]]);
@@ -90,39 +90,39 @@ $router->post('/hotlines/upload', 'App\Controllers\HotlineActionController@uploa
 $router->post('/hotlines/close', 'App\Controllers\HotlineActionController@close', ["roles"=>['USER']]);
 
 // Gestion de se documenter coté USER ... 
-$router->get('/documentations/edit', 'App\Controllers\USER\DocumentationController@edit', ["roles"=>['USER']]);
-$router->post('/documentations/add', 'App\Controllers\USER\DocumentationController@add', ["roles"=>['USER']]);
-$router->get('/documentations/delete/:id', 'App\Controllers\USER\DocumentationController@delete', ["roles"=>['USER']]);
-$router->get('/documentations/show/:id', 'App\Controllers\USER\DocumentationController@show', ["roles"=>['USER']]);
-$router->post('/documentations/update', 'App\Controllers\USER\DocumentationController@update', ["roles"=>['USER']]);
-$router->post('/documentations/sort', 'App\Controllers\USER\DocumentationController@sort', ["roles"=>['USER']]);
-$router->get('/documentations/export', 'App\Controllers\USER\DocumentationController@export', ["roles"=>['USER']]);
-$router->post('/documentations/import', 'App\Controllers\USER\DocumentationController@import', ["roles"=>['USER']]);
+$router->get('/documentations/edit', 'App\Controllers\Admin\DocumentationController@edit', ["roles"=>['USER']]);
+$router->post('/documentations/add', 'App\Controllers\Admin\DocumentationController@add', ["roles"=>['USER']]);
+$router->get('/documentations/delete/:id', 'App\Controllers\Admin\DocumentationController@delete', ["roles"=>['USER']]);
+$router->get('/documentations/show/:id', 'App\Controllers\Admin\DocumentationController@show', ["roles"=>['USER']]);
+$router->post('/documentations/update', 'App\Controllers\Admin\DocumentationController@update', ["roles"=>['USER']]);
+$router->post('/documentations/sort', 'App\Controllers\Admin\DocumentationController@sort', ["roles"=>['USER']]);
+$router->get('/documentations/export', 'App\Controllers\Admin\DocumentationController@export', ["roles"=>['USER']]);
+$router->post('/documentations/import', 'App\Controllers\Admin\DocumentationController@import', ["roles"=>['USER']]);
 // Gestion des USERs
-$router->get('/USERistrators', 'App\Controllers\USER\USERistratorController@index', ["roles"=>['USER']]);
-$router->post('/USERistrators/create', 'App\Controllers\USER\USERistratorController@create', ["roles"=>['USER']]);
-$router->get('/USERistrators/delete/:email', 'App\Controllers\USER\USERistratorController@delete', ["roles"=>['USER']]);
-$router->get('/USERistrators/delete/:email', 'App\Controllers\USER\USERistratorController@delete', ["roles"=>['USER']]);
+$router->get('/USERistrators', 'App\Controllers\Admin\USERistratorController@index', ["roles"=>['USER']]);
+$router->post('/USERistrators/create', 'App\Controllers\Admin\USERistratorController@create', ["roles"=>['USER']]);
+$router->get('/USERistrators/delete/:email', 'App\Controllers\Admin\USERistratorController@delete', ["roles"=>['USER']]);
+$router->get('/USERistrators/delete/:email', 'App\Controllers\Admin\USERistratorController@delete', ["roles"=>['USER']]);
 // Externals
-$router->get('/externals', 'App\Controllers\USER\ExternalController@index', ["roles"=>['USER']]);
-$router->post('/externals/create', 'App\Controllers\USER\ExternalController@create', ["roles"=>['USER']]);
-$router->get('/externals/delete/:email', 'App\Controllers\USER\ExternalController@delete', ["roles"=>['USER']]);
+$router->get('/externals', 'App\Controllers\Admin\ExternalController@index', ["roles"=>['USER']]);
+$router->post('/externals/create', 'App\Controllers\Admin\ExternalController@create', ["roles"=>['USER']]);
+$router->get('/externals/delete/:email', 'App\Controllers\Admin\ExternalController@delete', ["roles"=>['USER']]);
 
-$router->get('/hotline-themes', 'App\Controllers\USER\Hotline\HotlineThemeController@index', ["roles"=>['USER']]);
-$router->post('/hotline-themes/save', 'App\Controllers\USER\Hotline\HotlineThemeController@update', ["roles"=>['USER']]);
+$router->get('/hotline-themes', 'App\Controllers\Admin\Hotline\HotlineThemeController@index', ["roles"=>['USER']]);
+$router->post('/hotline-themes/save', 'App\Controllers\Admin\Hotline\HotlineThemeController@update', ["roles"=>['USER']]);
 
-$router->get('/hotline-groups', 'App\Controllers\USER\Hotline\HotlineGroupController@index', ["roles"=>['USER']]);
-$router->post('/hotline-groups/save', 'App\Controllers\USER\Hotline\HotlineGroupController@update', ["roles"=>['USER']]);
+$router->get('/hotline-groups', 'App\Controllers\Admin\Hotline\HotlineGroupController@index', ["roles"=>['USER']]);
+$router->post('/hotline-groups/save', 'App\Controllers\Admin\Hotline\HotlineGroupController@update', ["roles"=>['USER']]);
 
-$router->get('/hotline-emails', 'App\Controllers\USER\Hotline\HotlineEmailController@index', ["roles"=>['USER']]);
-$router->post('/hotline-emails/save', 'App\Controllers\USER\Hotline\HotlineEmailController@update', ["roles"=>['USER']]);
-$router->post('/hotline-emails/living-save', 'App\Controllers\USER\Hotline\HotlineEmailController@livingUpdate', ["roles"=>['USER']]);
+$router->get('/hotline-emails', 'App\Controllers\Admin\Hotline\HotlineEmailController@index', ["roles"=>['USER']]);
+$router->post('/hotline-emails/save', 'App\Controllers\Admin\Hotline\HotlineEmailController@update', ["roles"=>['USER']]);
+$router->post('/hotline-emails/living-save', 'App\Controllers\Admin\Hotline\HotlineEmailController@livingUpdate', ["roles"=>['USER']]);
 
-$router->post('/import/upload', 'App\Controllers\USER\ImportController@upload', ["roles"=>['USER']]);
+$router->post('/import/upload', 'App\Controllers\Admin\ImportController@upload', ["roles"=>['USER']]);
 
-$router->post('/migration/save', 'App\Controllers\USER\MigrateController@saveData', ["roles"=>['USER']]);
-$router->post('/migration/migrate', 'App\Controllers\USER\MigrateController@migrate', ["roles"=>['USER']]);
-$router->post('/migration/list', 'App\Controllers\USER\MigrateController@index', ["roles"=>['USER']]);
+$router->post('/migration/save', 'App\Controllers\Admin\MigrateController@saveData', ["roles"=>['USER']]);
+$router->post('/migration/migrate', 'App\Controllers\Admin\MigrateController@migrate', ["roles"=>['USER']]);
+$router->post('/migration/list', 'App\Controllers\Admin\MigrateController@index', ["roles"=>['USER']]);
 
 $router->post('/purchases/search', 'App\Controllers\PurchaseController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 
