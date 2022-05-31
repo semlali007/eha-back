@@ -20,7 +20,7 @@ class PurchaseController extends Controller
     public function search(): mixed
     {
         try {
-            $trans = HLK['config'];
+            $trans = HLK['status'];
             $options = Request::input();
             if (!array_key_exists("num_da", $options) || (!isset($options['num_da']) && empty($options['num_da']))) {
                 return $this->response(['purchase' => []]);
@@ -54,7 +54,7 @@ class PurchaseController extends Controller
      */
     public function list(): mixed {
         try {
-            $trans = HLK['config'];
+            $trans = HLK['status'];
             $nni = $this->getCurrentUser()->getNni();
             $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
             if (in_array($nni, $arr)) {
