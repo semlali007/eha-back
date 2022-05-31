@@ -14,6 +14,6 @@ class Status {
   const TRANSMISE_PHA = "transmise_pha"  ;
   const SOUMISE_AU_MANAGER= "soumise_au_manager"  ;
   const AFFECTER_ACHETEUR= "affecter_acheteur"  ;
-  const INTEGRER_EN_AFFAIRE = "integrer_en affaire"  ;
+  const INTEGRER_EN_AFFAIRE = "integrer_en_affaire"  ;
   
 }
