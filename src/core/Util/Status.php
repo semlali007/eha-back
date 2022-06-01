@@ -9,11 +9,11 @@ namespace Core\Util;
  */
 class Status {
     
-  const REFUSEE = "refusee"  ;
-  const INITIALISEE = "initialisee"  ;
-  const TRANSMISE_PHA = "transmise_pha"  ;
-  const SOUMISE_AU_MANAGER= "soumise_au_manager"  ;
-  const AFFECTER_ACHETEUR= "affecter_acheteur"  ;
-  const INTEGRER_EN_AFFAIRE = "integrer_en_affaire"  ;
+  const INITIALISEE = 1  ;  
+  const TRANSMISE_PHA = 2  ;
+  const SOUMISE_AU_MANAGER= 3  ;
+  const AFFECTER_ACHETEUR= 4  ;
+  const INTEGRER_EN_AFFAIRE = 5 ;
+  const REFUSEE = 6  ;
   
 }

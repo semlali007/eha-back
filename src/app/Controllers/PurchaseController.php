@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Repository\PurchaseRepository;
 use Core\Http\Request ;
+use Core\Util\Status ;
 class PurchaseController extends Controller
 {
     private  $purchaseRepository;
@@ -54,7 +55,7 @@ class PurchaseController extends Controller
      */
     public function list(): mixed {
         try {
-            $trans = HLK['status'];
+            $trans = HLK['config'];
             $nni = $this->getCurrentUser()->getNni();
             $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
             if (in_array($nni, $arr)) {
@@ -84,7 +85,7 @@ class PurchaseController extends Controller
             if(array_key_exists($valeur[$key], $trans)){
                 $valeur[$key] = $trans[$valeur[$key]];
             }else{
-                 $valeur[$key] = 3; 
+                 $valeur[$key] = Status::INITIALISEE; 
             }
             return $valeur;
         }, $data);
