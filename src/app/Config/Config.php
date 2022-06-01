@@ -34,68 +34,63 @@ $configuration = [
                 "list" => "list_purchase_situations",
             ]
         ],
+         "config" => [
+            "PGI Création" => 1, // Création
+            "PGI Validation" => 2, // Instruction,
+            "PHA, consultation Validation Acheteur => Validé" => 2,
+            "PHA, panier Manager achat - Affecter / Refuser => Refusé" => 3, // Refusée
+        ]
+        ,
         "status" =>
         [
-            Status::REFUSEE => [
-                "Pré-attribution => Refusé",
-                "Attribution => Refusé",
-                "Manager achat - Affecter / Refuser => Refusé",
-                "Acheteur - Intégrer à l'affaire => Refusé",
-            ],
-            Status::INITIALISEE => [
-                "Création",
-                "Groupe acheteur",
-                "Validation"
-            ],
-            Status::TRANSMISE_PHA => [
-                "Evaluation Technique (Acheteur) => Initié",
-            ],
-            Status::SOUMISE_AU_MANAGER => [
-                "Manager achat - Affecter / Refuser => Validé"
-            ],
-            Status::AFFECTER_ACHETEUR => [
-                "DA réaffectée ? => Validé"
-            ],
-            Status::INTEGRER_EN_AFFAIRE => [
-                "Acheteur - Intégrer à l'affaire => Validé",
-                "Evaluation Infos générales => Validé",
-                "Attribution => Validé",
-                "Pré-attribution => Validé",
-                "Validation Manager => Validé",
-                "Offres à ouvrir => Initié",
-                "Clôture => Validé",
-                "Validation Manager => Initié",
-                "Validation Acheteur => Initié",
-                "Evaluation Infos générales => Initié",
-                "Initialisation => Initié",
-                "Soumettre à validation Manager => Initié",
-                "Evaluation Technique (Prescripteur) => Initié",
-                "En cours => Initié",
-                "Clôture => Initié",
-                "Soumettre à Validation Manager => Initié",
-                "Soumettre à Validation Manager => Validé",
-                "Evaluation Commerciale => Validé",
-                "Soumettre à validation Manager => Validé",
-                "Evaluation Technique (Prescripteur) => Validé",
-                "Offres à ouvrir => Validé",
-                "Création => Refusé",
-                "Initialisation => Validé",
-                "Validation Acheteur => Validé",
-                "Pré-attribution => Initié",
-                "Création => Validé",
-                "A Publier => Validé",
-                "Evaluation Technique (Acheteur) => Validé",
-                "En cours => Validé",
-                "A Publier => Initié",
-                "Attribution => Initié",
-                "Evaluation Commerciale => Initié"
-            ]
-        ],
+            "Pré-attribution => Refusé" => Status::REFUSEE,
+            "Attribution => Refusé" => Status::REFUSEE,
+            "Manager achat - Affecter / Refuser => Refusé" => Status::REFUSEE,
+            "Acheteur - Intégrer à l'affaire => Refusé" => Status::REFUSEE,
+            "Création" => Status::INITIALISEE,
+            "Groupe acheteur" => Status::INITIALISEE,
+            "Validation" => Status::INITIALISEE,
+            "Evaluation Technique (Acheteur) => Initié" => Status::TRANSMISE_PHA,
+            "Manager achat - Affecter / Refuser => Validé" => Status::SOUMISE_AU_MANAGER,
+            "DA réaffectée ? => Validé" => Status::AFFECTER_ACHETEUR,
+            "Acheteur - Intégrer à l'affaire => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Infos générales => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Attribution => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Pré-attribution => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Validation Manager => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Offres à ouvrir => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Clôture => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Validation Manager => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Validation Acheteur => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Infos générales => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Initialisation => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Soumettre à validation Manager => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Technique (Prescripteur) => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "En cours => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Clôture => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Soumettre à Validation Manager => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Soumettre à Validation Manager => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Commerciale => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Soumettre à validation Manager => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Technique (Prescripteur) => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Offres à ouvrir => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Création => Refusé" => Status::INTEGRER_EN_AFFAIRE,
+            "Initialisation => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Validation Acheteur => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Pré-attribution => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Création => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "A Publier => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Technique (Acheteur) => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "En cours => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "A Publier => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Attribution => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "Evaluation Commerciale => Initié" => Status::INTEGRER_EN_AFFAIRE
+        ]
+    ],
         'roles' => [
             "ADMIN" => "EHA_ADMIN",
             "GESTIONNAIRE" => "EHA_GESTIONNAIRE",
             "USER" => "USER"
         ]
-    ]
 ];
 
