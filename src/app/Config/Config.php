@@ -84,7 +84,9 @@ $configuration = [
             "En cours => Validé" => Status::INTEGRER_EN_AFFAIRE,
             "A Publier => Initié" => Status::INTEGRER_EN_AFFAIRE,
             "Attribution => Initié" => Status::INTEGRER_EN_AFFAIRE,
-            "Evaluation Commerciale => Initié" => Status::INTEGRER_EN_AFFAIRE
+            "Evaluation Commerciale => Initié" => Status::INTEGRER_EN_AFFAIRE,
+            "PGI Groupe acheteur"=>Status::INITIALISEE,
+            "PGI Validation"=>Status::INITIALISEE,
         ]
     ],
         'roles' => [
