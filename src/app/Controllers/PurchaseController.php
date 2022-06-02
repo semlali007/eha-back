@@ -27,6 +27,7 @@ class PurchaseController extends Controller
                 return $this->response(['purchase' => []]);
             }
             $options['words'] = $options['num_da'];
+          
             $search = $this->purchaseRepository->searchFromApi($options);
             $resultat = $this->formaTData($search, $trans, 'event_label');
             return $this->response(['items' => $resultat]);
@@ -56,7 +57,7 @@ class PurchaseController extends Controller
             $k=0;
             foreach($resultat as $k=>$r){
                 $k++;
-                if($k<10){
+                if($k<30){
                     $options['words'] = $r['purchase_demand_id'];
                     $freeze = $this->formaTData($this->purchaseRepository->searchFromApi($options), $trans, 'event_label');
                     $state = 1;
