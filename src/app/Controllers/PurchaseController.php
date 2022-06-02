@@ -54,12 +54,13 @@ class PurchaseController extends Controller
             }
            
             $resultat = $this->formaTData($this->purchaseRepository->getAll($nni), $trans, 'last_status_event');
-            $k=0;
+           
             foreach($resultat as $k=>$r){
-                $k++;
-                if($k<30){
+               
+                if($k<100){
                     $options['words'] = $r['purchase_demand_id'];
                     $freeze = $this->formaTData($this->purchaseRepository->searchFromApi($options), $trans, 'event_label');
+                                
                     $state = 1;
                     foreach($freeze as $f){
                         if($f['event_label']>$state){
@@ -79,7 +80,7 @@ class PurchaseController extends Controller
     /**
      * 
      * @param array $data
-     * @param array $trans
+     * @param array $trans<
      * @return array
      */
     public function formaTData($data,$trans, $key){
