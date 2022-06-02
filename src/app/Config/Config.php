@@ -78,7 +78,7 @@ $configuration = [
             "Initialisation => Validé" => Status::INTEGRER_EN_AFFAIRE,
             "Validation Acheteur => Validé" => Status::INTEGRER_EN_AFFAIRE,
             "Pré-attribution => Initié" => Status::INTEGRER_EN_AFFAIRE,
-            "Création => Validé" => Status::INTEGRER_EN_AFFAIRE,
+            "Création => Validé" => Status::TRANSMISE_PHA,
             "A Publier => Validé" => Status::INTEGRER_EN_AFFAIRE,
             "Evaluation Technique (Acheteur) => Validé" => Status::INTEGRER_EN_AFFAIRE,
             "En cours => Validé" => Status::INTEGRER_EN_AFFAIRE,
