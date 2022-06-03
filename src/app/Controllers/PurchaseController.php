@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Repository\PurchaseRepository;
 use Core\Http\Request ;
+use Core\Util\Status ;
 class PurchaseController extends Controller
 {
     private  $purchaseRepository;
@@ -20,28 +21,15 @@ class PurchaseController extends Controller
     public function search(): mixed
     {
         try {
-            $trans = HLK['config'];
+            $trans = HLK['status'];
             $options = Request::input();
             if (!array_key_exists("num_da", $options) || (!isset($options['num_da']) && empty($options['num_da']))) {
                 return $this->response(['purchase' => []]);
             }
             $options['words'] = $options['num_da'];
-
             $search = $this->purchaseRepository->searchFromApi($options);
             $resultat = $this->formaTData($search, $trans, 'event_label');
-
-            $keys = array_unique(array_column($resultat, 'event_label')); // Les clés
-            $purchases = []; // initialiser les purchases
-            foreach ($keys as $key) { // Parcourir les clés
-                $ids = array_keys(array_column($resultat, 'event_label'), $key); // retourne les ids
-                $items = [];
-                foreach ($ids as $id) {
-                    array_push($items, $resultat[$id]);
-                }
-                array_push($purchases, ["statut" => $key, "items" => $items]);
-            }
-
-            return $this->response(['purchase' => $purchases]);
+            return $this->response(['items' => $resultat]);
         } catch (\Throwable|\Exception $ex) {
             return $this
                             ->hlkErrorResponse();
@@ -54,7 +42,7 @@ class PurchaseController extends Controller
      */
     public function list(): mixed {
         try {
-            $trans = HLK['config'];
+            $trans = HLK['status'];
             $nni = $this->getCurrentUser()->getNni();
             $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
             if (in_array($nni, $arr)) {
@@ -64,8 +52,27 @@ class PurchaseController extends Controller
                 return $this->response(['purchases' => []]);
             }
            
-            $resultat = $this->purchaseRepository->getAll($nni);
-            return $this->response(['purchases' => $this->formaTData($resultat, $trans, 'last_status_event')]);
+            $resultat = $this->formaTData($this->purchaseRepository->getAll($nni), $trans, 'last_status_event');
+            $response = [];
+            foreach($resultat as $k=>$r){
+                if($k<10){
+                    $options['words'] = $r['purchase_demand_id'];
+                    $freeze = $this->formaTData($this->purchaseRepository->searchFromApi($options), $trans, 'event_label');
+                    $resultat[$k]["freeze"]  =$freeze;
+                    $d = '1970-01-01';
+                    $state = 1;
+                    foreach($freeze as $f){
+                        if($f['event_date']>$d){
+                            $d = $f['event_date'];
+                            $state = $f['event_label'];
+                        }
+                    }
+                }
+
+                $resultat[$k]["last_status_event"] =   $state;
+            }
+
+            return $this->response(['purchases' => $resultat]);
         } catch (\Throwable|\Exception $ex) {
             return $this->hlkErrorResponse();
         }
@@ -78,14 +85,14 @@ class PurchaseController extends Controller
      * @return array
      */
     public function formaTData($data,$trans, $key){
-        
-         return array_map(function ($valeur)use ($trans, $key) {
-            $valeur["last_status_event_label"] =  $valeur[$key] ;
-            if(array_key_exists($valeur[$key], $trans)){
-                $valeur[$key] = $trans[$valeur[$key]];
-            }else{
-                 $valeur[$key] = 3; 
-            }
+
+        return array_map(function ($valeur) use ($trans, $key) {
+            $valeur["last_status_event_label"] =  $valeur[$key];
+            if (array_key_exists($key, $valeur) && array_key_exists($valeur[$key], $trans)) {
+                    $valeur[$key] = $trans[$valeur[$key]];
+                } else {
+                    $valeur[$key] = Status::INITIALISEE;
+                }
             return $valeur;
         }, $data);
     }
