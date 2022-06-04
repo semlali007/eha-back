@@ -549,6 +549,7 @@ class SheetManager extends AbstractManager
         if(is_null($migrateConfig) || !is_array($foldersList)){
             return $data;
         }
+
         foreach ($foldersList as $kit) {
             $kitFolderName = str_replace(" ", "_", $kit['lookupValue']);
             if (!empty($kitFolderName)) {
@@ -589,33 +590,38 @@ class SheetManager extends AbstractManager
 
         foreach ($row['Fournisseur'] as $item) {
             if (!is_numeric($item)  && !empty($item)) {
-                $provider->add(['provider_label' => substr($item["Label"], 0, 50), 'provider_code' => $item["Label"]]);
-                $p = $provider->get(['provider_label' => $item["Label"], 'provider_code' => $item["Label"]]);
+                $p = $provider->get(['provider_label' => $item["Label"]]);
                 if (count($p) > 0) {
                     $data['providers'][] = ['id' => $p[0]['provider_code']];
+                }else{
+                    $id = $provider->add(['provider_label' => $item["Label"]]);
+                    $data['providers'][] = ['id' =>$id];
                 }
             }
         }
 
         foreach ($row['Beneficiaires'] as $itemB) {
-            $filiale->add(['name' => $itemB['Label']]);
+            
             $p = $filiale->get(['name' => $itemB['Label']]);
             if (count($p) > 0) {
                 $data['filiales'][] = ['id' => $p[0]['id']];
+            }else{
+                $fId = $filiale->add(['name' => $itemB['Label']]);
+                $data['filiales'][] = ['id' => $fId];
             }
         }
 
 
         foreach ($row['ZoneGeo'] as $itemZ) {
-            $zone->add(['name' => $itemZ['Label']]);
+            
             $p = $zone->get(['name' => $itemZ['Label']]);
             if (count($p) > 0) {
                 $data['zones'][] = ['id' => $p[0]['id']];
+            }else{
+               $zId = $zone->add(['name' => $itemZ['Label']]);
+               $data['zones'][] = ['id' => $zId];
             }
         }
-        
-
-
         return $data;
     }
 

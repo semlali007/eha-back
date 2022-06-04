@@ -40,8 +40,8 @@ class SheetProvider extends Model
             ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
-            $sth->bindParam(':provider_code', $providerCode, PDO::PARAM_STR);
-            $sth->bindParam(':provider_code', $providerCode, PDO::PARAM_STR);
+            $sth->bindParam(':provider_code', $providerCode, PDO::PARAM_INT);
+            $sth->bindParam(':provider_code', $providerCode, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -83,7 +83,7 @@ class SheetProvider extends Model
                 ";
 
             $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':provider_code', $pId, PDO::PARAM_STR);
+            $sth->bindParam(':provider_code', $pId, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();

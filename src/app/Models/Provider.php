@@ -52,32 +52,13 @@ class Provider extends Model
     {
         try {
             $query = '
-        INSERT INTO ' . $this->table . ' (provider_code, provider_label, provider_country, provider_zipcode, provider_town, provider_siret, provider_nace, search1, search0, weight) 
-         VALUES (:provider_code, :provider_label, :provider_country, :provider_zipcode, :provider_town, :provider_siret, :provider_nace, :search1, :search0, :weight)
+        INSERT INTO ' . $this->table . ' (provider_label) 
+         VALUES (:provider_label)
           ON CONFLICT DO NOTHING ';
             $sth = $this->db->getPDO()->prepare($query);
-            $data = [
-                'provider_country' => 'France',
-                'provider_zipcode' => 123556,
-                'provider_town' => 'migrate',
-                'provider_siret' => 123456789,
-                'provider_nace' => 'migrate',
-                'search1' => 'migrate',
-                'search0' => 'migrate',
-                'weight' => 0,
-            ];
-
-            $sth->bindParam(':provider_code', $options['provider_code'], PDO::PARAM_STR);
             $sth->bindParam(':provider_label', $options['provider_label'], PDO::PARAM_STR);
-            $sth->bindParam(':provider_country', $data['provider_country'], PDO::PARAM_STR);
-            $sth->bindParam(':provider_zipcode', $data['provider_zipcode'], PDO::PARAM_STR);
-            $sth->bindParam(':provider_town',$data['provider_town'], PDO::PARAM_STR);
-            $sth->bindParam(':provider_siret', $data['provider_siret'], PDO::PARAM_STR);
-            $sth->bindParam(':provider_nace', $data['provider_nace'], PDO::PARAM_STR);
-            $sth->bindParam(':search1',$data['search1'], PDO::PARAM_STR);
-            $sth->bindParam(':search0',$data['search0'], PDO::PARAM_STR);
-            $sth->bindParam(':weight', $data['weight'], PDO::PARAM_STR);
             $sth->execute();
+            return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
@@ -95,6 +76,7 @@ class Provider extends Model
             throw new InternalServerException();
         }
     }
+
     public function delete($code)
     {
 
@@ -106,7 +88,7 @@ class Provider extends Model
                 ";
 
             $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':code', $code, PDO::PARAM_STR);
+            $sth->bindParam(':code', $code, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
             var_dump($e->getMessage());exit;

@@ -105,8 +105,6 @@ class ProviderRepository extends AbstractRepository {
                 throw new Exception('Le nom est obligatoire');
             }
             $provider = new Provider();
-            $options['provider_code'] = uniqid("NA");
-
             $provider->add($options);
             return [
                 'status' => true,

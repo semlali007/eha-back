@@ -15,14 +15,13 @@ class Beneficiary extends Model
     {
         try {
             $query = '
-        INSERT INTO ' . $this->table . ' (name) VALUES (:name) ON CONFLICT("name") DO UPDATE SET name=:name RETURNING id;
+        INSERT INTO ' . $this->table . ' (name) VALUES (:name) ON CONFLICT DO NOTHING;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
             $sth->execute();
-            return  $sth->fetch(PDO::FETCH_ASSOC)['id'];
+            return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
-            
             throw new InternalServerException();
         }
     }

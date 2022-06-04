@@ -19,6 +19,7 @@ class Area extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
             $sth->execute();
+            return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

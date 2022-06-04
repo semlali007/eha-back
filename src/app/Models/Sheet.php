@@ -88,6 +88,7 @@ class Sheet extends Model
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
+           
             throw new InternalServerException($e->getMessage());
         }
     }
@@ -148,7 +149,7 @@ class Sheet extends Model
             }
             if (count($providers) > 0) {
                 $providersStr = '(\'' . implode('\',\'', $providers) . '\')';
-                $search .= " INNER JOIN {$this->sheetProviderTable} sp on sp.sheet_id = s.id and sp. provider_code in $providersStr ";
+                $search .= " INNER JOIN {$this->sheetProviderTable} sp on sp.sheet_id = s.id and sp.provider_code in $providersStr ";
             }
         }
 
@@ -356,11 +357,11 @@ class Sheet extends Model
          
          order by COUNT desc, p.provider_label 
          ";
-
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
+
             throw new InternalServerException();
         }
     }
