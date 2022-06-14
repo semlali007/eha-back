@@ -39,7 +39,7 @@ class SheetBeneficiary extends Model
     public function getBySheet($sheetId)
     {
         try {
-            $query = 'SELECT DISTINCT  f.* FROM ' . $this->beneficiaryTable . ' f INNER JOIN ' . $this->table . ' sf ON sf.filiale_id = f.id WHERE sf.sheet_id = :sheet_id';
+            $query = 'SELECT DISTINCT  f.* FROM ' . $this->beneficiaryTable . ' f INNER JOIN ' . $this->table . ' sf ON sf.filiale_id = f.id WHERE sf.sheet_id = :sheet_id order by f.name';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();
