@@ -22,7 +22,7 @@ class SheetArea extends Model
     public function getBySheet($sheetId)
     {
         try {
-            $query = 'SELECT DISTINCT  z.* FROM ' . $this->areaTable . ' z INNER JOIN ' . $this->table . ' zf ON zf.zone_id = z.id WHERE zf.sheet_id = :sheet_id';
+            $query = 'SELECT DISTINCT  z.* FROM ' . $this->areaTable . ' z INNER JOIN ' . $this->table . ' zf ON zf.zone_id = z.id WHERE zf.sheet_id = :sheet_id ORDER BY z.name ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();
