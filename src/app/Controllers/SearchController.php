@@ -7,7 +7,7 @@ use App\Repository\DauphinRepository;
 use App\Repository\ItemRepository;
 use App\Repository\ProviderRepository;
 use Core\Http\Request ;
-use Core\Http\Response ;
+use Core\Util\Arrays ;
 use App\Exceptions\HttpException ;
 use Core\Util\HealthCheck as health;
 
@@ -28,19 +28,7 @@ class SearchController extends Controller
         $this->itemRepository = new ItemRepository();
     }
 
-    static function array_filter_by_value($my_array, $index, $value)
-    {
-        $new_array = [];
-        $len = strlen($value);
-        if (is_array($my_array) && count($my_array) > 0) {
-            foreach ($my_array as $key => $element) {
-                if (substr($element[$index], -$len) === $value || $len == 0) {
-                    $new_array[] = $element;
-                }
-            }
-        }
-        return $new_array;
-    } 
+
 
     public function search()
     {
@@ -51,11 +39,10 @@ class SearchController extends Controller
             $contracts = $this->contractRepository->searchFromApi($options);
             $dauphins = $this->dauphinRepository->searchFromApi($options);
             $items = $this->itemRepository->searchFromApi($options);
-
             return $this->response(
                             [
                                 'provider' => $providers,
-                                'contract' => self::array_filter_by_value($contracts, 'code', $options['system']),
+                                'contract' => Arrays::filterByValue($contracts, 'code', $options['system']),
                                 'dauphin' => $dauphins,
                                 'item_generic' => $items,
                             ]
