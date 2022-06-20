@@ -7,7 +7,7 @@ use App\Repository\DauphinRepository;
 use App\Repository\ItemRepository;
 use App\Repository\ProviderRepository;
 use Core\Http\Request ;
-use Core\Http\Response ;
+use Core\Util\Arrays ;
 use App\Exceptions\HttpException ;
 use Core\Util\HealthCheck as health;
 
@@ -28,9 +28,12 @@ class SearchController extends Controller
         $this->itemRepository = new ItemRepository();
     }
 
+
+
     public function search()
     {
         $options = Request::input();
+        
         try {
             $providers = $this->providerRepository->searchFromApi($options);
             $contracts = $this->contractRepository->searchFromApi($options);
@@ -39,7 +42,7 @@ class SearchController extends Controller
             return $this->response(
                             [
                                 'provider' => $providers,
-                                'contract' => $contracts,
+                                'contract' => Arrays::filterByValue($contracts, 'code', $options['system']),
                                 'dauphin' => $dauphins,
                                 'item_generic' => $items,
                             ]
