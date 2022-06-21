@@ -74,11 +74,11 @@ class SheetRepository extends AbstractRepository {
     public static function addTooltip($tab){
             $newtab = [];
             foreach($tab as $row){
-                if($row['name'] == 'DOA TP&IT')
+                if(strtolower($row['name']) == 'doa tp&it')
                 {
                     $row['tooltip'] = 'La direction opérationnelle DOA TP&IT regroupe les fiches marchés des anciens domaines DATP et DAIT.';
                 }
-                else if($row['name'] == 'DOA Production')
+                else if(strtolower($row['name']) == 'doa production')
                 {
                     $row['tooltip'] = "La direction opérationnelle DOA Production regroupe provisoirement les fiches marchés de l'ancien domaine DAPI.";
                 }
