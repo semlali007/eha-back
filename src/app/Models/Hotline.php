@@ -49,7 +49,7 @@ class Hotline extends Model {
     
     public function getList($options) {
         try {
-            $email = $options['email'];
+            $email = strtolower($options['email']);
             $categoryWhere = (array_key_exists('category', $options)&& !empty($options['category'])) ?" WHERE h.category_id =:category " : '' ;
             $query = "
                     SELECT hf.discussion, hf.is_hotline, h.opened_at, h.closed_at, h.question, h.sha_demandeur, h.sha_hotline, hf.natures
