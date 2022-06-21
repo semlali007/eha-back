@@ -28,6 +28,7 @@ class SheetRepository extends AbstractRepository {
         $dauphins = $sheet->groupedByDauphin($options);
         $partnerships = $sheet->groupedByPartnership($options);
         $status = $sheet->groupedByStatus($options);
+        $directions = $sheet->groupedByDirections($options);
         
         return
                 [
@@ -44,7 +45,7 @@ class SheetRepository extends AbstractRepository {
                         'beneficiaries' => $sheet->groupedByFiliale($options),
                         'areas' => $sheet->groupedByZone($options),
                         'providers' => $sheet->groupedByProvider($options),
-                        'directions' => $sheet->groupedByDirections($options),
+                        'directions' => self::addTooltip($directions),
                         'committees' => $sheet->groupedByCommittees($options),
                     ],
         ];
@@ -68,6 +69,26 @@ class SheetRepository extends AbstractRepository {
                 }
             }
         return $firstElements;
+    }
+
+    public static function addTooltip($tab){
+            $newtab = [];
+            foreach($tab as $row){
+                if($row['name'] == 'DOA TP&IT')
+                {
+                    $row['tooltip'] = 'La direction opérationnelle DOA TP&IT regroupe les fiches marchés des anciens domaines DATP et DAIT.';
+                }
+                else if($row['name'] == 'DOA Production')
+                {
+                    $row['tooltip'] = "La direction opérationnelle DOA Production regroupe provisoirement les fiches marchés de l'ancien domaine DAPI.";
+                }
+                else 
+                {
+                    $row['tooltip'] = '';
+                }
+                $newtab[] = $row;
+            }
+        return $newtab;
     }
 
     /**
