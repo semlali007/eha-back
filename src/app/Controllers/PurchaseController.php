@@ -53,25 +53,6 @@ class PurchaseController extends Controller
             }
            
             $resultat = $this->formaTData($this->purchaseRepository->getAll($nni), $trans, 'last_status_event');
-            $response = [];
-            foreach($resultat as $k=>$r){
-                if($k<10){
-                    $options['words'] = $r['purchase_demand_id'];
-                    $freeze = $this->formaTData($this->purchaseRepository->searchFromApi($options), $trans, 'event_label');
-                    $resultat[$k]["freeze"]  =$freeze;
-                    $d = '1970-01-01';
-                    $state = 1;
-                    foreach($freeze as $f){
-                        if($f['event_date']>$d){
-                            $d = $f['event_date'];
-                            $state = $f['event_label'];
-                        }
-                    }
-                }
-
-                $resultat[$k]["last_status_event"] =   $state;
-            }
-
             return $this->response(['purchases' => $resultat]);
         } catch (\Throwable|\Exception $ex) {
             return $this->hlkErrorResponse();
