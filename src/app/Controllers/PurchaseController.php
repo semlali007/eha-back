@@ -46,7 +46,7 @@ class PurchaseController extends Controller
             $nni = $this->getCurrentUser()->getNni();
             $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
             if (in_array($nni, $arr)) {
-                $nni = 'A97609';
+                $nni = 'E85949';
             }
             if (is_null($nni)) {
                 return $this->response(['purchases' => []]);
