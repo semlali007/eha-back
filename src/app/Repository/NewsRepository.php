@@ -53,4 +53,9 @@ class NewsRepository extends AbstractRepository
         return $news->getElement($id);
     }
 
+    public function getNewsCountOfPage($type, $userNni){
+        $news = new News();
+        return $news->getNewsCountOfPage($type, $userNni);
+    }
+
 }
