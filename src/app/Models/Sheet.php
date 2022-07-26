@@ -678,6 +678,18 @@ class Sheet extends Model
         }
     }
 
-
+    public function getSheetByNetAchat($netAchatId)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id, s.label, s.netachat_id FROM ' . $this->table . ' s WHERE  netachat_id=:netachat_id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':netachat_id', $netAchatId, PDO::PARAM_INT);
+            $sth->execute();
+            return  $sth->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            var_dump($e);exit;
+            throw new InternalServerException();
+        }
+    }
    
 }

@@ -22,6 +22,10 @@ use App\Models\Beneficiary;
 use App\Models\Area;
 use App\Models\Group;
 use phpDocumentor\Reflection\Types\Null_;
+use App\Models\Domain;
+use App\Models\SheetDomain;
+use App\Models\SheetSubDomain;
+use App\Models\SubDomain;
 
 class SheetManager extends AbstractManager
 {
@@ -395,6 +399,102 @@ class SheetManager extends AbstractManager
                 'doc_dep' => 'Doc_Dep_DATP/',
             ]
     ];
+
+    public function migrateDomain($type){
+        $type = trim($type);
+        $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
+        $sources = [
+            "dait" => [
+                "files" => ["dait1.json", "dait2.json"],
+                "status" => '1'
+            ],
+            "dapi" => [
+                "files" => ["dapi1.json", "dapi2.json"],
+                "status" => '1'
+            ],
+            "datp" => [
+                "files" => ["datp1.json", "datp2.json"],
+                "status" => '1'
+            ],
+            "datp_archivage" => [
+                "files" => ["datp_archivage1.json", "datp_archivage2.json"],
+                "status" => '-1'
+            ],
+            "dapi_archivage" => [
+                "files" => ["dapi_archivage.json"],
+                "status" => '-1'
+            ],
+            "dait_archivage" => [
+                "files" => ["dait_archivage"],
+                "status" => '-1'
+            ],
+        ];
+
+        if(!array_key_exists($type, $sources)){
+            throw new Exception('type de fiche inconnu');
+            exit;
+        }
+
+        $netachatData = [];
+        foreach ($sources[$type]['files'] as $i => $f) {
+            $s = json_decode(file_get_contents($destinationMigrationPath .'netachat/'.$f), true);
+            $netachatData = array_merge($netachatData,$s['Row']);
+        }
+
+        $domain = new Domain();
+        $subDomain = new SubDomain();
+        $sheetDomain = new SheetDomain();
+        $sheetSubDomain = new SheetSubDomain();
+        $sheet = new Sheet();
+        
+        foreach ($netachatData as $data) {
+            $sheetElement = $sheet->getSheetByNetAchat($data['ID']);
+            if($type == 'dait'){
+                $segment = $data['SegmentDAIT'];
+                $subSegment = $data['SousEnsembleDAIT'];
+                //$subSegement=
+            }else if($type == 'dapi'){
+                $segment = $data['SegmentAchatDAPI'];
+                $subSegment = $data['SousEnsembleAchatDAPI'];
+            }else if($type == 'datp'){
+                $segment = $data['SegmentDATP'];
+                $subSegment = $data['SousEnsembleDATP'];
+            }
+
+            foreach($subSegment as $sub){
+                if( isset($sub['Label'])){
+                $nameSubSegment = $sub['Label'];
+                $p = $subDomain->get(['name' => $nameSubSegment, 'type' => $type]);
+                if (is_array($p) && isset($p['id'])) {
+                    $subDomainId = $p['id'];
+                } else {
+                    $subDomainId = $subDomain->add(['name' => $nameSubSegment, 'type' => $type]);
+                }
+                   
+                if(is_array($sheetElement) && is_numeric($sheetElement['id']))
+                $sheetSubDomain->add($sheetElement['id'], $subDomainId);
+            }
+            }
+            
+
+            foreach($segment as $seg){
+            if(isset($seg['Label'])){
+                $name = $seg['Label'];
+                $p = $domain->get(['name' => $name, 'type' => $type]);
+                if (is_array($p) && isset($p['id'])) {
+                    $domainId = $p['id'];
+                } else {
+                    $domainId = $domain->add(['name' => $name, 'type' => $type]);
+                }
+                   
+                if(is_array($sheetElement) && is_numeric($sheetElement['id']))
+                $sheetDomain->add($sheetElement['id'], $domainId);
+            }
+            }
+        }
+    }
+
+
     public function migrate($type)
     {
         $type = trim($type);
