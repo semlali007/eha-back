@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
+use App\Models\UserNews as ModelsUserNews;
 use PDO;
-
 class News extends Model
 {
     protected $tableName = 'news';
@@ -106,6 +106,22 @@ class News extends Model
             return $sth->fetch(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
+        }
+    }
+
+    public function getNewsCountOfPage($type, $userNni)
+    {
+        $userNewsTable = (new ModelsUserNews())->table;
+        try {
+            $query = 'SELECT COUNT(*) FROM ' . $this->table  . ' WHERE type=:type and id not in (SELECT  id_news from '.$userNewsTable.'   where nni_utilisateur = :userNni AND page=:page)';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':type', $type, PDO::PARAM_STR);
+            $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
+            $sth->bindParam(':page', $type, PDO::PARAM_STR);
+            $sth->execute();
+            return  $sth->fetch(PDO::FETCH_COLUMN);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
         }
     }
 
