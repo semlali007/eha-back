@@ -1784,9 +1784,7 @@ CREATE TABLE "EHA".subscription
     created date,
     user_nni character varying(100) NOT NULL,
     CONSTRAINT subscription_pkey PRIMARY KEY (user_nni, sheet_id)
-)
-
-
+);
 
 ALTER TABLE "EHA".sheet_headers 
     ADD COLUMN netachat_id integer;
@@ -1796,3 +1794,83 @@ ALTER TABLE "EHA".sheet_headers
 
        ALTER TABLE "EHA".sheet_headers 
     ADD COLUMN netachat_type text;
+    
+CREATE TABLE "EHA".domain (
+    id integer NOT NULL,
+    type character varying(255) NOT NULL,
+    name text NOT NULL
+);
+
+CREATE SEQUENCE "EHA".domain_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE ONLY "EHA".domain ALTER COLUMN id SET DEFAULT nextval('"EHA".domain_id_seq'::regclass);
+
+ALTER TABLE ONLY "EHA".domain
+    ADD CONSTRAINT domain_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY "EHA".domain
+    ADD CONSTRAINT domain_unique UNIQUE (name, type);
+
+    CREATE TABLE "EHA".subdomain (
+    type character varying(255) NOT NULL,
+    name text NOT NULL,
+    id integer NOT NULL
+);
+
+
+CREATE SEQUENCE "EHA".subdomain_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE ONLY "EHA".subdomain ALTER COLUMN id SET DEFAULT nextval('"EHA".subdomain_id_seq'::regclass);
+
+ALTER TABLE ONLY "EHA".subdomain
+    ADD CONSTRAINT subdomain_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY "EHA".subdomain
+    ADD CONSTRAINT subdomain_unique UNIQUE (name, type);
+
+CREATE TABLE "EHA".sheet_subdomain (
+    subdomain_id integer NOT NULL,
+    sheet_id bigint NOT NULL
+);
+
+ALTER TABLE ONLY "EHA".sheet_subdomain
+    ADD CONSTRAINT sheet_sub_domain_pkey PRIMARY KEY (subdomain_id, sheet_id);
+
+CREATE TABLE "EHA".sheet_domain (
+    domain_id integer NOT NULL,
+    sheet_id bigint NOT NULL
+);
+
+CREATE SEQUENCE "EHA".sheet_domain_domain_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE SEQUENCE "EHA".sheet_domain_sheet_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE ONLY "EHA".sheet_domain ALTER COLUMN domain_id SET DEFAULT nextval('"EHA".sheet_domain_domain_id_seq'::regclass);
+
+ALTER TABLE ONLY "EHA".sheet_domain ALTER COLUMN sheet_id SET DEFAULT nextval('"EHA".sheet_domain_sheet_id_seq'::regclass);
+
+ALTER TABLE ONLY "EHA".sheet_domain
+    ADD CONSTRAINT sheet_domain_pkey PRIMARY KEY (domain_id, sheet_id);
