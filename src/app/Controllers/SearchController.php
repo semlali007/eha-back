@@ -67,9 +67,9 @@ class SearchController extends Controller
       
         // dans le cas ou l'element n'existe pas
         foreach ($providers as $provider) {
-
             if (isset($options['nace']) && !empty($options['nace'])) {
-                if ($provider['provider_nace'] != $options['nace']) {
+                if(!in_array($provider['provider_nace'], $options['nace'] ))
+                {
                     continue;
                 }
             }
