@@ -12,7 +12,6 @@ class SubDomain extends Model
 
     public function add($options)
     {
-        var_dump($options);
         try {
             $query = '
         INSERT INTO ' . $this->table . ' (name, type) VALUES (:name, :type) ON CONFLICT DO NOTHING;
@@ -56,6 +55,25 @@ class SubDomain extends Model
             $sth->bindParam(':type', $options['type'], PDO::PARAM_STR);
             $sth->execute();
             return $sth->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+    public function getPaginatedList($options)
+    {
+        try {
+            $perpage = $options['perpage'] ?? 5;
+            $page = $options['page'] ?? 1;
+            $page = ($page - 1) * $perpage;
+            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
+            $count_sql = "SELECT COUNT(*) FROM " . $this->table;
+            $st = $this->db->getPDO()->prepare($count_sql);
+            $st->execute();
+            $data['total'] = $st->fetch(PDO::FETCH_ASSOC)['count'];
+            return $data;
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

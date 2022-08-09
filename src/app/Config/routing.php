@@ -144,6 +144,14 @@ $router->get('/factsheets/edit/:id', 'App\Controllers\FactsheetController@edit',
 $router->post('/factsheets/save/:id', 'App\Controllers\FactsheetController@save', ["roles"=>['USER']]);
 $router->get('/factsheets/delete/:id', 'App\Controllers\FactsheetController@delete', ["roles"=>['USER']]);
 
+$router->get('/domains/autocomplete/:word', 'App\Controllers\DomainController@autocomplete', ["roles"=>['USER']]);
+$router->post('/domains/search', 'App\Controllers\DomainController@search', ["roles"=>['USER']]);
+$router->post('/domains/add', 'App\Controllers\DomainController@add', ["roles"=>['USER']]);
+
+$router->get('/subdomains/autocomplete/:word', 'App\Controllers\SubDomainController@autocomplete', ["roles"=>['USER']]);
+$router->post('/subdomains/search', 'App\Controllers\SubDomainController@search', ["roles"=>['USER']]);
+$router->post('/subdomains/add', 'App\Controllers\SubDomainController@add', ["roles"=>['USER']]);
+
 
 //try {
 $data = $router->run();

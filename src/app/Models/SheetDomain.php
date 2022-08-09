@@ -49,7 +49,7 @@ class SheetDomain extends Model
         }
     }
 
-    public function deleteGroups($sheetId, $groupsId)
+    public function deleteDomains($sheetId, $groupsId)
     {
 
         if (!is_array($groupsId)  || !is_numeric($sheetId)) {
@@ -64,7 +64,7 @@ class SheetDomain extends Model
             } else {
                 $groups = '(' . implode(',', $groupsId) . ')';
                 $query = '
-            DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId AND group_id NOT IN $groups  
+            DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId AND domain_id NOT IN $groups  
             ";
             }
 

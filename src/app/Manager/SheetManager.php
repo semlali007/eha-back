@@ -74,6 +74,8 @@ class SheetManager extends AbstractManager
             $data['filiales'] = $sheetData['filiales'] ?? [];
             $data['providers'] = $sheetData['providers'] ?? [];
             $data['groups'] = $sheetData['groups'] ?? [];
+            $data['domains'] = $sheetData['domains'] ?? [];
+            $data['subdomains'] = $sheetData['subdomains'] ?? [];
             $data['zones'] = $sheetData['zones'] ?? [];
             $data['deleted_files'] = $sheetData['deletedFiles'] ?? [];
             $data['options'] = $sheetData['options'] ?? [];
@@ -132,6 +134,21 @@ class SheetManager extends AbstractManager
                     $sheetGroup->add($id, $p['id']);
                 }
                 $sheetGroup->deleteGroups($id, $groups);
+                $sheetDomain = new SheetDomain();
+                $domains = [];
+                foreach ($data['domains'] as $d) {
+                    $domains[] = $d['code'];
+                    $sheetDomain->add($id, $d['code']);
+                }
+                $sheetDomain->deleteDomains($id, $domains);
+
+                $sheetSubDomain = new SheetSubDomain();
+                $subDomains = [];
+                foreach ($data['subdomains'] as $d) {
+                    $subDomains[] = $d['code'];
+                    $sheetSubDomain->add($id, $d['code']);
+                }
+                $sheetSubDomain->deleteSubDomains($id, $subDomains);
 
                 $sheetZone = new SheetArea();
                 $zones = [];
@@ -234,6 +251,8 @@ class SheetManager extends AbstractManager
             
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
+            $data['domains'] = $sheetData['domains'] ?? [];
+            $data['subdomains'] =$sheetData['subdomains'] ?? [];
 
             $fileUpload = new FileUpload();
             $data['files'] = $fileUpload->uploadSheetFiles([
@@ -249,7 +268,6 @@ class SheetManager extends AbstractManager
                 'data' => $data
             ]);
         } catch (Exception $ex) {
-            var_dump($ex);exit;
             http_response_code(500);
             return json_encode([
                 'status' => 500,
@@ -324,6 +342,25 @@ class SheetManager extends AbstractManager
                     $option['sheet_id'] = $id;
                     $sheetOption->add($option);
                 }
+            }
+
+            if (array_key_exists('domains', $data)) {
+            $sheetDomain = new SheetDomain();
+                $domains = [];
+                foreach ($data['domains'] as $d) {
+                    $domains[] = $d['code'];
+                    $sheetDomain->add($id, $d['code']);
+                }
+                $sheetDomain->deleteDomains($id, $domains);
+            }
+            if (array_key_exists('subdomains', $data)) {
+                $sheetSubDomain = new SheetSubDomain();
+                $subDomains = [];
+                foreach ($data['subdomains'] as $d) {
+                    $subDomains[] = $d['code'];
+                    $sheetSubDomain->add($id, $d['code']);
+                }
+                $sheetSubDomain->deleteSubDomains($id, $subDomains);
             }
 
             $this->db->getPDO()->commit();
