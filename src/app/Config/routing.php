@@ -110,12 +110,17 @@ $router->get('/externals/delete/:email', 'App\Controllers\Admin\ExternalControll
 
 $router->get('/hotline-themes', 'App\Controllers\Admin\Hotline\HotlineThemeController@index', ["roles"=>['USER']]);
 $router->post('/hotline-themes/save', 'App\Controllers\Admin\Hotline\HotlineThemeController@update', ["roles"=>['USER']]);
+$router->post('/hotline-themes/add', 'App\Controllers\Admin\Hotline\HotlineThemeController@add', ["roles"=>['USER']]);
+$router->get('/hotline-themes/edit/:id', 'App\Controllers\Admin\Hotline\HotlineThemeController@edit', ["roles"=>['USER']]);
+$router->get('/hotline-themes/delete/:id', 'App\Controllers\Admin\Hotline\HotlineThemeController@delete', ["roles"=>['USER']]);
+
 
 $router->get('/hotline-groups', 'App\Controllers\Admin\Hotline\HotlineGroupController@index', ["roles"=>['USER']]);
 $router->post('/hotline-groups/save', 'App\Controllers\Admin\Hotline\HotlineGroupController@update', ["roles"=>['USER']]);
 
 $router->get('/hotline-emails', 'App\Controllers\Admin\Hotline\HotlineEmailController@index', ["roles"=>['USER']]);
 $router->post('/hotline-emails/save', 'App\Controllers\Admin\Hotline\HotlineEmailController@update', ["roles"=>['USER']]);
+$router->post('/hotline-emails/add', 'App\Controllers\Admin\Hotline\HotlineEmailController@add', ["roles"=>['USER']]);
 $router->post('/hotline-emails/living-save', 'App\Controllers\Admin\Hotline\HotlineEmailController@livingUpdate', ["roles"=>['USER']]);
 
 $router->post('/import/upload', 'App\Controllers\Admin\ImportController@upload', ["roles"=>['USER']]);

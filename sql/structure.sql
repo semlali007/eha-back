@@ -1874,3 +1874,30 @@ ALTER TABLE ONLY "EHA".sheet_domain ALTER COLUMN sheet_id SET DEFAULT nextval('"
 
 ALTER TABLE ONLY "EHA".sheet_domain
     ADD CONSTRAINT sheet_domain_pkey PRIMARY KEY (domain_id, sheet_id);
+
+    CREATE SEQUENCE IF NOT EXISTS hotline_theme_id_seq;
+
+SELECT SETVAL('hotline_theme_id_seq', (
+  SELECT max(id) FROM hotline_theme)
+);
+
+ALTER TABLE hotline_theme
+ALTER COLUMN id
+SET DEFAULT nextval('hotline_theme_id_seq'::regclass);
+
+ALTER SEQUENCE hotline_theme_id_seq
+OWNED BY hotline_theme.id;
+
+    CREATE SEQUENCE IF NOT EXISTS hotline_email_id_seq;
+
+SELECT SETVAL('hotline_email_id_seq', (
+  SELECT max(id) FROM hotline_email)
+);
+
+ALTER TABLE hotline_email
+ALTER COLUMN id
+SET DEFAULT nextval('hotline_email_id_seq'::regclass);
+
+ALTER SEQUENCE hotline_email_id_seq
+OWNED BY hotline_email.id;
+

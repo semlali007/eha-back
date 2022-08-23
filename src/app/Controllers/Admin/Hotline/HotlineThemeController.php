@@ -41,4 +41,19 @@ class HotlineThemeController extends Controller
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
         return  $this->response($this->hotlineThemeManager->update($options));
     }
+
+    public function add()
+    {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        return  $this->response($this->hotlineThemeManager->add($options));
+    }
+
+    public function edit($id)
+    {
+        return $this->response($this->hotlineThemeRepository->get($id));
+    }
+    public function delete($id)
+    {
+        return $this->response($this->hotlineThemeRepository->delete($id));
+    }
 }
