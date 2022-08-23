@@ -2,14 +2,23 @@
 
 namespace App\Repository\Hotline;
 
-use App\Models\HotlineGroup;
+use App\Models\HotlineTheme;
 use App\Repository\AbstractRepository;
 
 class HotlineThemeRepository extends AbstractRepository
 {
     public function getList()
     {
-        $group = new HotlineGroup();
-        return $group->getAll();
+        $theme = new HotlineTheme();
+        return $theme->getAll();
+    }
+    public function get($id)
+    {
+        $theme = new HotlineTheme();
+        return $theme->get($id);
+    }
+    public function delete(mixed $id):mixed {
+        $theme = new HotlineTheme();
+        return $theme->delete($id);
     }
 }

@@ -52,4 +52,21 @@ class HotlineEmailManager extends AbstractManager
             ];
         }
     }
+    public function add($options)
+    {
+        try {
+            $email = new HotlineEmail();
+            $email->add($options);
+            return [
+                'status' => true,
+                'message' => 'email modifié'
+            ];
+        } catch (Exception $ex) {
+            return [
+                'status' => false,
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
+
 }

@@ -25,7 +25,7 @@ class HotlineTheme extends Model
     public function getAll()
     {
         try {
-            $query = "SELECT id, label, living  FROM {$this->table}";
+            $query = "SELECT id, label, living  FROM {$this->table} ORDER BY id ";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
@@ -37,8 +37,10 @@ class HotlineTheme extends Model
     public function update($options)
     {
         try {
-            $query = "UPDATE {$this->table} SET living = case when living is true then false else true end WHERE id = :id";
+            $query = "UPDATE {$this->table} SET living = :living, label= :label WHERE id = :id";
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':living', $options['living'], PDO::PARAM_BOOL);
+            $sth->bindParam(':label', $options['label'], PDO::PARAM_STR);
             $sth->bindParam(':id', $options['id'], PDO::PARAM_INT);
             return $sth->execute();
         } catch (\Exception $e) {
@@ -49,7 +51,7 @@ class HotlineTheme extends Model
     public function get($id)
     {
         try {
-            $query = 'SELECT label FROM ' . $this->table . ' WHERE id =:id';
+            $query = 'SELECT label, living, id FROM ' . $this->table . ' WHERE id =:id';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
@@ -59,4 +61,30 @@ class HotlineTheme extends Model
         }
     }
 
+    public function add($options)
+    {
+        try {
+            $query = '
+        INSERT INTO ' . $this->table . ' (label, living) VALUES (:label, :living);
+        ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':label', $options['label'], PDO::PARAM_STR);
+            $sth->bindParam(':living', $options['living'], PDO::PARAM_BOOL);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function delete($id)
+    {
+        try {
+            $query = "DELETE FROM {$this->table} WHERE id = :id";
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            return $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
 }
