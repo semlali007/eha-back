@@ -117,6 +117,7 @@ class HotlineManager extends AbstractManager
         $id = $options['id'];
         $sha = $options['sha'];
         $email = $options['email'];
+        $emailcc = $options['emailcc'];
         $infos = (new Hotline())->getInfos($id, $sha);
         $groupe = $infos['groupe'];
         $isHotline = $infos['status'];
@@ -150,6 +151,13 @@ class HotlineManager extends AbstractManager
                 ]);
             } else {
                 $this->sendMail($email, "Achatpédia - Q$id - Pour info", "mail/hotline_question_forword_to_user.html.twig", [
+                    'id' => $id,
+                    'sha' => $sha,
+                ]);
+            }
+            
+            if(isset($emailcc)) {
+                $this->sendMail($emailcc, "Achatpédia - Q$id - Pour info", "mail/hotline_question_forword_cc.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
                 ]);
