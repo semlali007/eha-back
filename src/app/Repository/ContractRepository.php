@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use App\Models\SheetContract;
+use App\Models\Sheet;
 use App\Services\HttpClientService;
 use Exception;
 
@@ -50,6 +52,11 @@ class ContractRepository extends AbstractRepository {
             return HttpClientService::exec_post($hlk['url'], $queryData);
         endif;
         return [];
+    }
+    public function getSheets($code){
+        $sheet = new Sheet();
+        return $sheet->getByContract($code);
+    
     }
 
 }

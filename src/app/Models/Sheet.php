@@ -692,4 +692,19 @@ class Sheet extends Model
         }
     }
    
+
+    public function getByContract($contract_code)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id,s.label  FROM ' . $this->table . ' s INNER JOIN ' . $this->sheetContract . ' sc ON sc.sheet_id = s.id WHERE sc.contract_code = :contract_code ORDER BY s.label ' ;
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':contract_code', $contract_code, PDO::PARAM_STR);
+            $sth->execute();
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+        
+    }
+
 }
