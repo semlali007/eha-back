@@ -156,10 +156,11 @@ class HotlineManager extends AbstractManager
                 ]);
             }
             
-            if(isset($emailcc)) {
+            if(!empty($emailcc)) {
                 $this->sendMail($emailcc, "Achatpédia - Q$id - Pour info", "mail/hotline_question_forword_cc.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
+                    'email' => $email,
                 ]);
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['15'] . '</p>';
