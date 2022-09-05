@@ -23,7 +23,12 @@ class ContractController extends Controller
     {   
         $params = explode("-",$code) ;
         $contract_code = (count($params)>0) ? $params[0] : "" ;
-        return $this->response($this->contractRepository->getContract(['word' => $contract_code]));
+        $contract = $this->contractRepository->getContract(['word' => $contract_code]);
+        $contract['sheets']= [];
+        if(isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])){
+            $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
+        }
+        return $this->response($contract);
     }
 
     /**
