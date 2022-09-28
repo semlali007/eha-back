@@ -16,13 +16,13 @@ use App\Models\SheetOption;
 use App\Models\SheetProvider;
 use App\Models\SheetSubDomain;
 use App\Models\Subscription;
-use Core\Util\Date ;
+use Core\Util\{Date,Math, Arrays } ;
 use Exception;
 
 class SheetRepository extends AbstractRepository {
 
     public function search($options, $userNni = null) {
-
+       // $options = $this->optimiseSearch($options) ;
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
@@ -139,13 +139,14 @@ class SheetRepository extends AbstractRepository {
 
             $committee = new Committee();
             $committetSheet = $committee->getByCode($details['committee']);
+           
             if (!is_array($committetSheet)) {
                 $committetSheet = [];
             }
-
+            
             $details['committee'] = $committetSheet;
 
-
+ 
             $sub = new Subscription();
             $details['subscribed'] = $sub->isSubscribed($id, $userNni);
 
@@ -342,6 +343,22 @@ class SheetRepository extends AbstractRepository {
     }
 
 
-
+    public function optimiseSearch(mixed $option):mixed{
+        $searchText = trim($option["search"]["searchText"]) ;
+        if (!empty($searchText)):
+            $arraySearch = explode(" ", $searchText);
+            shuffle($arraySearch);
+            $lengthArray = count($arraySearch);
+            if ($lengthArray > 2) {
+                if (fmod($lengthArray, 2) == 0) {
+                    $nbrPercent = floor(Math::getPercentOfNumber($lengthArray));
+                } else {
+                    $nbrPercent = floor(Math::getPercentOfNumber($lengthArray)) + 1;
+                }
+                $option["search"]["searchText"] = Arrays::getRandomElements($arraySearch, $nbrPercent);
+            }
+        endif;
+        return $option ;
+    }
 
 }
