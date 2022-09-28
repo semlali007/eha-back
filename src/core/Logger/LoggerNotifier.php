@@ -14,11 +14,12 @@ class LoggerNotifier implements \SplSubject {
 
     /**
      * 
-     * @param \SplObserver $observer
+     * @param mixed $observer
      * @return void
+     *   
      */
-    public function attach(\SplObserver $observer): self {
-
+    #[\ReturnTypeWillChange]
+    public function attach(mixed $observer): self {
         if (!in_array($observer, $this->observers)):
             $this->observers[] = $observer;
         endif;
@@ -44,7 +45,7 @@ class LoggerNotifier implements \SplSubject {
      * @param string $message
      * @return void
      */
-    public function send(string $message, int $level = Level::INFO): self {
+    public function send(string $message, int $level = Level::WARNING): self {
 
         $this->message = $message;
         $this->notify($level);
@@ -65,7 +66,7 @@ class LoggerNotifier implements \SplSubject {
      * 
      * @return void
      */
-    public function notify(int $level = Level::INFO): void {
+    public function notify(int $level = Level::WARNING): void {
 
         foreach ($this->observers as $value) {
             $value->update($this, $level);
@@ -77,8 +78,8 @@ class LoggerNotifier implements \SplSubject {
      * @param \SplObserver $observer
      * @return bool
      */
+     #[\ReturnTypeWillChange]
     public function isAttached(\SplObserver $observer): bool {
-
         return (in_array($observer, $this->observers));
     }
 

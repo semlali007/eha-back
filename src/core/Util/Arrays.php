@@ -29,4 +29,16 @@ class Arrays {
         return [];
     }
 
+    /**
+     * 
+     * @param array $my_array
+     * @return array
+     */
+    static function getRandomElements(array $my_array,int $nbr = 2):array {
+        $result = [] ;
+        foreach (array_rand($my_array, $nbr) as $key) {
+            array_push($result, $my_array[$key]);
+        }
+        return $result ;
+    }
 }

@@ -26,7 +26,7 @@ class LoggerHandler {
      * @param string $channel
      * @param int $level
      */
-    function __construct(string $channel) {
+    function __construct(string $channel = 'DEFAULT') {
 
         $this->channel = $channel;
     }
