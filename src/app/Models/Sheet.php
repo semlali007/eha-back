@@ -69,21 +69,37 @@ class Sheet extends Model
     public function search($options, $userNni = null)
     {
         try {
-            $orderBy = $options['order_by'] ?? 'updated_at';
+            $words = str_replace(
+                 ' ',
+                 '|',
+                $options['search']['searchText']
+            );
+           
+            $orderBy = $options['order_by'] ?? 'rank';
             $direction = $options['direction'] ?? 'desc';
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
-            $query = "SELECT distinct s.id, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, 
-                      CASE 
-                      WHEN sub.sheet_id is not NULL THEN true
-                      ELSE false
-                      END subscribed
-                      FROM {$this->table}  as s 
-                      LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = S.ID and user_nni=:userNni
-                      {$this->getSearchCondition($options)}  ORDER BY s.{$orderBy} {$direction} LIMIT {$perpage} offset {$page} ";
-           
-            $sth = $this->db->getPDO()->prepare($query);
+            $query = "select distinct *,
+            CASE 
+            WHEN sub.sheet_id is not NULL THEN true
+            ELSE false
+            END subscribed
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(S.label),
+
+            QUERY) AS RANK, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
+                     
+                      FROM {$this->table}  as s ,
+                      TO_TSQUERY('{$words}') QUERY 
+                      
+                      {$this->getSearchCondition($options)}  ORDER BY RANK desc  LIMIT {$perpage} offset {$page} 
+                      )
+                      
+                      as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
+                      
+                      ORDER BY RANK desc
+                      ";
+                      $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
@@ -97,7 +113,7 @@ class Sheet extends Model
     public function getCount($options)
     {
         try {
-            $query = "SELECT COUNT(distinct s.*) FROM " . $this->table . " s {$this->getSearchCondition($options)}";
+            $query = "SELECT COUNT(distinct s.*) FROM " . $this->table . " s {$this->getSearchCondition($options, [])}";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             
@@ -177,14 +193,22 @@ class Sheet extends Model
             $search .= " LEFT JOIN {$this->sheetContract} sc ON  sc.sheet_id = s.ID ";
         }
 
-        $search .= ' WHERE 1=1 ';
-        if ($search_input !== '') {
+        if (!is_array($forFilter) && $search_input !== ''){
+            $search .= ' WHERE QUERY @@ TO_TSVECTOR(S.label) ';
+        }
+        else{
+            $search .= ' WHERE 1=1 ';
+        }
+       
+           
+      /*  if ($search_input !== '' ) {
+           
             if ($isCode) {
                 $search .= " AND (  {$schema}unaccent(lower(s.content)) LIKE {$schema}unaccent('%$search_input%') OR  lower(sc.contract_code)='$search_input') ";
             } else {
                 $search .= " AND ( {$schema}unaccent(lower(s.label)) LIKE {$schema}unaccent('%$search_input%') OR {$schema}unaccent(lower(s.description)) like {$schema}unaccent('%$search_input%') ) ";
             }
-        }
+        }*/
 
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
