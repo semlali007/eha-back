@@ -32,7 +32,7 @@ abstract class Controller
     {
         $this->db = DBConnection::getInstance();
         $this->roles = $roles;
-      //  $this->checkUserAuthorization($roles);
+        $this->checkUserAuthorization($roles);
     }
 
     /**
