@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use Core\Logger\{LoggerHandler as Logger, Level} ;
-use \Core\Http\Request;
+use Core\Http\Request;
 /**
  * Class FrontController
  * @package App\Controllers
@@ -23,8 +23,8 @@ class FrontController extends Controller {
      * @param mixed $input
      * @return void
      */
-    public function Logs():void {
+    public function logs():void {
         $input = Request::input() ;
-        (new Logger(FRONT_CHANNEL))->log("test front message hello", Level::INFO) ;
+        (new Logger(FRONT_CHANNEL))->log($input['message'], Level::INFO);
     }
 }
