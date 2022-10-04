@@ -141,7 +141,8 @@ $configuration = [
         "channels"=>[
             "hlk"=>"hlk",
             "app"=>"eha",
-            "fhm"=>"fhm"
+            "fhm"=>"fhm",
+            "front"=>"front"
         ]
     ]
 ];
