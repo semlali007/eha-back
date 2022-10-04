@@ -14,21 +14,36 @@ class ContractController extends Controller
         $this->contractRepository = new ContractRepository();
     }
 
-    /**
+    
+ /**
      * Appel exemple : http://localhost:8000?url=/contracts/show/C92C4T0270-510
      * @param string $code
-     * @return type
+     * @return mixed
      */
-    public function show(string $code)
-    {   
-        $params = explode("-",$code) ;
-        $contract_code = (count($params)>0) ? $params[0] : "" ;
-        $contract = $this->contractRepository->getContract(['word' => $contract_code]);
-        $contract['sheets']= [];
-        if(isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])){
-            $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
+    public function show(string $code): mixed 
+    {
+        if (strlen($code) <= 11) {// Sans PGI
+            $PGI_CODES = ["PGI-4", "PGI-2", "PGI-1"];
+            $i = 0;
+            do {
+                $contract = $this->contractRepository
+                        ->getContract(['word' =>$code . "-" . $PGI_CODES[$i]]);
+                $i++;
+            } while (($i <= 2) || is_null($contract));
+            // Avec PGI
+        } else { 
+            $contract = $this->contractRepository->getContract(['word' => $code]);
         }
-        return $this->response($contract);
+         
+        // Parser le Data 
+        if (!is_null($contract)) {
+            $contract['sheets'] = [];
+            if (isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])) {
+                $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
+            }
+            return $this->response($contract);
+        }
+        return $this->response([]);
     }
 
     /**
