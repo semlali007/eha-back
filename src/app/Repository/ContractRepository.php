@@ -49,7 +49,7 @@ class ContractRepository extends AbstractRepository {
                 'limit' => $hlk['limit'],
                 'line' => $options['line'] ?? ''
             ]; 
-            return HttpClientService::exec_post($hlk['url'], $queryData);
+            return HttpClientService::post($hlk['url'], $queryData);
         endif;
         return [];
     }
