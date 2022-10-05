@@ -158,7 +158,7 @@ $router->post('/subdomains/search', 'App\Controllers\SubDomainController@search'
 $router->post('/subdomains/add', 'App\Controllers\SubDomainController@add', ["roles"=>['USER']]);
 
 // Log Front informations
-$router->post('/front/logs', 'App\Controllers\FrontController@logs', ["roles"=>['USER']]);
+$router->post('/front/logs', 'App\Controllers\FrontController@logs');
 
 //try {
 $data = $router->run();

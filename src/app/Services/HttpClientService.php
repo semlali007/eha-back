@@ -66,6 +66,21 @@ class HttpClientService {
         return $response;
     }
 
+     /**
+      * 
+      * @param string $url
+      * @param array $query
+      * @param array $headers
+      * @return mixed
+      */
+    static function post (string $url, array $query, array $headers = Json::DEFAULT_HEADER):mixed {
+        $curl = self::init($url, $headers, $query);
+        $responses = curl_exec($curl);
+        $json = json_decode($responses, true);
+        curl_close($curl);
+        return $json ;
+    }
+    
     /**
      * 
      * @param string|null $url
