@@ -69,12 +69,24 @@ class Sheet extends Model
     public function search($options, $userNni = null)
     {
         try {
-            $words = str_replace(
-                 ' ',
-                 '|',
-                $options['search']['searchText']
-            );
-           
+            $worldsList = $pieces = explode(" ", $options['search']['searchText']);
+            $list = [];
+            foreach ($worldsList as $d) {
+                $w = str_replace(
+                    "'",
+                    '',
+                    $d
+                );
+                $w = str_replace(
+                    " ",
+                    '',
+                    $w
+                );
+                if(strlen($w)>0)
+                $list[] = $w;
+            }
+            $words = implode("|", $list);
+            
             $orderBy = $options['order_by'] ?? 'rank';
             $direction = $options['direction'] ?? 'desc';
             $perpage = $options['perpage'] ?? 10;
@@ -85,12 +97,12 @@ class Sheet extends Model
             WHEN sub.sheet_id is not NULL THEN true
             ELSE false
             END subscribed
-            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(S.label),
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
 
             QUERY) AS RANK, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
                      
                       FROM {$this->table}  as s ,
-                      TO_TSQUERY('{$words}') QUERY 
+                      TO_TSQUERY(unaccent(lower('{$words}'))) QUERY 
                       
                       {$this->getSearchCondition($options)}  ORDER BY RANK desc  LIMIT {$perpage} offset {$page} 
                       )
@@ -194,7 +206,7 @@ class Sheet extends Model
         }
 
         if (!is_array($forFilter) && $search_input !== ''){
-            $search .= ' WHERE QUERY @@ TO_TSVECTOR(S.label) ';
+            $search .= ' WHERE QUERY @@ TO_TSVECTOR(unaccent(lower(S.label))) ';
         }
         else{
             $search .= ' WHERE 1=1 ';
