@@ -69,7 +69,7 @@ class Sheet extends Model
     public function search($options, $userNni = null)
     {
         try {
-            $worldsList = $pieces = explode(" ", $options['search']['searchText']);
+            $worldsList = explode(" ", $options['search']['searchText']);
             $list = [];
             foreach ($worldsList as $d) {
                 $w = str_replace(
@@ -97,19 +97,19 @@ class Sheet extends Model
             WHEN sub.sheet_id is not NULL THEN true
             ELSE false
             END subscribed
-            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))),
 
             QUERY) AS RANK, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
                      
-                      FROM {$this->table}  as s ,
-                      TO_TSQUERY(unaccent(lower('{$words}'))) QUERY 
+                      FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
+                       
                       
                       {$this->getSearchCondition($options)}  ORDER BY RANK desc  LIMIT {$perpage} offset {$page} 
                       )
                       
                       as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
                       
-                      ORDER BY RANK desc
+                      ORDER BY  $orderBy $direction
                       ";
                       $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
@@ -125,7 +125,7 @@ class Sheet extends Model
     public function getCount($options)
     {
         try {
-            $query = "SELECT COUNT(distinct s.*) FROM " . $this->table . " s {$this->getSearchCondition($options, [])}";
+            $query = "SELECT COUNT(distinct s.*) FROM " . $this->table . " s  {$this->getSearchCondition($options, [])}";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             
@@ -134,7 +134,26 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
-
+    public function getFormattedWords($words){
+        $worldsList = $pieces = explode(" ", $words);
+            $list = [];
+            foreach ($worldsList as $d) {
+                $w = str_replace(
+                    "'",
+                    '',
+                    $d
+                );
+                $w = str_replace(
+                    " ",
+                    '',
+                    $w
+                );
+                if(strlen($w)>0)
+                $list[] = $w;
+            }
+            
+            return implode("|", $list);
+    }
     public function getSearchCondition($params, $forFilter=null)
     {
         $search = '';
@@ -188,8 +207,8 @@ class Sheet extends Model
 
         $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
-            $searchProvider = strtolower($searchProvider);
-            $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  {$schema}unaccent(lower(provider_label)) LIKE {$schema}unaccent('%$searchProvider%') ) ";
+            $searchProvider = $this->getFormattedWords(strtolower($searchProvider));
+            $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " INNER JOIN 
             (
@@ -204,23 +223,16 @@ class Sheet extends Model
         if ($isCode) {
             $search .= " LEFT JOIN {$this->sheetContract} sc ON  sc.sheet_id = s.ID ";
         }
-
-        if (!is_array($forFilter) && $search_input !== ''){
-            $search .= ' WHERE QUERY @@ TO_TSVECTOR(unaccent(lower(S.label))) ';
-        }
-        else{
-            $search .= ' WHERE 1=1 ';
-        }
-       
-           
-      /*  if ($search_input !== '' ) {
-           
+        if ($search_input !== '') {
             if ($isCode) {
-                $search .= " AND (  {$schema}unaccent(lower(s.content)) LIKE {$schema}unaccent('%$search_input%') OR  lower(sc.contract_code)='$search_input') ";
+                $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.content))) @@ TO_TSQUERY(unaccent(lower('{$search_input}'))) ";
             } else {
-                $search .= " AND ( {$schema}unaccent(lower(s.label)) LIKE {$schema}unaccent('%$search_input%') OR {$schema}unaccent(lower(s.description)) like {$schema}unaccent('%$search_input%') ) ";
+                $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))) @@ TO_TSQUERY(unaccent(lower('{$params['words']}'))) ";
             }
-        }*/
+        } else {
+            $search .= " WHERE   1=1 ";
+        }
+
 
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
@@ -276,7 +288,7 @@ class Sheet extends Model
     public function groupedByOpenEdf($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.edf_open as code FROM " . $this->table . " s {$this->getSearchCondition($options,['edf_open'=>true])}" . " GROUP BY edf_open";
+            $sql = "SELECT COUNT(s.*) as count, s.edf_open as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['edf_open'=>true])}" . " GROUP BY edf_open";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -288,7 +300,7 @@ class Sheet extends Model
     public function groupedByShowcase($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.showcase as code FROM " . $this->table . " s {$this->getSearchCondition($options,['showcase'=>true])}" . " GROUP BY showcase";
+            $sql = "SELECT COUNT(s.*) as count, s.showcase as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['showcase'=>true])}" . " GROUP BY showcase";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -300,7 +312,7 @@ class Sheet extends Model
     public function groupedByPartnership($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.partnership as code FROM " . $this->table . " s {$this->getSearchCondition($options,['partnership'=>true])}" . " GROUP BY partnership";
+            $sql = "SELECT COUNT(s.*) as count, s.partnership as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['partnership'=>true])}" . " GROUP BY partnership";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -308,11 +320,13 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
+
     public function groupedBySector($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.protected_sector as code FROM " . $this->table . " s {$this->getSearchCondition($options,['protected_sector'=>true])}" . " GROUP BY protected_sector";
-            $sth = $this->db->getPDO()->prepare($sql);
+           $sql = "SELECT COUNT(s.*) as count, s.protected_sector as code FROM  " . $this->table . " s {$this->getSearchCondition($options,['protected_sector'=>true])}" . " GROUP BY protected_sector";
+          
+           $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -323,7 +337,7 @@ class Sheet extends Model
     public function groupedByDauphin($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.dauphin as code FROM " . $this->table . "  s {$this->getSearchCondition($options,['dauphin'=>true])}" . " GROUP BY dauphin";
+            $sql = "SELECT COUNT(s.*) as count, s.dauphin as code FROM " . $this->table . "  s  {$this->getSearchCondition($options,['dauphin'=>true])}" . " GROUP BY dauphin";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -335,7 +349,7 @@ class Sheet extends Model
     public function groupedByStatus($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, s.status as code FROM " . $this->table . "  s {$this->getSearchCondition($options,['status'=>true])}" . " GROUP BY status";
+            $sql = "SELECT COUNT(s.*) as count, s.status as code FROM  " . $this->table . " s   {$this->getSearchCondition($options,['status'=>true])}" . " GROUP BY status";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
@@ -366,7 +380,7 @@ class Sheet extends Model
        ELSE BENIFICIARIES.COUNT 
        END AS COUNT, f.id  from {$this->beneficiaryTable} f  LEFT join  
         (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetBeneficiaryTable} sb WHERE sb.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['beneficiary'=>true])} ) GROUP BY sb.filiale_id)  benificiaries on f.id =  benificiaries.code
+         ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['beneficiary'=>true])} ) GROUP BY sb.filiale_id)  benificiaries on f.id =  benificiaries.code
          
          order by COUNT desc, f.id 
          ";
@@ -389,7 +403,7 @@ class Sheet extends Model
        END AS COUNT  from {$this->providerTable} p LEFT join 
          
         (SELECT  count(sp.*) as count, sp.provider_code as code FROM   {$this->sheetProviderTable} sp WHERE sp.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
+         ( SELECT s.id  FROM  " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
          
          order by COUNT desc, p.provider_label 
          ";
@@ -413,7 +427,7 @@ class Sheet extends Model
             from {$this->areaTable} z LEFT join 
          
         (SELECT  count(sz.*) as count, sz.zone_id as code FROM   {$this->sheetAreaTable} sz WHERE sz.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['area'=>true])} ) GROUP BY sz.zone_id)  areas on z.id =  areas.code
+         ( SELECT s.id  FROM  " . $this->table . "  s  {$this->getSearchCondition($options, ['area'=>true])} ) GROUP BY sz.zone_id)  areas on z.id =  areas.code
          
          order by COUNT desc,z.name 
          ";
@@ -435,7 +449,7 @@ class Sheet extends Model
        END AS COUNT  from {$this->groupTable} d LEFT join 
          
         (SELECT  count(sd.*) as count, sd.group_id as code FROM   {$this->sheetGroupTable} sd WHERE sd.sheet_id  in
-         ( SELECT s.id  FROM " . $this->table . "  s  {$this->getSearchCondition($options, ['direction'=>true])} ) GROUP BY sd.group_id)  directions on d.id =  directions.code
+         ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['direction'=>true])} ) GROUP BY sd.group_id)  directions on d.id =  directions.code
          
          order by COUNT desc,d.name limit 15
          ";
@@ -451,7 +465,7 @@ class Sheet extends Model
     public function groupedByCommittees($options)
     {
         try {
-            $sql = "SELECT COUNT(s.*) as count, c.code as code, c.label as name FROM " . $this->committeeTable . "  c " . " LEFT join {$this->table} s
+            $sql = "SELECT COUNT(s.*) as count, c.code as code, c.label as name FROM   " . $this->committeeTable . "  c " . " LEFT join {$this->table} s
              ON c.code = s.committee {$this->getSearchCondition($options,['committees'=>true])} GROUP BY c.code, c.label order by COUNT desc, c.label";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
