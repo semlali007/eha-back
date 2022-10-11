@@ -87,10 +87,8 @@ class Sheet extends Model
             }
 
             $words = implode("|", $list);
-            //$orderBy = $options['order_by'] ?? 'rank';
-            //$direction = $options['direction'] ?? 'desc';
-            $orderBy = 'rank';
-            $direction = 'desc';
+            $orderBy = $options['order_by'] ?? 'rank';
+            $direction = $options['direction'] ?? 'desc';
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
