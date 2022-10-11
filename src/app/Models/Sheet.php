@@ -70,6 +70,7 @@ class Sheet extends Model
     {
         try {
             $worldsList = explode(" ", $options['search']['searchText']);
+            $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
             $list = [];
             foreach ($worldsList as $d) {
                 $w = str_replace(
