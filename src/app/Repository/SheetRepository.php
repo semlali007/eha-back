@@ -21,8 +21,28 @@ use Exception;
 
 class SheetRepository extends AbstractRepository {
 
+    public function getFormattedWords($options){
+        $worldsList = explode(" ", $options['search']['searchText']);
+            $list = [];
+            foreach ($worldsList as $d) {
+                $w = str_replace(
+                    "'",
+                    '',
+                    $d
+                );
+                $w = str_replace(
+                    " ",
+                    '',
+                    $w
+                );
+                if(strlen($w)>0)
+                $list[] = $w;
+            }
+            
+            return implode("|", $list);
+    }
     public function search($options, $userNni = null) {
-       // $options = $this->optimiseSearch($options) ;
+        $options['words'] = $this->getFormattedWords($options);
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
@@ -31,7 +51,7 @@ class SheetRepository extends AbstractRepository {
         $partnerships = $sheet->groupedByPartnership($options);
         $status = $sheet->groupedByStatus($options);
         $directions = $sheet->groupedByDirections($options);
-        
+       
         return
                 [
                     'sheets' => $sheet->search($options, $userNni),
@@ -46,7 +66,7 @@ class SheetRepository extends AbstractRepository {
                         'dauphin' => self::addAttribute($dauphins),
                         'beneficiaries' => $sheet->groupedByFiliale($options),
                         'areas' => $sheet->groupedByZone($options),
-                        'providers' => $sheet->groupedByProvider($options),
+                        'providers' =>$sheet->groupedByProvider($options),
                         'directions' => self::addTooltip($directions),
                         'committees' => $sheet->groupedByCommittees($options),
                     ],
