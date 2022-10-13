@@ -72,19 +72,29 @@ class Sheet extends Model
             $worldsList = explode(" ", $options['search']['searchText']);
             $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
             $list = [];
+            $articles = array("les", "des", "pour", "avec", "sans");
             foreach ($worldsList as $d) {
                 $w = str_replace(
                     "'",
                     '',
                     $d
                 );
+
                 $w = str_replace(
                     " ",
                     '',
                     $w
                 );
-                if(strlen($w)>0)
-                $list[] = $w;
+                
+                if (strlen($w) > 2 && !in_array($w, $articles)) {
+                    if (!str_ends_with($w, 's')) {
+                        $list[] = $w.'s';
+                    }else{
+                        $list[] = substr($w,0,-1); 
+                    }
+
+                    $list[] = $w;
+                }
             }
 
             $words = implode("|", $list);
@@ -112,6 +122,7 @@ class Sheet extends Model
                       
                       ORDER BY  $orderBy $direction
                       ";
+                      
                       $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
             $sth->execute();

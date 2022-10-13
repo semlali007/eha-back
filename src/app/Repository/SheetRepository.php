@@ -21,29 +21,40 @@ use Exception;
 
 class SheetRepository extends AbstractRepository {
 
-    public function getFormattedWords($options){
+    public function getFormattedWords($options)
+    {
         $worldsList = explode(" ", $options['search']['searchText']);
         $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
-            $list = [];
-            foreach ($worldsList as $d) {
-                $w = str_replace(
-                    "'",
-                    '',
-                    $d
-                );
-                $w = str_replace(
-                    " ",
-                    '',
-                    $w
-                );
-                if(strlen($w)>0)
+        $articles = array("les", "des", "pour", "avec", "sans");
+        $list = [];
+        foreach ($worldsList as $d) {
+            $w = str_replace(
+                "'",
+                '',
+                $d
+            );
+
+            $w = str_replace(
+                " ",
+                '',
+                $w
+            );
+            
+            if (strlen($w) > 2 && !in_array($w, $articles)) {
+                if (!str_ends_with($w, 's')) {
+                    $list[] = $w.'s';
+                }else{
+                    $list[] = substr($w,0,-1); 
+                }
                 $list[] = $w;
             }
-            
-            return implode("|", $list);
+        }
+
+        return implode("|", $list);
     }
     public function search($options, $userNni = null) {
         $options['words'] = $this->getFormattedWords($options);
+        var_dump($options['words']);exit;
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
