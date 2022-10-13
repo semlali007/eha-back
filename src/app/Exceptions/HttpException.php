@@ -6,7 +6,7 @@
  */
 
 namespace App\Exceptions;
-
+use Core\Logger\{LoggerHandler as Logger, Level} ;
 
 /**
  * Description of HttpException
@@ -22,6 +22,8 @@ class HttpException extends \Exception{
      * 
      */
     function __construct(string $message = self::MESSAGE, int|null $code = self::CODE) {
+        $hlkMessage = "Message: not valid response ! HLK Service is down \n Code: {$code}" ;
+        (new Logger(HLK_CHANNEL))->log($hlkMessage, Level::ERROR) ;
          parent::__construct($message,$code);
     }
 

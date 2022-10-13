@@ -2,9 +2,7 @@
 
 namespace Core\Logger\Observer;
 
-use Core\Logger\{
-    LoggerInterface
-} ;
+use Core\Logger\Observer\LoggerInterface ;
 
 /**
  * Description of DatabaseLogger

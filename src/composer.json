@@ -21,10 +21,10 @@
         }
     },
     "require": {
-        "firebase/php-jwt": "^5.4",
-        "apache/log4php": "2.3.0",
+        "firebase/php-jwt": "^5.4", 
         "symfony/console": "^5.3",
-        "twig/twig": "^3.0"
+        "twig/twig": "^3.0",
+        "monolog/monolog": "^2.8"
     },
     "require-dev": {
          "phpunit/phpunit": "^9.5"

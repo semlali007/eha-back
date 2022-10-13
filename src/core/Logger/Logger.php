@@ -1,7 +1,7 @@
 <?php
 
 namespace Core\Logger;
-
+use Core\Logger\Observer\LoggerInterface ;
 /**
  * Description of Logger
  *
@@ -30,7 +30,6 @@ class Logger implements \SplObserver {
      * @return void
      */
     public function update(\SplSubject $subject, int $level = Level::INFO): void {
-
         match ($level) {
             Level::INFO => $this->logger->info($subject->getMessage()), // create Info logs
             Level::ERROR => $this->logger->err($subject->getMessage()), // create error logs

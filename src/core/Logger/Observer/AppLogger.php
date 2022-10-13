@@ -2,7 +2,7 @@
 
 namespace Core\Logger\Observer;
 
-use Core\Logger\{
+use Core\Logger\Observer\{
     LoggerInterface
 } ;
 
@@ -12,7 +12,6 @@ use Core\Logger\{
  * @author HGDDEDBN
  */
 class AppLogger extends BaseLogger implements LoggerInterface {
-
+    
     protected $log;
-
 }

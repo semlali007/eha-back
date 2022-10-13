@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Logger;
+namespace Core\Logger\Observer;
 
 /**
  * Description of LoggerInterface

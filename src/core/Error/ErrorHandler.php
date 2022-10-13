@@ -2,7 +2,7 @@
 
 namespace Core\Error;
 
-use Core\Logger\{LoggerHandler, Level} ;
+use Core\Logger\{LoggerHandler as Logger, Level} ;
 
 /**
  * Description of ErrorHandler
@@ -13,7 +13,6 @@ class ErrorHandler {
 
     const HTML_MSG = 0; // Html Message
     const TXT_MSG = 1; // Text Message 
-    const DEFAULT_CHANNEL = "APP";
     // Message par defaut
     const DEFAULT_MSG_PROD = "Le site est en cours de mise à jour, merci de revenir ulterieurment...";
 
@@ -31,7 +30,6 @@ class ErrorHandler {
      */
 
     public static function errorHandler($level, $message, $file, $line) {
-
         if ((bool) $_ENV["DEV_MODE"] == true && error_reporting() !== 0) {  // to keep the @ operator working
             throw new \ErrorException($message, 0, $level, $file, $line);
         }
@@ -41,13 +39,10 @@ class ErrorHandler {
      * 
      * @param \Exception $exception
      */
-    public static function exceptionHandler(\Exception $exception): void {
+    public static function exceptionHandler(mixed $exception): void {
         http_response_code($exception->getCode()); // retourner le http status code 
-        $handler = LoggerHandler::getInstance(self::DEFAULT_CHANNEL);
-
-        // ecrire les logs seulement dans l'environnement de DEV
-        $handler->log(self::generateMessageError($exception, true), Level::ERROR);
-
+        
+        (new Logger(APP_CHANNEL))->log(self::generateMessageError($exception, self::TXT_MSG, false), Level::WARNING) ;
         // Affichage message d'erreur sous forme HTML
         print self::generateMessageError($exception, self::HTML_MSG, false);
     }
@@ -62,19 +57,14 @@ class ErrorHandler {
      * @return null|string
      */
     private static function generateMessageError($exception, bool $forceCatchError = false, int $msgType = self::TXT_MSG): ?string {
-
-        if ((true === $forceCatchError) || (isset($_ENV["DEV_MODE"]) && filter_var($_ENV["DEV_MODE"], FILTER_VALIDATE_BOOLEAN))):
-            $message = "Error:";
-            $message .= "Uncaught exception: " . get_class($exception) . " \n";
-            $message .= "Message:" . $exception->getMessage() . " \n";
-            $message .= "Stack trace:" . $exception->getTraceAsString() . " \n";
-            $message .= "Thrown in '" . $exception->getFile() . " on line " . $exception->getLine();
-        else:
-            $message = "code: " . $exception->getCode() . " \n";
-            $message .= "Message: " . $exception->getMessage() . " \n";
-            $message .= self::DEFAULT_MSG_PROD;
-        endif;
-
+       
+        $message = "Error:";
+        $message .= "Uncaught exception: " . get_class($exception) . " \n";
+        $message .= "Message:" . $exception->getMessage() . " \n";
+        $message .= "Stack trace:" . $exception->getTraceAsString() . " \n";
+        $message .= "Thrown in '" . $exception->getFile() . " on line " . $exception->getLine();
+        
+        (new Logger(APP_CHANNEL))->log($message, Level::ERROR) ;
         return ($msgType === self::TXT_MSG) ? $message : nl2br($message);
     }
 

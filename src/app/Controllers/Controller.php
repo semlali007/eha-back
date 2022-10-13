@@ -2,13 +2,13 @@
 
 namespace App\Controllers;
 
-use App\Exceptions\{AccessDeniedException,InvalidParameterException };
+use App\Exceptions\InvalidParameterException;
 use App\Security\AuthorizationSecurity;
 use Core\Database\DBConnection;
 use Core\Util\HealthCheck as health ;
 use Core\Http\Response ;
 use Exception;
-use App\Repository\NotificationsRepository ;
+
 abstract class Controller
 {
     /**
@@ -19,6 +19,7 @@ abstract class Controller
      * @var array|mixed
      */
     protected $roles;
+    
     
     protected $currentUser ;
 
@@ -63,7 +64,6 @@ abstract class Controller
     /**
      *
      */
-
     protected function checkUserAuthorization()
     {
             $authorization = new AuthorizationSecurity();

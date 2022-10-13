@@ -136,6 +136,14 @@ $configuration = [
             "ADMIN" => "EHA_ADMIN",
             "GESTIONNAIRE" => "EHA_GESTIONNAIRE",
             "USER" => "USER"
+        ],
+    'logger'=>[
+        "channels"=>[
+            "hlk"=>"hlk",
+            "app"=>"eha",
+            "fhm"=>"fhm",
+            "front"=>"front"
         ]
+    ]
 ];
 

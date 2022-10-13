@@ -16,13 +16,45 @@ use App\Models\SheetOption;
 use App\Models\SheetProvider;
 use App\Models\SheetSubDomain;
 use App\Models\Subscription;
-use Core\Util\Date ;
+use Core\Util\{Date,Math, Arrays } ;
 use Exception;
 
 class SheetRepository extends AbstractRepository {
 
-    public function search($options, $userNni = null) {
+    public function getFormattedWords($options)
+    {
+        $worldsList = explode(" ", $options['search']['searchText']);
+        $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
+        $articles = array("les", "des", "pour", "avec", "sans");
+        $list = [];
+        foreach ($worldsList as $d) {
+            $w = str_replace(
+                "'",
+                '',
+                $d
+            );
 
+            $w = str_replace(
+                " ",
+                '',
+                $w
+            );
+            
+            if (strlen($w) > 2 && !in_array($w, $articles)) {
+                if (!str_ends_with($w, 's')) {
+                    $list[] = $w.'s';
+                }else{
+                    $list[] = substr($w,0,-1); 
+                }
+                $list[] = $w;
+            }
+        }
+
+        return implode("|", $list);
+    }
+    public function search($options, $userNni = null) {
+        $options['words'] = $this->getFormattedWords($options);
+        var_dump($options['words']);exit;
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
@@ -31,7 +63,7 @@ class SheetRepository extends AbstractRepository {
         $partnerships = $sheet->groupedByPartnership($options);
         $status = $sheet->groupedByStatus($options);
         $directions = $sheet->groupedByDirections($options);
-        
+       
         return
                 [
                     'sheets' => $sheet->search($options, $userNni),
@@ -46,7 +78,7 @@ class SheetRepository extends AbstractRepository {
                         'dauphin' => self::addAttribute($dauphins),
                         'beneficiaries' => $sheet->groupedByFiliale($options),
                         'areas' => $sheet->groupedByZone($options),
-                        'providers' => $sheet->groupedByProvider($options),
+                        'providers' =>$sheet->groupedByProvider($options),
                         'directions' => self::addTooltip($directions),
                         'committees' => $sheet->groupedByCommittees($options),
                     ],
@@ -139,13 +171,14 @@ class SheetRepository extends AbstractRepository {
 
             $committee = new Committee();
             $committetSheet = $committee->getByCode($details['committee']);
+           
             if (!is_array($committetSheet)) {
                 $committetSheet = [];
             }
-
+            
             $details['committee'] = $committetSheet;
 
-
+ 
             $sub = new Subscription();
             $details['subscribed'] = $sub->isSubscribed($id, $userNni);
 
@@ -342,6 +375,22 @@ class SheetRepository extends AbstractRepository {
     }
 
 
-
+    public function optimiseSearch(mixed $option):mixed{
+        $searchText = trim($option["search"]["searchText"]) ;
+        if (!empty($searchText)):
+            $arraySearch = explode(" ", $searchText);
+            shuffle($arraySearch);
+            $lengthArray = count($arraySearch);
+            if ($lengthArray > 2) {
+                if (fmod($lengthArray, 2) == 0) {
+                    $nbrPercent = floor(Math::getPercentOfNumber($lengthArray));
+                } else {
+                    $nbrPercent = floor(Math::getPercentOfNumber($lengthArray)) + 1;
+                }
+                $option["search"]["searchText"] = Arrays::getRandomElements($arraySearch, $nbrPercent);
+            }
+        endif;
+        return $option ;
+    }
 
 }
