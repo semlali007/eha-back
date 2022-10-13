@@ -9,7 +9,8 @@ use App\Command\Command\{
     SearchNoReplyHotline,
     RemoveExpiredNotifications,
     Migration,
-    DeleteMigration
+    DeleteMigration,
+    MigrationDomain
 };
 
 /**
@@ -49,7 +50,8 @@ class Bootstrap {
             new SearchNoReplyHotline(),
             new RemoveExpiredNotifications(),
             new Migration(),
-            new DeleteMigration()
+            new DeleteMigration(),
+            new MigrationDomain()
         ] ;
     }
 

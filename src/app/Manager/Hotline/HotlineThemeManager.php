@@ -28,4 +28,22 @@ class HotlineThemeManager extends AbstractManager
             ];
         }
     }
+
+    public function add($options)
+    {
+        try {
+            
+            $hotlineTheme = new HotlineTheme();
+            $hotlineTheme->add($options);
+            return [
+                'status' => true,
+                'message' => 'thème modifié'
+            ];
+        } catch (Exception $ex) {
+            return [
+                'status' => false,
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
 }

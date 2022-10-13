@@ -8,11 +8,13 @@ use App\Models\Sheet;
 use App\Models\SheetArea;
 use App\Models\SheetBeneficiary;
 use App\Models\SheetContract;
+use App\Models\SheetDomain;
 use App\Models\SheetFile;
 use App\Models\SheetGroup;
 use App\Models\SheetLot;
 use App\Models\SheetOption;
 use App\Models\SheetProvider;
+use App\Models\SheetSubDomain;
 use App\Models\Subscription;
 use Core\Util\Date ;
 use Exception;
@@ -170,6 +172,11 @@ class SheetRepository extends AbstractRepository {
 
             $sheetOption = new SheetOption();
             $details['options'] = $sheetOption->getBySheet($id);
+
+            $sheetDomain = new SheetDomain();
+            $sheetSubDomain = new SheetSubDomain();
+            $details['domain'] = $sheetDomain->getBySheet($id);
+            $details['subdomain'] = $sheetSubDomain->getBySheet($id);
 
             return $details;
         } catch (\Exception $e) {

@@ -33,9 +33,18 @@ class SearchController extends Controller
     public function search()
     {
         $options = Request::input();
-        
         try {
-            $providers = $this->providerRepository->searchFromApi($options);
+            if (is_numeric($options['words'])) {
+                $data = $this->providerRepository->getProvider($options['words']);
+                $providers = [[
+                        'code' => $data['infos']['provider_code'],
+                        'label' => $data['infos']['provider_label'],
+                        'other' => 'SIRET: ' . $data['infos']['provider_siret'] . ', ville: ' . $data['infos']['provider_town']
+                    ]];
+            } else {
+                $providers = $this->providerRepository->searchFromApi($options);
+            }
+             
             $contracts = $this->contractRepository->searchFromApi($options);
             $dauphins = $this->dauphinRepository->searchFromApi($options);
             $items = $this->itemRepository->searchFromApi($options);
@@ -67,9 +76,9 @@ class SearchController extends Controller
       
         // dans le cas ou l'element n'existe pas
         foreach ($providers as $provider) {
-
             if (isset($options['nace']) && !empty($options['nace'])) {
-                if ($provider['provider_nace'] != $options['nace']) {
+                if(!in_array($provider['provider_nace'], $options['nace'] ))
+                {
                     continue;
                 }
             }

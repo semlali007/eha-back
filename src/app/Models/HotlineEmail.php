@@ -59,6 +59,24 @@ class HotlineEmail extends Model
             throw new InternalServerException();
         }
     }
+    
+    public function add($options)
+    {
+        try {
+            $query = '
+        INSERT INTO ' . $this->table . ' (groupe, category, email, living) VALUES (:groupe, :category, :email, :living);
+        ';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':groupe', $options['group'], PDO::PARAM_STR);
+            $sth->bindParam(':category', $options['category'], PDO::PARAM_STR);
+            $sth->bindParam(':email', $options['email'], PDO::PARAM_STR);
+            $sth->bindParam(':living', $options['living'], PDO::PARAM_BOOL);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+    
     public function livingUpdate($id)
     {
         try {

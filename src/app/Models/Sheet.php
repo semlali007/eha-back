@@ -678,6 +678,33 @@ class Sheet extends Model
         }
     }
 
-
+    public function getSheetByNetAchat($netAchatId)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id, s.label, s.netachat_id FROM ' . $this->table . ' s WHERE  netachat_id=:netachat_id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':netachat_id', $netAchatId, PDO::PARAM_INT);
+            $sth->execute();
+            return  $sth->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            var_dump($e);exit;
+            throw new InternalServerException();
+        }
+    }
    
+
+    public function getByContract($contract_code)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id,s.label  FROM ' . $this->table . ' s INNER JOIN ' . $this->sheetContract . ' sc ON sc.sheet_id = s.id WHERE sc.contract_code = :contract_code ORDER BY s.label ' ;
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':contract_code', $contract_code, PDO::PARAM_STR);
+            $sth->execute();
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+        
+    }
+
 }

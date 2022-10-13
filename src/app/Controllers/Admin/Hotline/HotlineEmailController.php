@@ -84,5 +84,19 @@ class HotlineEmailController extends Controller
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
         return  $this->response($this->hotlineEmailManager->livingUpdate($options));
     }
+    public function add()
+    {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        $email = $options['email'] ?? '';
+        
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)){
+            return  $this->response([
+                'status' => false,
+                'message' => 'Veuillez entrer une adresse e-mail valide.'
+            ]);
+        }
+        
+        return  $this->response($this->hotlineEmailManager->add($options));
+    }
     
 }

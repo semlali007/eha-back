@@ -22,6 +22,10 @@ use App\Models\Beneficiary;
 use App\Models\Area;
 use App\Models\Group;
 use phpDocumentor\Reflection\Types\Null_;
+use App\Models\Domain;
+use App\Models\SheetDomain;
+use App\Models\SheetSubDomain;
+use App\Models\SubDomain;
 
 class SheetManager extends AbstractManager
 {
@@ -70,6 +74,8 @@ class SheetManager extends AbstractManager
             $data['filiales'] = $sheetData['filiales'] ?? [];
             $data['providers'] = $sheetData['providers'] ?? [];
             $data['groups'] = $sheetData['groups'] ?? [];
+            $data['domains'] = $sheetData['domains'] ?? [];
+            $data['subdomains'] = $sheetData['subdomains'] ?? [];
             $data['zones'] = $sheetData['zones'] ?? [];
             $data['deleted_files'] = $sheetData['deletedFiles'] ?? [];
             $data['options'] = $sheetData['options'] ?? [];
@@ -128,6 +134,21 @@ class SheetManager extends AbstractManager
                     $sheetGroup->add($id, $p['id']);
                 }
                 $sheetGroup->deleteGroups($id, $groups);
+                $sheetDomain = new SheetDomain();
+                $domains = [];
+                foreach ($data['domains'] as $d) {
+                    $domains[] = $d['code'];
+                    $sheetDomain->add($id, $d['code']);
+                }
+                $sheetDomain->deleteDomains($id, $domains);
+
+                $sheetSubDomain = new SheetSubDomain();
+                $subDomains = [];
+                foreach ($data['subdomains'] as $d) {
+                    $subDomains[] = $d['code'];
+                    $sheetSubDomain->add($id, $d['code']);
+                }
+                $sheetSubDomain->deleteSubDomains($id, $subDomains);
 
                 $sheetZone = new SheetArea();
                 $zones = [];
@@ -230,6 +251,8 @@ class SheetManager extends AbstractManager
             
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
+            $data['domains'] = $sheetData['domains'] ?? [];
+            $data['subdomains'] =$sheetData['subdomains'] ?? [];
 
             $fileUpload = new FileUpload();
             $data['files'] = $fileUpload->uploadSheetFiles([
@@ -245,7 +268,6 @@ class SheetManager extends AbstractManager
                 'data' => $data
             ]);
         } catch (Exception $ex) {
-            var_dump($ex);exit;
             http_response_code(500);
             return json_encode([
                 'status' => 500,
@@ -322,6 +344,25 @@ class SheetManager extends AbstractManager
                 }
             }
 
+            if (array_key_exists('domains', $data)) {
+            $sheetDomain = new SheetDomain();
+                $domains = [];
+                foreach ($data['domains'] as $d) {
+                    $domains[] = $d['code'];
+                    $sheetDomain->add($id, $d['code']);
+                }
+                $sheetDomain->deleteDomains($id, $domains);
+            }
+            if (array_key_exists('subdomains', $data)) {
+                $sheetSubDomain = new SheetSubDomain();
+                $subDomains = [];
+                foreach ($data['subdomains'] as $d) {
+                    $subDomains[] = $d['code'];
+                    $sheetSubDomain->add($id, $d['code']);
+                }
+                $sheetSubDomain->deleteSubDomains($id, $subDomains);
+            }
+
             $this->db->getPDO()->commit();
             return $id;
         } catch (\Exception $e) {
@@ -395,6 +436,102 @@ class SheetManager extends AbstractManager
                 'doc_dep' => 'Doc_Dep_DATP/',
             ]
     ];
+
+    public function migrateDomain($type){
+        $type = trim($type);
+        $destinationMigrationPath =  getenv("CONFIG_UPLOAD_PATH");
+        $sources = [
+            "dait" => [
+                "files" => ["dait1.json", "dait2.json"],
+                "status" => '1'
+            ],
+            "dapi" => [
+                "files" => ["dapi1.json", "dapi2.json"],
+                "status" => '1'
+            ],
+            "datp" => [
+                "files" => ["datp1.json", "datp2.json"],
+                "status" => '1'
+            ],
+            "datp_archivage" => [
+                "files" => ["datp_archivage1.json", "datp_archivage2.json"],
+                "status" => '-1'
+            ],
+            "dapi_archivage" => [
+                "files" => ["dapi_archivage.json"],
+                "status" => '-1'
+            ],
+            "dait_archivage" => [
+                "files" => ["dait_archivage"],
+                "status" => '-1'
+            ],
+        ];
+
+        if(!array_key_exists($type, $sources)){
+            throw new Exception('type de fiche inconnu');
+            exit;
+        }
+
+        $netachatData = [];
+        foreach ($sources[$type]['files'] as $i => $f) {
+            $s = json_decode(file_get_contents($destinationMigrationPath .'netachat/'.$f), true);
+            $netachatData = array_merge($netachatData,$s['Row']);
+        }
+
+        $domain = new Domain();
+        $subDomain = new SubDomain();
+        $sheetDomain = new SheetDomain();
+        $sheetSubDomain = new SheetSubDomain();
+        $sheet = new Sheet();
+        
+        foreach ($netachatData as $data) {
+            $sheetElement = $sheet->getSheetByNetAchat($data['ID']);
+            if($type == 'dait'){
+                $segment = $data['SegmentDAIT'];
+                $subSegment = $data['SousEnsembleDAIT'];
+                //$subSegement=
+            }else if($type == 'dapi'){
+                $segment = $data['SegmentAchatDAPI'];
+                $subSegment = $data['SousEnsembleAchatDAPI'];
+            }else if($type == 'datp'){
+                $segment = $data['SegmentDATP'];
+                $subSegment = $data['SousEnsembleDATP'];
+            }
+
+            foreach($subSegment as $sub){
+                if( isset($sub['Label'])){
+                $nameSubSegment = $sub['Label'];
+                $p = $subDomain->get(['name' => $nameSubSegment, 'type' => $type]);
+                if (is_array($p) && isset($p['id'])) {
+                    $subDomainId = $p['id'];
+                } else {
+                    $subDomainId = $subDomain->add(['name' => $nameSubSegment, 'type' => $type]);
+                }
+                   
+                if(is_array($sheetElement) && is_numeric($sheetElement['id']))
+                $sheetSubDomain->add($sheetElement['id'], $subDomainId);
+            }
+            }
+            
+
+            foreach($segment as $seg){
+            if(isset($seg['Label'])){
+                $name = $seg['Label'];
+                $p = $domain->get(['name' => $name, 'type' => $type]);
+                if (is_array($p) && isset($p['id'])) {
+                    $domainId = $p['id'];
+                } else {
+                    $domainId = $domain->add(['name' => $name, 'type' => $type]);
+                }
+                   
+                if(is_array($sheetElement) && is_numeric($sheetElement['id']))
+                $sheetDomain->add($sheetElement['id'], $domainId);
+            }
+            }
+        }
+    }
+
+
     public function migrate($type)
     {
         $type = trim($type);

@@ -110,12 +110,17 @@ $router->get('/externals/delete/:email', 'App\Controllers\Admin\ExternalControll
 
 $router->get('/hotline-themes', 'App\Controllers\Admin\Hotline\HotlineThemeController@index', ["roles"=>['USER']]);
 $router->post('/hotline-themes/save', 'App\Controllers\Admin\Hotline\HotlineThemeController@update', ["roles"=>['USER']]);
+$router->post('/hotline-themes/add', 'App\Controllers\Admin\Hotline\HotlineThemeController@add', ["roles"=>['USER']]);
+$router->get('/hotline-themes/edit/:id', 'App\Controllers\Admin\Hotline\HotlineThemeController@edit', ["roles"=>['USER']]);
+$router->get('/hotline-themes/delete/:id', 'App\Controllers\Admin\Hotline\HotlineThemeController@delete', ["roles"=>['USER']]);
+
 
 $router->get('/hotline-groups', 'App\Controllers\Admin\Hotline\HotlineGroupController@index', ["roles"=>['USER']]);
 $router->post('/hotline-groups/save', 'App\Controllers\Admin\Hotline\HotlineGroupController@update', ["roles"=>['USER']]);
 
 $router->get('/hotline-emails', 'App\Controllers\Admin\Hotline\HotlineEmailController@index', ["roles"=>['USER']]);
 $router->post('/hotline-emails/save', 'App\Controllers\Admin\Hotline\HotlineEmailController@update', ["roles"=>['USER']]);
+$router->post('/hotline-emails/add', 'App\Controllers\Admin\Hotline\HotlineEmailController@add', ["roles"=>['USER']]);
 $router->post('/hotline-emails/living-save', 'App\Controllers\Admin\Hotline\HotlineEmailController@livingUpdate', ["roles"=>['USER']]);
 
 $router->post('/import/upload', 'App\Controllers\Admin\ImportController@upload', ["roles"=>['USER']]);
@@ -143,6 +148,14 @@ $router->post('/factsheets/upload', 'App\Controllers\FactsheetController@upload'
 $router->get('/factsheets/edit/:id', 'App\Controllers\FactsheetController@edit', ["roles"=>['USER']]);
 $router->post('/factsheets/save/:id', 'App\Controllers\FactsheetController@save', ["roles"=>['USER']]);
 $router->get('/factsheets/delete/:id', 'App\Controllers\FactsheetController@delete', ["roles"=>['USER']]);
+
+$router->get('/domains/autocomplete/:word', 'App\Controllers\DomainController@autocomplete', ["roles"=>['USER']]);
+$router->post('/domains/search', 'App\Controllers\DomainController@search', ["roles"=>['USER']]);
+$router->post('/domains/add', 'App\Controllers\DomainController@add', ["roles"=>['USER']]);
+
+$router->get('/subdomains/autocomplete/:word', 'App\Controllers\SubDomainController@autocomplete', ["roles"=>['USER']]);
+$router->post('/subdomains/search', 'App\Controllers\SubDomainController@search', ["roles"=>['USER']]);
+$router->post('/subdomains/add', 'App\Controllers\SubDomainController@add', ["roles"=>['USER']]);
 
 
 //try {

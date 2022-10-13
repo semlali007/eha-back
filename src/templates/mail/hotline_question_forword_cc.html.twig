@@ -1,0 +1,7 @@
+{% extends "mail/base.html.twig" %}
+{% block message %}La question n°{{ id }} a été affectée pour traitement à {{ email }} .
+{% endblock %}
+{% block link %}
+Vous pouvez y accéder en cliquant sur le lien <br>
+suivant : <a href="https://{{ config_domain }}/app/hotline/get/{{ id }}/{{ sha }}">Achatpédia - Discussion n°{{ id }}</a>
+{% endblock %}
