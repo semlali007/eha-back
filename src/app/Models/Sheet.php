@@ -749,7 +749,6 @@ class Sheet extends Model
             $sth->execute();
             return  $sth->fetch(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            var_dump($e);exit;
             throw new InternalServerException();
         }
     }
