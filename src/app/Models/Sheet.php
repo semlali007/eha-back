@@ -14,6 +14,7 @@ use App\Models\SheetBeneficiary;
 use App\Models\Committee;
 use App\Models\Subscription;
 use App\Services\SheetService ;
+use Core\Util\{Date,Math, Arrays } ;
 
 use Exception;
 use PDO;
@@ -69,35 +70,7 @@ class Sheet extends Model
     public function search($options, $userNni = null)
     {
         try {
-            $worldsList = explode(" ", $options['search']['searchText']);
-            $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
-            $list = [];
-            $articles = array("les", "des", "pour", "avec", "sans");
-            foreach ($worldsList as $d) {
-                $w = str_replace(
-                    "'",
-                    '',
-                    $d
-                );
-
-                $w = str_replace(
-                    " ",
-                    '',
-                    $w
-                );
-                
-                if (strlen($w) > 2 && !in_array($w, $articles)) {
-                    if (!str_ends_with($w, 's')) {
-                        $list[] = $w.'s';
-                    }else{
-                        $list[] = substr($w,0,-1); 
-                    }
-
-                    $list[] = $w;
-                }
-            }
-
-            $words = implode("|", $list);
+            $words = $options['words'];
             $orderBy = $options['order_by'] ?? 'rank';
             $direction = $options['direction'] ?? 'desc';
             $perpage = $options['perpage'] ?? 10;
@@ -122,7 +95,6 @@ class Sheet extends Model
                       
                       ORDER BY  $orderBy $direction
                       ";
-                      
                       $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
             $sth->execute();
@@ -154,6 +126,21 @@ class Sheet extends Model
                     "'",
                     '',
                     $d
+                );
+                $w = str_replace(
+                    ",",
+                    '',
+                    $w
+                );
+                $w = str_replace(
+                    ".",
+                    '',
+                    $w
+                );
+                $w = str_replace(
+                    ";",
+                    '',
+                    $w
                 );
                 $w = str_replace(
                     " ",
@@ -219,7 +206,7 @@ class Sheet extends Model
 
         $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
-            $searchProvider = $this->getFormattedWords(strtolower($searchProvider));
+            $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " INNER JOIN 
@@ -337,7 +324,6 @@ class Sheet extends Model
     {
         try {
            $sql = "SELECT COUNT(s.*) as count, s.protected_sector as code FROM  " . $this->table . " s {$this->getSearchCondition($options,['protected_sector'=>true])}" . " GROUP BY protected_sector";
-          
            $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
