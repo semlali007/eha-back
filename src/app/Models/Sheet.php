@@ -118,41 +118,7 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
-    public function getFormattedWords($words){
-        $worldsList = $pieces = explode(" ", $words);
-            $list = [];
-            foreach ($worldsList as $d) {
-                $w = str_replace(
-                    "'",
-                    '',
-                    $d
-                );
-                $w = str_replace(
-                    ",",
-                    '',
-                    $w
-                );
-                $w = str_replace(
-                    ".",
-                    '',
-                    $w
-                );
-                $w = str_replace(
-                    ";",
-                    '',
-                    $w
-                );
-                $w = str_replace(
-                    " ",
-                    '',
-                    $w
-                );
-                if(strlen($w)>0)
-                $list[] = $w;
-            }
-            
-            return implode("|", $list);
-    }
+
     public function getSearchCondition($params, $forFilter=null)
     {
         $search = '';
