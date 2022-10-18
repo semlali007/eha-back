@@ -22,28 +22,33 @@ class ContractController extends Controller
      */
     public function show(string $code): mixed 
     {
-        if (strlen($code) <= 11) {// Sans PGI
-            $PGI_CODES = ["PGI-4", "PGI-2", "PGI-1"];
-            $i = 0;
-            do {
-                $contract = $this->contractRepository
-                        ->getContract(['word' =>$code . "-" . $PGI_CODES[$i]]);
-                $i++;
-            } while (($i <= 2) || is_null($contract));
-            // Avec PGI
-        } else { 
-            $contract = $this->contractRepository->getContract(['word' => $code]);
+        $contract = null;
+        $contract4 = $this->contractRepository
+                ->getContract(['word' => $code . "-PGI-4"]);
+        if (!is_null($contract4)) {
+            $contract = $contract4;
+        } else {
+            $contract2 = $this->contractRepository
+                    ->getContract(['word' => $code . "-PGI-2"]);
+            if (!is_null($contract2)) {
+                $contract = $contract2;
+            } else {
+                $contract1 = $this->contractRepository
+                        ->getContract(['word' => $code . "-PGI-1"]);
+                if (!is_null($contract1)) {
+                    $contract = $contract1;
+                } else {
+                   $contract = $this->contractRepository->getContract(['word' => $code]);
+                }
+            }
         }
          
         // Parser le Data 
-        if (!is_null($contract)) {
-            $contract['sheets'] = [];
-            if (isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])) {
-                $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
-            }
-            return $this->response($contract);
+        $contract['sheets'] = [];
+        if (isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])) {
+            $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
         }
-        return $this->response([]);
+        return $this->response($contract);
     }
 
     /**
