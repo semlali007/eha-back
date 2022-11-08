@@ -1901,3 +1901,44 @@ SET DEFAULT nextval('"EHA".hotline_email_id_seq'::regclass);
 ALTER SEQUENCE "EHA".hotline_email_id_seq
 OWNED BY "EHA".hotline_email.id;
 
+
+CREATE TABLE "EHA".search_associated
+(
+    id integer NOT NULL DEFAULT nextval('search_words_id_seq'::regclass),
+    word text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT search_words_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE "EHA".search_blacklist
+(
+    id integer NOT NULL DEFAULT nextval('search_blacklist_id_seq'::regclass),
+    word text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT search_blacklist_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE "EHA".search_logs
+(
+    search_text text COLLATE pg_catalog."default" NOT NULL,
+    id integer NOT NULL DEFAULT nextval('search_logs_id_seq'::regclass),
+    created timestamp without time zone NOT NULL,
+    CONSTRAINT search_logs_pkey PRIMARY KEY (id)
+)
+;
+
+CREATE TABLE "EHA".search_logs_items
+(
+    word text COLLATE pg_catalog."default" NOT NULL,
+    id_search bigint NOT NULL
+)
+;
+
+CREATE TABLE "EHA".search_synonymous
+(
+    synonymous text COLLATE pg_catalog."default" NOT NULL,
+    id integer NOT NULL DEFAULT nextval('search_associated_words_id_seq'::regclass),
+    source integer NOT NULL,
+    CONSTRAINT search_associated_words_pkey PRIMARY KEY (id)
+);
+
+
+
