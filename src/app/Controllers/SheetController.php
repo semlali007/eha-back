@@ -27,7 +27,10 @@ class SheetController extends Controller {
     public function index() {
         $this->currentNni = $this->getCurrentUser()->getNni();
         $options = $this->decode(file_get_contents("php://input"));
-
+	$user = $this->getCurrentUser();
+	if( !$user->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+            $options['search']['status'] = ['1'];
+        }
         return $this->response($this->sheetRepository->search($options, $this->currentNni));
     }
 
@@ -38,7 +41,7 @@ class SheetController extends Controller {
 
     public function export() {
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
-        return $this->response(['sheets' => $this->sheetRepository->export($options)]);
+        return $this->response(['sheets' => $this->sheetRepository->export($options)], $this->currentUser->getNni());
     }
 
     public function update() {

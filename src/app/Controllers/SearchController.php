@@ -9,6 +9,7 @@ use App\Repository\ProviderRepository;
 use Core\Http\Request ;
 use Core\Util\Arrays ;
 use App\Exceptions\HttpException ;
+use App\Services\HttpClientService;
 use Core\Util\HealthCheck as health;
 
 use function PHPSTORM_META\type;
@@ -36,19 +37,44 @@ class SearchController extends Controller
         try {
             if (is_numeric($options['words'])) {
                 $data = $this->providerRepository->getProvider($options['words']);
-                $providers = [[
+        	 $providers = [];
+		if(is_array($data) && isset($data['infos'])){
+                	$providers[] = [
                         'code' => $data['infos']['provider_code'],
                         'label' => $data['infos']['provider_label'],
                         'other' => 'SIRET: ' . $data['infos']['provider_siret'] . ', ville: ' . $data['infos']['provider_town']
-                    ]];
+                    ];
+		}
             } else {
                 $providers = $this->providerRepository->searchFromApi($options);
             }
-             
+     
+        
             $contracts = $this->contractRepository->searchFromApi($options);
             $dauphins = $this->dauphinRepository->searchFromApi($options);
-            $items = $this->itemRepository->searchFromApi($options);
-            return $this->response(
+            //$items = $this->itemRepository->searchFromApi($options);
+            
+	if (self::isCodeItem($options['words']) ) {
+                $hlk = $GLOBALS['configuration']['hlk'];
+                $queryData = [
+                    'password' => $hlk['pwd'],
+                    'action_code' => $hlk["actions"]["items"]["get"],
+                    'action_info' => $options['words']
+                ];
+
+                $itemsData = HttpClientService::exec_post($hlk['url'], $queryData);
+                $items = [];
+                if(is_array($itemsData)){
+                    $items[] = [
+                        'code' => $itemsData['infos']['item_code'],
+                        'label' => $itemsData['infos']['item_label'],
+                        'other' => $itemsData['infos']['item_label_long']
+                    ];
+                }
+            } else {
+                $items = $this->itemRepository->searchFromApi($options);
+            }	
+		return $this->response(
                             [
                                 'provider' => $providers,
                                 'contract' => Arrays::filterByValue($contracts, 'code', $options['system']),
@@ -60,8 +86,23 @@ class SearchController extends Controller
             return $this
                             ->hlkErrorResponse();
         }
-    }
     
+}
+
+   static function isCodeItem(string $searchInput): ?bool {
+        if (strlen($searchInput) != 10) {
+            return false;
+        }
+
+        preg_match_all("/106[0-9]{7}/", $searchInput, $matches, PREG_PATTERN_ORDER);
+        foreach (reset($matches) as $code) {
+            if (preg_match("#\d#", $code)) {
+               return true ;
+            }
+        }
+        
+        return false;
+    } 
     /**
      * 
      * @return mixed
