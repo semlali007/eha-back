@@ -30,12 +30,10 @@ class SearchSynonymous extends Model
     public function add($options)
     {
         try {
-            date_default_timezone_set('Europe/Paris');
-            $date = date('Y-m-d H:i:s');
-            $query = "INSERT INTO {$this->table}  (search_text, created) VALUES (:search_text, :created) ";
+            $query = "INSERT INTO {$this->table}  (synonymous, source) VALUES (:synonymous, :source) ";
             $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':search_text', $options['search']['searchText'], PDO::PARAM_STR);
-            $sth->bindParam(':created', $date, PDO::PARAM_STR);
+            $sth->bindParam(':synonymous', $options['title'], PDO::PARAM_STR);
+            $sth->bindParam(':source', $options['id'], PDO::PARAM_INT);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
@@ -69,4 +67,18 @@ class SearchSynonymous extends Model
         }
     }
 
+    public function getBySource($source)
+    {
+        try {
+            $query = "SELECT *  FROM {$this->table} WHERE source = :source";
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':source', $source, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    
 }

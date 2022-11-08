@@ -60,7 +60,6 @@ class SearchConfigController extends Controller
         return FileService::download(['file'=>$media['file_name']]);
     }
 
-
     public function save($id)
     {
         try {
@@ -100,19 +99,16 @@ class SearchConfigController extends Controller
     {
         try {
             $options = $this->decode(file_get_contents("php://input"));
-            return $this->response($this->searchConfigRepository->addAssociated($options));
+            return $this->response($this->searchConfigRepository->addSynonymous($options));
         } catch (Exception $ex) {
             return $this->error($ex);
         }
     }
-    
-
 
     public function deleteIgnored($id)
     {
         return $this->response($this->searchConfigRepository->delete($id));
     }
-
 
     public function wordslist()
     {
@@ -120,5 +116,25 @@ class SearchConfigController extends Controller
     }
 
     
+    public function deleteSynonymous($id)
+    {
+        return $this->response($this->searchConfigRepository->deleteSynonymous($id));
+    }
+
+    public function updateAssociated($id)
+    {
+        try {
+            $options = $this->decode(file_get_contents("php://input"));
+            return $this->response($this->searchConfigRepository->updateAssociated($id,$options));
+        } catch (Exception $ex) {
+            return $this->error($ex);
+        }
+    }
+    
+    public function deleteAssociated($id)
+    {
+        return $this->response($this->searchConfigRepository->deleteAssociated($id));
+    }
+     
 
 }

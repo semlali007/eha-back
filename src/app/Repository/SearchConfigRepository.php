@@ -74,9 +74,9 @@ class SearchConfigRepository extends AbstractRepository {
     }
     public function addSynonymous($options)
     {
-        $log = new SearchWords();
+        $log = new SearchSynonymous();
         return
-            $log->add($options['title']);
+            $log->add($options);
 
     }
     
@@ -116,6 +116,25 @@ class SearchConfigRepository extends AbstractRepository {
             $area->getList();
     }
     
+    
 
+    public function deleteSynonymous(mixed $id):mixed {
+        $media = new SearchSynonymous();
+        return $media->delete($id);
+    }
 
+    
+    public function updateAssociated($id, $options)
+    {
+        $log = new SearchAssociated();
+        return
+            $log->update($id, $options['title']);
+
+    }
+
+    public function deleteAssociated(mixed $id):mixed {
+        $media = new SearchAssociated();
+        return $media->delete($id);
+    }
+    
 }

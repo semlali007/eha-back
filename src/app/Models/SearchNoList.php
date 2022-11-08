@@ -60,4 +60,17 @@ class SearchNoList extends Model
         }
     }
 
+    public function checkExist($word)
+    {
+        try {
+            $query = "SELECT *  FROM {$this->table} WHERE word=:word";
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':word', $word, PDO::PARAM_STR);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+    
 }
