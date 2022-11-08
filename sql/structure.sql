@@ -1909,36 +1909,108 @@ CREATE TABLE "EHA".search_associated
     CONSTRAINT search_words_pkey PRIMARY KEY (id)
 );
 
-CREATE TABLE "EHA".search_blacklist
-(
-    id integer NOT NULL DEFAULT nextval('search_blacklist_id_seq'::regclass),
-    word text COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT search_blacklist_pkey PRIMARY KEY (id)
+ALTER TABLE "EHA".hotline_theme
+ALTER COLUMN id
+SET DEFAULT nextval('"EHA".hotline_theme_id_seq'::regclass);
+
+
+CREATE TABLE "EHA".search_associated (
+    id integer NOT NULL,
+    word text NOT NULL
 );
 
-CREATE TABLE "EHA".search_logs
-(
-    search_text text COLLATE pg_catalog."default" NOT NULL,
-    id integer NOT NULL DEFAULT nextval('search_logs_id_seq'::regclass),
-    created timestamp without time zone NOT NULL,
-    CONSTRAINT search_logs_pkey PRIMARY KEY (id)
-)
-;
+CREATE SEQUENCE "EHA".search_words_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
-CREATE TABLE "EHA".search_logs_items
-(
-    word text COLLATE pg_catalog."default" NOT NULL,
+
+ALTER TABLE ONLY "EHA".search_associated ALTER COLUMN id SET DEFAULT nextval('"EHA".search_words_id_seq'::regclass);
+
+ALTER TABLE ONLY "EHA".search_associated
+    ADD CONSTRAINT search_words_pkey PRIMARY KEY (id);
+
+
+    CREATE TABLE "EHA".search_blacklist (
+    id integer NOT NULL,
+    word text NOT NULL
+);
+
+
+
+CREATE SEQUENCE "EHA".search_blacklist_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE ONLY "EHA".search_blacklist ALTER COLUMN id SET DEFAULT nextval('"EHA".search_blacklist_id_seq'::regclass);
+
+
+ALTER TABLE ONLY "EHA".search_blacklist
+    ADD CONSTRAINT search_blacklist_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY "EHA".search_blacklist
+    ADD CONSTRAINT unique_word UNIQUE (word);
+
+
+
+CREATE TABLE "EHA".search_logs (
+    search_text text NOT NULL,
+    id integer NOT NULL,
+    created timestamp without time zone NOT NULL
+);
+
+
+CREATE SEQUENCE "EHA".search_logs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+
+ALTER TABLE ONLY "EHA".search_logs ALTER COLUMN id SET DEFAULT nextval('"EHA".search_logs_id_seq'::regclass);
+
+
+ALTER TABLE ONLY "EHA".search_logs
+    ADD CONSTRAINT search_logs_pkey PRIMARY KEY (id);
+CREATE TABLE "EHA".search_logs_items (
+    word text NOT NULL,
     id_search bigint NOT NULL
-)
-;
-
-CREATE TABLE "EHA".search_synonymous
-(
-    synonymous text COLLATE pg_catalog."default" NOT NULL,
-    id integer NOT NULL DEFAULT nextval('search_associated_words_id_seq'::regclass),
-    source integer NOT NULL,
-    CONSTRAINT search_associated_words_pkey PRIMARY KEY (id)
 );
 
 
+CREATE TABLE "EHA".search_synonymous (
+    synonymous text NOT NULL,
+    id integer NOT NULL,
+    source integer NOT NULL
+);
+
+
+
+CREATE SEQUENCE "EHA".search_associated_words_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+
+ALTER TABLE ONLY "EHA".search_synonymous ALTER COLUMN id SET DEFAULT nextval('"EHA".search_associated_words_id_seq'::regclass);
+
+ALTER TABLE ONLY "EHA".search_synonymous
+    ADD CONSTRAINT search_associated_words_pkey PRIMARY KEY (id);
 
