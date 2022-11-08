@@ -117,8 +117,13 @@ class Arrays {
         $searchText = preg_replace('/[^A-Za-z0-9]/', ' ', $searchText);
         $worldsList =  explode(" ", $searchText);
         $worldsList = str_replace(' ', "", $worldsList);
-        return $worldsList;
-        
+        $list = [];
+        foreach ($worldsList as $w) {
+            if (strlen($w) > 0) {
+                $list[] = $w;
+            }
+        }
+        return $list;
     }
 
     public static function getWithOrWithoutPlural($worldsList)
