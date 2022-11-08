@@ -14,6 +14,7 @@ use App\Models\SheetBeneficiary;
 use App\Models\Committee;
 use App\Models\Subscription;
 use App\Services\SheetService ;
+use Core\Util\{Date,Math, Arrays } ;
 
 use Exception;
 use PDO;
@@ -50,14 +51,25 @@ class Sheet extends Model
         $this->sheetContract = (new SheetContract())->table ;
     }
 
-    public function searchWithoutPagination($options)
+    
+ function searchWithoutPagination($options)
     {
         try {
-            $orderBy = $options['order_by'] ?? 'id';
-            $direction = $options['direction'] ?? 'asc';
+            $words = $options['words'];
+            $orderBy = $options['order_by'] ?? 'rank';
+            $direction = $options['direction'] ?? 'desc';
+
             $data = [];
-            $query = 'SELECT s.id, s.label, s.status, s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee   FROM ' . $this->table . '  as s ' . $this->getSearchCondition($options) . '  ORDER BY s.' . $orderBy . ' ' . $direction;
+            $query = "select distinct sss.id, sss.label, sss.status, sss.description, sss.start_date, sss.end_date,sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector,sss.committee
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))),
+            QUERY) AS RANK,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
+                      FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
+                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}  
+                      )
+                      as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
+                      ";
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':userNni', $userNni, PDO::PARAM_STR);
             $sth->execute();
             $data['sheets'] = $sth->fetchall(PDO::FETCH_ASSOC);
             return $data;
@@ -65,39 +77,10 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
-
     public function search($options, $userNni = null)
     {
         try {
-            $worldsList = explode(" ", $options['search']['searchText']);
-            $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
-            $list = [];
-            $articles = array("les", "des", "pour", "avec", "sans");
-            foreach ($worldsList as $d) {
-                $w = str_replace(
-                    "'",
-                    '',
-                    $d
-                );
-
-                $w = str_replace(
-                    " ",
-                    '',
-                    $w
-                );
-                
-                if (strlen($w) > 2 && !in_array($w, $articles)) {
-                    if (!str_ends_with($w, 's')) {
-                        $list[] = $w.'s';
-                    }else{
-                        $list[] = substr($w,0,-1); 
-                    }
-
-                    $list[] = $w;
-                }
-            }
-
-            $words = implode("|", $list);
+            $words = $options['words'];
             $orderBy = $options['order_by'] ?? 'rank';
             $direction = $options['direction'] ?? 'desc';
             $perpage = $options['perpage'] ?? 10;
@@ -115,7 +98,7 @@ class Sheet extends Model
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                        
                       
-                      {$this->getSearchCondition($options)}  ORDER BY RANK desc  LIMIT {$perpage} offset {$page} 
+                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}  LIMIT {$perpage} offset {$page} 
                       )
                       
                       as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
@@ -146,27 +129,9 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
-    public function getFormattedWords($words){
-        $worldsList = $pieces = explode(" ", $words);
-            $list = [];
-            foreach ($worldsList as $d) {
-                $w = str_replace(
-                    "'",
-                    '',
-                    $d
-                );
-                $w = str_replace(
-                    " ",
-                    '',
-                    $w
-                );
-                if(strlen($w)>0)
-                $list[] = $w;
-            }
-            
-            return implode("|", $list);
-    }
+    
     public function getSearchCondition($params, $forFilter=null)
+    
     {
         $search = '';
         $schema = pg_escape_string(getenv("DB_SCHEMA"));
@@ -219,7 +184,7 @@ class Sheet extends Model
 
         $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
-            $searchProvider = $this->getFormattedWords(strtolower($searchProvider));
+            $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " INNER JOIN 
@@ -237,7 +202,8 @@ class Sheet extends Model
         }
         if ($search_input !== '') {
             if ($isCode) {
-                $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.content))) @@ TO_TSQUERY(unaccent(lower('{$search_input}'))) ";
+		$search .= " WHERE   ((TO_TSVECTOR(unaccent(lower(S.content))) @@ TO_TSQUERY(unaccent(lower('{$search_input}')))) OR (TO_TSVECTOR(unaccent(lower(sc.contract_code))) @@ TO_TSQUERY(unaccent(lower('{$search_input}'))))) ";
+               // $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.content))) @@ TO_TSQUERY(unaccent(lower('{$search_input}'))) ";
             } else {
                 $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))) @@ TO_TSQUERY(unaccent(lower('{$params['words']}'))) ";
             }

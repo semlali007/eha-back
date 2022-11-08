@@ -21,39 +21,8 @@ use Exception;
 
 class SheetRepository extends AbstractRepository {
 
-    public function getFormattedWords($options)
-    {
-        $worldsList = explode(" ", $options['search']['searchText']);
-        $worldsList = preg_replace('/[^A-Za-z0-9\-]/', '', $worldsList);
-        $articles = array("les", "des", "pour", "avec", "sans");
-        $list = [];
-        foreach ($worldsList as $d) {
-            $w = str_replace(
-                "'",
-                '',
-                $d
-            );
-
-            $w = str_replace(
-                " ",
-                '',
-                $w
-            );
-            
-            if (strlen($w) > 2 && !in_array($w, $articles)) {
-                if (!str_ends_with($w, 's')) {
-                    $list[] = $w.'s';
-                }else{
-                    $list[] = substr($w,0,-1); 
-                }
-                $list[] = $w;
-            }
-        }
-
-        return implode("|", $list);
-    }
     public function search($options, $userNni = null) {
-        $options['words'] = $this->getFormattedWords($options);
+        $options['words'] = Arrays::getFormattedWords($options['search']['searchText']);
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
@@ -216,7 +185,9 @@ class SheetRepository extends AbstractRepository {
         }
     }
 
-    public function export($options) {
+    public function export($options, $userNni = null) {
+        $options['userNni'] = $userNni;
+        $options['words'] = Arrays::getFormattedWords($options['search']['searchText']);
         $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
         $sheet = new Sheet();
         $answer = [];
@@ -227,7 +198,7 @@ class SheetRepository extends AbstractRepository {
         $committee = new Committee();
         $sheetContract = new SheetContract();
        // $sheet->initSearchCondition($options);
-        $result = $sheet->searchWithoutPagination($options);
+        $result = $sheet->searchWithoutPagination($options, $userNni);
         $header = [
             'Id',
             'Titre',
