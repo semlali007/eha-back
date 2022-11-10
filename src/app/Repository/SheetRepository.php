@@ -4,6 +4,9 @@ namespace App\Repository;
 
 use App\Models\Committee;
 use App\Models\Provider;
+use App\Models\SearchAssociated;
+use App\Models\SearchNoList;
+use App\Models\SearchSynonymous;
 use App\Models\Sheet;
 use App\Models\SheetArea;
 use App\Models\SheetBeneficiary;
@@ -22,7 +25,8 @@ use Exception;
 class SheetRepository extends AbstractRepository {
 
     public function search($options, $userNni = null) {
-        $options['words'] = Arrays::getFormattedWords($options['search']['searchText']);
+
+        $options['words'] = $this->getFormattedWords($options['search']['searchText']);
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);
@@ -362,5 +366,44 @@ class SheetRepository extends AbstractRepository {
         endif;
         return $option ;
     }
+
+    public function getFormattedWords($text)
+    {
+        $wordList = Arrays::getWordsFromText($text);
+        $wordList = $this->removeIgnored($wordList);
+        $wordList = $this->getAllSynonymous($wordList);
+        return implode("|", $wordList);
+    }
+
+    public function removeIgnored($wordList)
+    {
+        $ignored = new SearchNoList();
+        foreach ($wordList as $key => $word) {
+            if ($ignored->checkExist($word)) {
+                unset($wordList[$key]);
+            }
+        }
+        
+        return $wordList;
+    }
+
+    public function getAllSynonymous($wordList)
+    {
+        $associated = new SearchAssociated();
+        $synonymous = new SearchSynonymous();
+        $globalList = [];
+        foreach ($wordList as $key => $word) {
+            $item = $associated->getItem($word);
+            if(is_array($item) && is_numeric($item['id'])){
+                   $synonymousList = $synonymous->getBySource($item['id']);
+                    foreach($synonymousList as $s){
+                        $globalList[] = $s['synonymous'];
+                    }
+            }
+        }
+        return array_merge($globalList, $wordList);
+    }
+
+    
 
 }

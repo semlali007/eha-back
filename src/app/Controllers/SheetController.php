@@ -3,10 +3,13 @@
 namespace App\Controllers;
 
 use App\Manager\SheetManager;
+use App\Models\SearchLog;
+use App\Models\SearchLogItem;
 use App\Repository\SheetRepository;
 use App\Services\FileService;
 use App\Repository\NotificationsRepository ;
 use Core\Http\Request;
+use Core\Util\Arrays;
 
 class SheetController extends Controller {
 
@@ -24,11 +27,22 @@ class SheetController extends Controller {
         $this->notificationsRepository = new NotificationsRepository();
     }
 
-    public function index() {
+    public function index()
+    {
         $this->currentNni = $this->getCurrentUser()->getNni();
         $options = $this->decode(file_get_contents("php://input"));
-	$user = $this->getCurrentUser();
-	if( !$user->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+        if (isset($options['search']['searchText']) && !empty($options['search']['searchText'])) {
+            $log = new SearchLog();
+            $idSearch = $log->add($options);
+            $list =  Arrays::getWords($options['search']['searchText']);
+            foreach ($list as $w) {
+                $logItem = new SearchLogItem();
+                $logItem->add(['word' => $w, 'id_search' => $idSearch]);
+            }
+        }
+
+        $user = $this->getCurrentUser();
+        if (!$user->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])) {
             $options['search']['status'] = ['1'];
         }
         return $this->response($this->sheetRepository->search($options, $this->currentNni));

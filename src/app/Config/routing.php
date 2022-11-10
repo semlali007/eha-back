@@ -156,6 +156,17 @@ $router->post('/domains/add', 'App\Controllers\DomainController@add', ["roles"=>
 $router->get('/subdomains/autocomplete/:word', 'App\Controllers\SubDomainController@autocomplete', ["roles"=>['USER']]);
 $router->post('/subdomains/search', 'App\Controllers\SubDomainController@search', ["roles"=>['USER']]);
 $router->post('/subdomains/add', 'App\Controllers\SubDomainController@add', ["roles"=>['USER']]);
+$router->get('/admin/recherche/logs', 'App\Controllers\SearchConfigController@getLogsList', ["roles"=>['USER']]);
+$router->get('/admin/recherche/ignored/list', 'App\Controllers\SearchConfigController@getIgnoredList', ["roles"=>['USER']]);
+$router->get('/admin/recherche/associated/list', 'App\Controllers\SearchConfigController@getAssociatedList', ["roles"=>['USER']]);
+$router->post('/admin/recherche/ignored/add', 'App\Controllers\SearchConfigController@addIgnored', ["roles"=>['USER']]);
+$router->post('/admin/recherche/associated/add', 'App\Controllers\SearchConfigController@addAssociated', ["roles"=>['USER']]);
+$router->get('/admin/recherche/ignored/delete/:id', 'App\Controllers\SearchConfigController@deleteIgnored', ["roles"=>['USER']]);
+$router->get('/admin/recherche/words/list', 'App\Controllers\SearchConfigController@wordslist', ["roles"=>['USER']]);
+$router->post('/admin/recherche/synonymous/add', 'App\Controllers\SearchConfigController@addSynonymous', ["roles"=>['USER']]);
+$router->get('/admin/recherche/synonymous/delete/:id', 'App\Controllers\SearchConfigController@deleteSynonymous', ["roles"=>['USER']]);
+$router->post('/admin/recherche/associated/update/:id', 'App\Controllers\SearchConfigController@updateAssociated', ["roles"=>['USER']]);
+$router->get('/admin/recherche/associated/delete/:id', 'App\Controllers\SearchConfigController@deleteAssociated', ["roles"=>['USER']]);
 
 // Log Front informations
 $router->post('/front/logs', 'App\Controllers\FrontController@logs');
