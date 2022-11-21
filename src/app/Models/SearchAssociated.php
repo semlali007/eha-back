@@ -51,7 +51,7 @@ class SearchAssociated extends Model
     public function getItem($word)
     {
         try {
-            $query = "SELECT *  FROM {$this->table} WHERE word =:word";
+            $query = "SELECT *  FROM {$this->table} WHERE unaccent(lower(word)) =:word";
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':word', $word, PDO::PARAM_STR);
             $sth->execute();
@@ -60,6 +60,7 @@ class SearchAssociated extends Model
             throw new InternalServerException();
         }
     }
+
     public function update($id, $title) {
 
         try {

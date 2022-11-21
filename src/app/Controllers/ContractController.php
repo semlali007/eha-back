@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Repository\ContractRepository;
+use DateTime;
 
 class ContractController extends Controller
 {
@@ -44,12 +45,19 @@ class ContractController extends Controller
         }
         // Parser le Data 
         if (!is_null($contract)) {
+            $contractDate = new DateTime($contract['infos']['contract_date_end']);
+            $currentDate = new DateTime("now");
+            if($currentDate > $contractDate){
+                return $this->response(['error'=>'contract_expired']);
+            }
+
             $contract['sheets'] = [];
             if (isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])) {
                 $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
             }
             return $this->response($contract);
         }
+
         return $this->response([]);
     }
 
