@@ -3,15 +3,18 @@
 namespace App\Controllers;
 
 use App\Repository\ContractRepository;
+use App\Repository\SheetRepository;
 
 class ContractController extends Controller
 {
     private  $contractRepository;
+    private  $sheetRepository;
     
     public function __construct($roles = [])
     {
         parent::__construct($roles);
         $this->contractRepository = new ContractRepository();
+        $this->sheetRepository = new SheetRepository();
     }
 
     
@@ -46,10 +49,12 @@ class ContractController extends Controller
         if (!is_null($contract)) {
             $contract['sheets'] = [];
             if (isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])) {
-                $contract['sheets'] = $this->contractRepository->getSheets($contract['infos']['contract_code']);
+                $contract['sheets'] = array_merge($this->contractRepository->getSheets($contract['infos']['contract_code']),  $this->sheetRepository->getSheetByContract($contract['infos']['contract_code']));
             }
+
             return $this->response($contract);
         }
+
         return $this->response([]);
     }
 
