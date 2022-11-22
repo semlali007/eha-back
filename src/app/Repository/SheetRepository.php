@@ -404,6 +404,10 @@ class SheetRepository extends AbstractRepository {
         return array_merge($globalList, $wordList);
     }
 
+    public function getSheetByContract($contractCode){
+        $sheet = new Sheet();
+        return $sheet->getSheetByContract($contractCode);
+    }
     
 
 }

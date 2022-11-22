@@ -734,4 +734,18 @@ class Sheet extends Model
         
     }
 
+    public function getSheetByContract($contractCode)
+    {
+        $contractLink = 'app/contrat/details/' . $contractCode;
+        try {
+            $query = "SELECT s.id,s.label  FROM  {$this->table}  s  WHERE s.content LIKE '%$contractLink%'" ;
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+    
+
 }
