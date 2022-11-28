@@ -62,7 +62,7 @@ class ContractController extends Controller
             return $this->response($contract);
         }
 
-        return $this->response([]);
+        return $this->response(['error'=>'contract_expired']);
     }
 
     /**
