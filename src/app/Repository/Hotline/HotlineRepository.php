@@ -85,6 +85,7 @@ class HotlineRepository extends AbstractRepository
                 $answer['data']['timeline'][$i]['message'] = substr($row['message'], $p + 1);
                 $answer['data']['timeline'][$i]['file'] = substr($row['message'], 0, $p);
             }
+            $answer['data']['timeline'][$i]['message'] = str_replace("da-dag-achatpedia@edf.fr", "*****@edf.fr", $answer['data']['timeline'][$i]['message']) ;
         }
 
         return $answer;
