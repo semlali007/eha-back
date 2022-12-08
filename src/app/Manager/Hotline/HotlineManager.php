@@ -127,13 +127,13 @@ class HotlineManager extends AbstractManager
         }
 
         $hotlineFilTime = new HotlineFil();
-        $miseencopie = (!empty($emailcc))?"Demande mise en copie avec ".$emailcc:"";   
+        $miseencopie = (!empty($emailcc))?" \n Demande mise en copie avec ".$emailcc:"";   
         $lastId = $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'F',
             'is_hotline' => $isHotline ? true : false,
             'email' => $email,
-            'message' => ($isHotline) ? 'Question transférée à ' . $email : 'Demande partagée avec ' . $email.nl2br($miseencopie),
+            'message' => ($isHotline) ? 'Question transférée à ' . $email : 'Demande partagée avec ' . $email.$miseencopie,
         ]);
 
         if (!is_numeric($lastId) || $lastId <= 0) {
