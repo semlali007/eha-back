@@ -29,6 +29,18 @@ class NotificationsRepository {
         (new Notification())
                  ->updateNotified($id) ;
     }
+
+
+
+    public function updateAllNotified(string $nni): void
+    {
+        $notif = (new Notification());
+        $list = $notif->getList($nni);
+        foreach ($list as $n) {
+            $notif->updateNotified($n['id']);
+        }
+    }
+
     
     /**
      * Example value of $notifs = [ 

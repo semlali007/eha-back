@@ -38,6 +38,7 @@ class SheetManager extends AbstractManager
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['content'] = $sheetData['content'] ?? '';
+            $data['words'] = $sheetData['words'] ?? '';
             $data['start_date'] = ($sheetData['start_date'] && $sheetData['start_date'] != '')? $sheetData['start_date'] : null;
             $data['end_date'] = ($sheetData['end_date'] && $sheetData['end_date'] != '') ?$sheetData['end_date'] : null;
             $data['dauphin'] = $sheetData['dauphin'];
@@ -217,6 +218,7 @@ class SheetManager extends AbstractManager
 
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
+            $data['words'] = $sheetData['words'] ?? '';
             $data['start_date'] = ($sheetData['start_date'] && $sheetData['start_date'] != '') ? $sheetData['start_date']: null;
             $data['end_date'] = ($sheetData['end_date'] && $sheetData['end_date'] != '') ?$sheetData['end_date']: null;
             $data['dauphin'] = $sheetData['dauphin'];

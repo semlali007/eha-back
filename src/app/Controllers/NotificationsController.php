@@ -39,7 +39,18 @@ class NotificationsController extends Controller{
         $input = Request::input();
         return $this->response($this->notificationsRepository->updateNotified($input['id']));
     }
+
+        /**
+     * Liste des elements dans le menu 
+     * @return Array
+     */
+    public function updateList() {
+        $input = Request::input();
+        return $this->response($this->notificationsRepository->updateAllNotified($input['nni']));
+    }
     
+    
+
     /**
      * 
      */
