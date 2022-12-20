@@ -2015,4 +2015,4 @@ ALTER TABLE ONLY "EHA".search_synonymous
     ADD CONSTRAINT search_associated_words_pkey PRIMARY KEY (id);
 
 ALTER TABLE "EHA".sheet_headers 
-    ADD COLUMN search_words TEXT;
+    ADD COLUMN search_words TEXT DEFAULT '' NOT NULL;

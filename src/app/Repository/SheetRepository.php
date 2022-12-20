@@ -424,6 +424,7 @@ class SheetRepository extends AbstractRepository {
         $wordList = Arrays::getWordsFromText($text);
         $wordList = $this->removeIgnored($wordList);
         $wordList = $this->getAllSynonymous($wordList);
+        $wordList = Arrays::getWithOrWithoutPlural($wordList) ;
         return implode("|", $wordList);
     }
 
