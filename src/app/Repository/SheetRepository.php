@@ -185,6 +185,7 @@ class SheetRepository extends AbstractRepository {
 
             return $details;
         } catch (\Exception $e) {
+            var_dump($e->getMessage());exit;
             throw new Exception($e->getMessage());
         }
     }
@@ -204,29 +205,35 @@ class SheetRepository extends AbstractRepository {
        // $sheet->initSearchCondition($options);
         $result = $sheet->searchWithoutPagination($options, $userNni);
         $header = [
-            'Id',
             'Titre',
-            'Statut',
+            'Date de début part ferme',
+            'Date de fin part ferme',
+            'Options',
             'Commentaires',
-            'Date de début',
-            'Date de fin',
             'Approvisionnement sous dauphin',
             'Marché ouvert au personnel EDF',
             'Stipulation pour autrui',
             'Partenariat de productivité',
             'Secteur protégé',
-            'Comité de Gestion de la Demande',
             'Fournisseurs',
             'Bénéficiaires',
-            'Zones',
-            'DOA',
-            'Contrats'
+            'Zone géographique d’application des marchés',
+            'Directions opérationnelles (DOA)',
+            'Comité de Gestion de la Demande',
+            'Segments',
+            'Sous-ensemble',
+            'Statut',
+            'Kit de déploiement',
+            'Numéro de contrat',
+            'Mots clés'
         ];
         $csv = [
             'header' => $header,
             'data' => []
         ];
-
+        $sheetOption = new SheetOption();
+        $sheetDomain = new SheetDomain();
+        $sheetSubDomain = new SheetSubDomain();
         foreach ($result['sheets'] as $sheet) {
             if (isset($sheet['committee'])) {
                 $committeeItem = $committee->getByCode($sheet['committee']);
@@ -237,13 +244,13 @@ class SheetRepository extends AbstractRepository {
 
             $providers = $sheetProvider->getBySheet($sheet['id']);
             $sheet['providers'] = '';
-            foreach ($providers as $key => $provider) {
-                if ($key !== 0) {
-                    $sheet['providers'] .= '|';
-                }
+                foreach ($providers as $key => $provider) {
+                    if ($key !== 0) {
+                        $sheet['providers'] .= '|';
+                    }
 
-                $sheet['providers'] .= $provider['name'];
-            }
+                    $sheet['providers'] .= $provider['name'];
+                }
 
             $filiales = $sheetFiliale->getBySheet($sheet['id']);
             $sheet['filiales'] = '';
@@ -273,14 +280,36 @@ class SheetRepository extends AbstractRepository {
                 $sheet['groups'] .= $group['name'];
             }
 
-            $contracts = $sheetContract->getBySheet($sheet['id']);
-            $sheet['contracts'] = '';
-            foreach ($contracts as $key => $contract) {
+           
+            $options = $sheetOption->getBySheet($sheet['id']);
+            $details['options'] = '';
+            foreach ($options as $key => $option) {
                 if ($key !== 0) {
-                    $sheet['contracts'] .= '|';
+                    $sheet['options'] .= '|';
                 }
-                $sheet['contracts'] .= $contract['contract_code'];
+                $sheet['options'] .= $option['start_date'] . ' - '  .$option['end_date'];
             }
+
+            $domains = $sheetDomain->getBySheet($sheet['id']);
+
+            $details['domain'] = '';
+            foreach ($domains as $key => $domain) {
+                if ($key !== 0) {
+                    $sheet['domains'] .= '|';
+                }
+                $sheet['domains'] .= $domain['name'];
+            }
+
+            $subdomains = $sheetSubDomain->getBySheet($sheet['id']);
+
+            $details['subdomains'] = '';
+            foreach ($subdomains as $key => $subdomain) {
+                if ($key !== 0) {
+                    $sheet['subdomains'] .= '|';
+                }
+                $sheet['subdomains'] .= $subdomain['name'];
+            }
+
 
             $sheet['dauphin'] = ($sheet['dauphin'] == 1) ? 'Oui' : 'Non';
             $sheet['edf_open'] = ($sheet['edf_open'] == 1) ? 'Oui' : 'Non';
@@ -289,8 +318,31 @@ class SheetRepository extends AbstractRepository {
             $sheet['partnership'] = ($sheet['partnership'] == 1) ? 'Oui' : 'Non';
             $sheet['status'] = $status[$sheet['status']];
             $sheet['description'] = $this->toPlainText($sheet['description']);
+            $sheet['contracts'] = '';
+            $contracts = $sheetContract->getBySheet($sheet['id']);
+            preg_match_all('#app/contrat/details/(.*?)\"#', $sheet['content'], $match);
+            $contractCodes = [];
+            unset($sheet['id']);
+            unset($sheet['content']);
+            if(isset($match[1])){
+                foreach($match[1] as $m){
+                    $contractCodes[] = $m;
+                    $sheet['contracts'] = $m;
+                    $csv['data'][] = $sheet;
+                }
+            }
+           
+            foreach ($contracts as $key => $contract) {
+                if(!in_array($contract['contract_code'], $contractCodes)){
+                    $contractCodes[] = $contract['contract_code'];
+                    $sheet['contracts'] = $contract['contract_code'];
+                    $csv['data'][] = $sheet;
+                }
+            }
 
-            $csv['data'][] = $sheet;
+            if(count($contracts) == 0 && count($contractCodes) == 0){
+                $csv['data'][] = $sheet;
+            }
         }
         return $csv;
     }

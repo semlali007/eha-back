@@ -60,9 +60,9 @@ class Sheet extends Model
             $direction = $options['direction'] ?? 'desc';
 
             $data = [];
-            $query = "select distinct sss.id, sss.label, sss.status, sss.description, sss.start_date, sss.end_date,sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector,sss.committee
-            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))),
-            QUERY) AS RANK,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
+            $query = "select distinct  sss.label, sss.start_date, sss.end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words 
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
+            QUERY) AS RANK,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                       {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}  
                       )
@@ -91,7 +91,7 @@ class Sheet extends Model
             WHEN sub.sheet_id is not NULL THEN true
             ELSE false
             END subscribed
-            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))),
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
             QUERY) AS RANK, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
                      
@@ -205,7 +205,7 @@ class Sheet extends Model
 		$search .= " WHERE   ((TO_TSVECTOR(unaccent(lower(S.content))) @@ TO_TSQUERY(unaccent(lower('{$search_input}')))) OR (TO_TSVECTOR(unaccent(lower(sc.contract_code))) @@ TO_TSQUERY(unaccent(lower('{$search_input}'))))) ";
                // $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.content))) @@ TO_TSQUERY(unaccent(lower('{$search_input}'))) ";
             } else {
-                $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description))) @@ TO_TSQUERY(unaccent(lower('{$params['words']}'))) ";
+                $search .= " WHERE   TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))) @@ TO_TSQUERY(unaccent(lower('{$params['words']}'))) ";
             }
         } else {
             $search .= " WHERE   1=1 ";
@@ -308,6 +308,7 @@ class Sheet extends Model
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
+            var_dump($e->getMessage());exit;
             throw new InternalServerException();
         }
     }
@@ -389,7 +390,6 @@ class Sheet extends Model
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-
             throw new InternalServerException();
         }
     }
@@ -553,7 +553,7 @@ class Sheet extends Model
         $id = $data['id'];
         try {
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, showcase=:showcase, content=:content WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, showcase=:showcase, content=:content, search_words=:search_words WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -572,6 +572,7 @@ class Sheet extends Model
             $sth->bindParam(':committee', $data['committee'], PDO::PARAM_INT);
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
             $sth->bindParam(':content', $data['content'], PDO::PARAM_BOOL);
+            $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
@@ -586,7 +587,7 @@ class Sheet extends Model
             $data['netachat_type'] = $data['netachat_type']?? '';
             $data['netachat_id'] = $data['netachat_id']?? 0;
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, showcase, content, netachat_id, netachat_type) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :showcase, :content, :netachat_id, :netachat_type);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, showcase, content, netachat_id, netachat_type, search_words) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :showcase, :content, :netachat_id, :netachat_type, :search_words);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -610,6 +611,7 @@ class Sheet extends Model
             $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':netachat_type', $data['netachat_type'], PDO::PARAM_STR);
             $sth->bindParam(':netachat_id', $data['netachat_id'], PDO::PARAM_INT);
+            $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
