@@ -31,7 +31,11 @@ class SheetController extends Controller {
     {
         $this->currentNni = $this->getCurrentUser()->getNni();
         $options = $this->decode(file_get_contents("php://input"));
-        if (isset($options['search']['searchText']) && !empty($options['search']['searchText'])) {
+        if (isset($options['search']['searchText']) 
+                && !empty($options['search']['searchText']) 
+                && isset($options['is_search']) 
+                &&  $options['is_search'] == true
+                ) {
             $log = new SearchLog();
             $idSearch = $log->add($options);
             $list =  Arrays::getWords($options['search']['searchText']);
