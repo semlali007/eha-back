@@ -33,7 +33,7 @@ class Notification extends Model {
      */
     public function getList($userNni = ''): array {       
         try {
-            $query = "SELECT n.*, sheet.label FROM {$this->table} n  INNER JOIN {$this->subscriberTable} s on n.sheet_id = s.sheet_id INNER JOIN {$this->sheetHeader} sheet on sheet.id=s.sheet_id " ;
+            $query = "SELECT DISTINCT n.*, sheet.label FROM {$this->table} n  INNER JOIN {$this->subscriberTable} s on n.sheet_id = s.sheet_id INNER JOIN {$this->sheetHeader} sheet on sheet.id=s.sheet_id " ;
             if (!empty($userNni) && !is_null($userNni)):
                 $query .= "where n.user_nni= :user_nni and n.is_notified = false";
             endif;
