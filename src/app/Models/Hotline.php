@@ -11,7 +11,11 @@ class Hotline extends Model {
 
     protected $tableName = 'hotline';
     protected $hotelineFileTable;
-
+    static $status = [
+        "AUTO"=>1,
+        "GESTIONNAIRE"=>2,
+        "TIERS"=>3
+    ] ;
     public function __construct() {
         parent::__construct();
         $this->hotelineFileTable = (new HotlineFil())->table;
@@ -220,16 +224,25 @@ class Hotline extends Model {
     }
 
 
-    public function close($id, $note)
+   /**
+    * 
+    * @param int|null $id
+    * @param string|null $note
+    * @param int|null $type
+    * @return void
+    * @throws InternalServerException
+    */
+    public function close(?int $id, ?string $note,?int $type):void
     {
         try {
-            $query = ' UPDATE ' . $this->table . ' SET closed_at = now(), closed_note =:note WHERE discussion =:id AND closed_at IS NULL ';
+            $query = ' UPDATE ' . $this->table . ' SET closed_at = now(), closed_note =:note, closed_type=:type WHERE discussion =:id AND closed_at IS NULL ';
             $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':note', $note, PDO::PARAM_INT);
+            $sth->bindParam(':note', $note, PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->bindParam(':type', $type, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
-            throw new InternalServerException();
+            throw new InternalServerException($e->getMessage());
         }
     }
 
@@ -265,15 +278,80 @@ class Hotline extends Model {
 
             try {
                 $query = "
-                   SELECT f.discussion, t.label as theme, h.info_entity, e.groupe, e.category, f.row, date_trunc('second',f.quand) as quand, f.nature, f.is_hotline, f.email, f.message FROM ".$this->hotelineFileTable." AS f LEFT JOIN " . $this->table . " AS h ON f.discussion = h.discussion LEFT JOIN ".(new HotlineEmail())->table." AS e ON h.category_id = e.id LEFT JOIN ".(new HotlineTheme())->table." AS t ON h.theme_id = t.id
+                   SELECT f.discussion, t.label as theme,e.groupe,e.category, h.info_entity, date_trunc('second',f.quand) as quand,'en cours' as status , 
+                  f.nature,   f.email, f.message, f.row, f.is_hotline, h.closed_at  FROM "
+                        .$this->hotelineFileTable." AS f LEFT JOIN " . $this->table . 
+                        " AS h ON f.discussion = h.discussion LEFT JOIN ".(new HotlineEmail())->table.
+                        " AS e ON h.category_id = e.id LEFT JOIN ".(new HotlineTheme())->table." AS t ON h.theme_id = t.id 
+                            ORDER BY f.discussion, quand
            ";
     
                 $sth = $this->db->getPDO()->prepare($query);
                 $sth->execute();
                 return $sth->fetchAll(PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
+                var_dump($e->getMessage()) ;
+                
                 throw new InternalServerException();
             }
 
     }
+    
+    
+     /**
+     * 
+     * @param string $endDate
+     * @return mixed
+     */
+    public function getExpiredDiscussion(mixed $endDate = 30): mixed {
+        $maxDays = $endDate;
+        if ($maxDays < 1) {
+            exit();
+        }
+        // On va identifier l'ensemble des fils de discussion ouverts
+        // et du côté de l'utilisateur, et sans réponse de ce dernier depuis
+        // au moins "$maxdays" jours.
+        $now = date('Y-m-d');
+        $query = "SELECT d.discussion, h.question, concat(h.email_from, ',', d.emails) as emails
+	FROM (
+		SELECT d.discussion, string_agg(DISTINCT hf.email, ',') as emails
+		FROM (
+			SELECT h.discussion
+			FROM {$this->table} AS h
+			LEFT JOIN (
+				SELECT discussion, max(quand) as quand
+				FROM {$this->hotelineFileTable}
+				GROUP BY discussion
+			) AS md 
+			ON md.discussion = h.discussion
+			LEFT JOIN {$this->hotelineFileTable}  AS hf
+			ON hf.discussion = md.discussion AND hf.quand = md.quand
+			WHERE h.closed_at IS NULL 
+			AND hf.is_hotline IS FALSE
+                        AND DATE_PART('day', {$now}, md.quand) > {$maxDays}
+		) AS d
+		LEFT JOIN {$this->hotelineFileTable} AS hf
+		ON hf.discussion = d.discussion
+		GROUP BY d.discussion
+	) AS d
+	LEFT JOIN {$this->table} AS h
+	ON h.discussion = d.discussion
+";
+        $sth = $this->db->getPDO()  ->prepare($query);
+        $sth->execute(); // Lancer la requete
+        return $sth->fetchAll(\PDO::FETCH_ASSOC); // Recupérer les infos sous forme une table
+    }
+    
+    function update($id){
+        try{
+        $query=" UPDATE  ". $this->table . "  SET closed_at = now(), closed_note = null "
+                . "WHERE discussion =:id  AND closed_at IS NULL" ;
+        $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
 }

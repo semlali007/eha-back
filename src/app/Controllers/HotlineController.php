@@ -72,7 +72,12 @@ class HotlineController extends Controller
     public function getList()
     {
         try {
-            return $this->response($this->hotlineRepository->getHotlines());
+           $header = [
+                "Numéro de question", "Thème", "Famille", "Catégorie", "Entité de rattachement", "Date", "Statut de la demande", "Type de clôture", "E-mail du demandeur", "Message / Action"
+                    ];
+            $data =  ($this->hotlineRepository->getHotlines());
+           
+            return $this->response(["header"=>$header, "data"=>$data]);
         } catch (Exception $ex) {
             return $this->error($ex);
         }
