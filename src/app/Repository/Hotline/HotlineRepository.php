@@ -224,7 +224,7 @@ class HotlineRepository extends AbstractRepository
                 "message"=> "Fermée automatiquement",
                 ] ;
             $hotlineFilModel->insert($options) ;
-            (new Hotline())->close($id, $note,Hotline::$status["AUTO"]);
+            (new Hotline())->close($id, $note,Hotline::$status["AUTOMATIQUE"]);
             
             if (!empty($emails)) {
                 $this->sendMail($emails, "Achatpédia - Fermeture automatique de la discussion $id", "mail/hotline_question_closed_auto.html.twig", [

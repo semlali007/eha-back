@@ -12,9 +12,9 @@ class Hotline extends Model {
     protected $tableName = 'hotline';
     protected $hotelineFileTable;
     static $status = [
-        "AUTO"=>1,
-        "GESTIONNAIRE"=>2,
-        "TIERS"=>3
+        "AUTOMATIQUE" => 1,
+        "GESTIONNAIRE" => 2,
+        "TIERS" => 3
     ] ;
     public function __construct() {
         parent::__construct();
