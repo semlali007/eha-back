@@ -5,6 +5,7 @@ namespace App\Command;
 use Symfony\Component\Console\Application;
 use App\Command\Command\{
     ArchivageFicheMarche,
+    AutoClotureDemandeHotline,
     AutoNotifArchivageFiche,
     SearchNoReplyHotline,
     RemoveExpiredNotifications,
@@ -46,6 +47,7 @@ class Bootstrap {
         $this->application = new Application();
         $this->commands = [
             new ArchivageFicheMarche(),
+            new AutoClotureDemandeHotline(),
             new AutoNotifArchivageFiche(),
             new SearchNoReplyHotline(),
             new RemoveExpiredNotifications(),

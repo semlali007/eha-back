@@ -140,7 +140,7 @@ class HotlineActionManager extends AbstractManager
             'message' => $note,
         ]);
 
-        $infos = (new Hotline())->close($id, $note);
+        $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
         $emails = (new Hotline())->getAllRecepients($id);
        
         if (!empty($emails)) {
