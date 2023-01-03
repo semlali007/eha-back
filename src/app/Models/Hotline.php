@@ -235,6 +235,7 @@ class Hotline extends Model {
     public function close(?int $id, ?string $note,?int $type):void
     {
         try {
+
             $query = ' UPDATE ' . $this->table . ' SET closed_at = now(), closed_note =:note, closed_type=:type WHERE discussion =:id AND closed_at IS NULL ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':note', $note, PDO::PARAM_STR);
@@ -242,7 +243,7 @@ class Hotline extends Model {
             $sth->bindParam(':type', $type, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
-            throw new InternalServerException($e->getMessage());
+            throw new InternalServerException();
         }
     }
 
@@ -279,7 +280,7 @@ class Hotline extends Model {
             try {
                 $query = "
                    SELECT f.discussion, t.label as theme,e.groupe,e.category, h.info_entity, date_trunc('second',f.quand) as quand,'en cours' as status , 
-                  f.nature,   f.email, f.message, f.row, f.is_hotline, h.closed_at  FROM "
+                  f.nature,   h.closed_type, f.email, f.message, f.row, f.is_hotline, h.closed_at  FROM "
                         .$this->hotelineFileTable." AS f LEFT JOIN " . $this->table . 
                         " AS h ON f.discussion = h.discussion LEFT JOIN ".(new HotlineEmail())->table.
                         " AS e ON h.category_id = e.id LEFT JOIN ".(new HotlineTheme())->table." AS t ON h.theme_id = t.id 
@@ -327,8 +328,8 @@ class Hotline extends Model {
 			LEFT JOIN {$this->hotelineFileTable}  AS hf
 			ON hf.discussion = md.discussion AND hf.quand = md.quand
 			WHERE h.closed_at IS NULL 
-			AND hf.is_hotline IS FALSE
-                        AND DATE_PART('day', {$now}, md.quand) > {$maxDays}
+			
+                        AND DATE_PART('day', '$now' - md.quand) >= {$maxDays}
 		) AS d
 		LEFT JOIN {$this->hotelineFileTable} AS hf
 		ON hf.discussion = d.discussion

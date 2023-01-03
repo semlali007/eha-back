@@ -9,6 +9,9 @@ use App\Models\HotlineFil;
 use App\Repository\AbstractRepository;
 use App\Security\User;
 use App\Validation\Validator;
+use Core\Mailer\Builder as Mailer ;
+use App\Exceptions\EmailException;
+use App\Models\HotlineGroup;
 use Exception;
 
 class HotlineRepository extends AbstractRepository
@@ -148,19 +151,36 @@ class HotlineRepository extends AbstractRepository
 
 
     public function getHotlines(){
-        $hotlines =  (new Hotline())->getHotlines(); 
+        $hotlines =  (new Hotline())->getHotlines();
+        $groups = (new HotlineGroup())->getList();
+        $families = [];
+        foreach($groups as $p){
+            $families[$p['code']] = $p['label'];
+        }
+        $status = array_flip(Hotline::$status);
+
         foreach($hotlines as &$valeur){
-           
             
              if (in_array($valeur['nature'], array('O', 'OF', 'FO'))) {
                 $valeur["status"] = 'nouvelle - en attente de traitement';
-            } else if (strpos($valeur['nature'], 'C') !== false || $valeur['closed_at']!=null) {
+                $valeur["closed_type"]  = '';
+            } else if (strpos($valeur['nature'], 'C') !== false || $valeur['closed_at'] != null) {
                 $valeur["status"] = 'fermée';
+                if (isset($status[$valeur["closed_type"]])) {
+                    $valeur["closed_type"] = $status[$valeur["closed_type"]];
+                }
             } else {
                 $valeur["status"] = 'ouverte - en cours de traitement';
+                $valeur["closed_type"]  = '';
             }
-            
+
+            if (isset($families[$valeur["groupe"]])) {
+                $valeur["groupe"] = $families[$valeur["groupe"]];
+            }
+           
+
             unset($valeur["row"]) ;
+            unset($valeur["nature"]) ;
             unset($valeur["is_hotline"]) ;
             unset($valeur["closed_at"]) ;
             
@@ -192,27 +212,28 @@ class HotlineRepository extends AbstractRepository
                 }
             }
             $stat['emails'] = $emails;
-            $note='Discussion fermée automatiquement.' ;
+            $note= 0 ;
             $now = date('Y-m-d');
             // On ferme automatiquement la discussion :
             $id = $row['discussion'];
             $options = [
                 "discussion"=> $id,
                 "nature"=> 'C',
-                "is_hotline"=>$now ,
-                "email"=>$stat['emails'] ,
-                "message"=> $note,
+                "is_hotline"=> true ,
+                "email"=>'' ,
+                "message"=> "Fermée automatiquement",
                 ] ;
             $hotlineFilModel->insert($options) ;
             (new Hotline())->close($id, $note,Hotline::$status["AUTO"]);
             
             if (!empty($emails)) {
-                $this->sendMail($emails, "Achatpédia - Fermeture automatique de la discussion ${$id}", "mail/hotline_question_closed_auto.html.twig", [
+                $this->sendMail($emails, "Achatpédia - Fermeture automatique de la discussion $id", "mail/hotline_question_closed_auto.html.twig", [
                     'id' => $id,
                     'max_days' => $endDays,
                 ]);
             }
         }
+        return $hotlines;
     }
     
      public function sendMail($recepients, $subject, $template, $params)
