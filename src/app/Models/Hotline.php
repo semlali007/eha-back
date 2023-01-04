@@ -279,12 +279,12 @@ class Hotline extends Model {
 
             try {
                 $query = "
-                   SELECT f.discussion, t.label as theme,e.groupe,e.category, h.info_entity, date_trunc('second',f.quand) as quand,'en cours' as status , 
+                   SELECT f.discussion, t.label as theme,e.groupe,e.category, h.info_entity, to_char(date_trunc('second',f.quand), 'DD/MM/YYYY à HH24:MI:SS')   as quand,'en cours' as status , 
                   f.nature,   h.closed_type, f.email, f.message, f.row, f.is_hotline, h.closed_at  FROM "
                         .$this->hotelineFileTable." AS f LEFT JOIN " . $this->table . 
                         " AS h ON f.discussion = h.discussion LEFT JOIN ".(new HotlineEmail())->table.
                         " AS e ON h.category_id = e.id LEFT JOIN ".(new HotlineTheme())->table." AS t ON h.theme_id = t.id 
-                            ORDER BY f.discussion, quand
+                            ORDER BY f.discussion, f.quand
            ";
     
                 $sth = $this->db->getPDO()->prepare($query);
@@ -336,7 +336,8 @@ class Hotline extends Model {
 		GROUP BY d.discussion
 	) AS d
 	LEFT JOIN {$this->table} AS h
-	ON h.discussion = d.discussion
+	ON h.discussion = d.discussion 
+    limit 1
 ";
         $sth = $this->db->getPDO()  ->prepare($query);
         $sth->execute(); // Lancer la requete

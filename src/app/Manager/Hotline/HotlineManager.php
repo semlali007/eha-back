@@ -32,6 +32,15 @@ class HotlineManager extends AbstractManager
             throw (new InvalidParameterException())->setErrors($errors);
         }
         $email = $user->getEmail();
+
+        if($email == getenv('DEFAULT_SEND_EMAIL') && isset($options['email'])){
+            $email = $options['email'];
+        }
+
+        if($entity == 'DEFAULT' && isset($options['entity'])){
+            $entity = substr($options['entity'], 0, 45);
+        }
+
         $category = $options['category'];
         $theme = $options['theme'];
         $sha_demandeur = bin2hex(random_bytes(2)). 'h';

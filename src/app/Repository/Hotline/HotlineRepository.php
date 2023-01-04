@@ -162,12 +162,14 @@ class HotlineRepository extends AbstractRepository
         foreach($hotlines as &$valeur){
             
              if (in_array($valeur['nature'], array('O', 'OF', 'FO'))) {
-                $valeur["status"] = 'nouvelle - en attente de traitement';
-                $valeur["closed_type"]  = '';
-            } else if (strpos($valeur['nature'], 'C') !== false || $valeur['closed_at'] != null) {
+                    $valeur["status"] = 'nouvelle - en attente de traitement';
+                    $valeur["closed_type"]  = '';
+            } else if (strpos($valeur['nature'], 'C') !== false) {
                 $valeur["status"] = 'fermée';
                 if (isset($status[$valeur["closed_type"]])) {
                     $valeur["closed_type"] = $status[$valeur["closed_type"]];
+                }else{
+                    $valeur["closed_type"] = "GESTIONNAIRE";
                 }
             } else {
                 $valeur["status"] = 'ouverte - en cours de traitement';
@@ -227,11 +229,19 @@ class HotlineRepository extends AbstractRepository
             (new Hotline())->close($id, $note,Hotline::$status["AUTOMATIQUE"]);
             
             if (!empty($emails)) {
-                $this->sendMail($emails, "Achatpédia - Fermeture automatique de la discussion $id", "mail/hotline_question_closed_auto.html.twig", [
-                    'id' => $id,
-                    'max_days' => $endDays,
-                ]);
+                foreach ($emails as $email) {
+                    if(strtolower($email) != 'da-dag-achatpedia@edf.fr'){
+                        $this->sendMail($email, "Achatpédia - Fermeture automatique de la discussion $id", "mail/hotline_question_closed_auto.html.twig", [
+                        'id' => $id,
+                        'max_days' => $endDays,
+                    ]);
+                    }
+                }
             }
+            $this->sendMail('da-dag-achatpedia@edf.fr', "Achatpédia - Fermeture automatique de la discussion $id", "mail/hotline_question_closed_auto_eha.html.twig", [
+                'id' => $id,
+                'max_days' => $endDays,
+            ]);
         }
         return $hotlines;
     }
