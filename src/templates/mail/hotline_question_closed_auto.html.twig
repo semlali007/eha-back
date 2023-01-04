@@ -1,8 +1,4 @@
 {% extends "mail/base.html.twig" %}
 {% block message %}
-Une discussion vient d'être fermée.
-{% endblock %}
-{% block link %}
-    <p>Cela fait maintenant au moins {{ max_days }} jours, qu\'aucun demandeur n\'a répondu au dernier message de la hotline.</p>
-    <p>En conséquence de quoi, la discussion {{ id }} est fermée automatiquement.</p>
+La question n° {{ id }} est clôturée automatiquement en l'absence de réponse suite à son transfert.
 {% endblock %}
