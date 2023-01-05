@@ -73,7 +73,7 @@ class HotlineController extends Controller
     {
         try {
            $header = [
-                "Numéro de question", "Thème", "Famille", "Catégorie", "Entité de rattachement", "Date", "Statut de la demande", "Type de clôture", "E-mail du demandeur", "Message / Action"
+                "Numéro de question", "Thème", "Famille", "Catégorie", "Entité de rattachement", "Date", "Heure", "Statut de la demande", "Type de clôture", "E-mail", "Message / Action"
                     ];
             $data =  ($this->hotlineRepository->getHotlines());
            

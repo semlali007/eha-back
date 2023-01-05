@@ -279,7 +279,7 @@ class Hotline extends Model {
 
             try {
                 $query = "
-                   SELECT f.discussion, t.label as theme,e.groupe,e.category, h.info_entity, to_char(date_trunc('second',f.quand), 'DD/MM/YYYY à HH24:MI:SS')   as quand,'en cours' as status , 
+                   SELECT f.discussion, t.label as theme,e.groupe,e.category, h.info_entity, to_char(date_trunc('second',f.quand), 'DD/MM/YYYY')   as quand,to_char(date_trunc('second',f.quand), 'HH24:MI:SS')   as hours, 'en cours' as status , 
                   f.nature,   h.closed_type, f.email, f.message, f.row, f.is_hotline, h.closed_at  FROM "
                         .$this->hotelineFileTable." AS f LEFT JOIN " . $this->table . 
                         " AS h ON f.discussion = h.discussion LEFT JOIN ".(new HotlineEmail())->table.
