@@ -46,13 +46,15 @@ class ContractController extends Controller
                 }
             }
         }
+
+
         // Parser le Data 
         if (!is_null($contract)) {
             $contractDate = new DateTime($contract['infos']['contract_date_end']);
             $currentDate = new DateTime("now");
             if($currentDate > $contractDate){
                 return $this->response(['error'=>'contract_expired']);
-            }
+            }   
 
             $contract['sheets'] = [];
             if (isset($contract) && isset($contract['infos']) && isset($contract['infos']['contract_code'])) {
@@ -62,7 +64,7 @@ class ContractController extends Controller
             return $this->response($contract);
         }
 
-        return $this->response(['error'=>'contract_expired']);
+        return $this->response(['error'=>'contract_load_error']);
     }
 
     /**
