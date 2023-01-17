@@ -20,6 +20,7 @@ use App\Models\SheetProvider;
 use App\Models\SheetSubDomain;
 use App\Models\Subscription;
 use Core\Util\{Date,Math, Arrays } ;
+use DOMDocument;
 use Exception;
 
 class SheetRepository extends AbstractRepository {
@@ -202,7 +203,6 @@ class SheetRepository extends AbstractRepository {
         $sheetGroup = new SheetGroup();
         $committee = new Committee();
         $sheetContract = new SheetContract();
-       // $sheet->initSearchCondition($options);
         $result = $sheet->searchWithoutPagination($options, $userNni);
         $header = [
             'Titre',
@@ -283,11 +283,16 @@ class SheetRepository extends AbstractRepository {
            
             $options = $sheetOption->getBySheet($sheet['id']);
             $details['options'] = '';
+
             foreach ($options as $key => $option) {
+
                 if ($key !== 0) {
                     $sheet['options'] .= '|';
                 }
-                $sheet['options'] .= $option['start_date'] . ' - '  .$option['end_date'];
+
+                $startDate = date_create($option['start_date']);
+                $endDate = date_create($option['end_date']);
+                $sheet['options'] .= date_format($startDate, "d/m/Y") . ' - '  . date_format($endDate, "d/m/Y");
             }
 
             $domains = $sheetDomain->getBySheet($sheet['id']);
@@ -343,6 +348,217 @@ class SheetRepository extends AbstractRepository {
             if(count($contracts) == 0 && count($contractCodes) == 0){
                 $csv['data'][] = $sheet;
             }
+        }
+
+        return $csv;
+    }
+
+
+    public function exportAll($options, $userNni = null) {
+        $options['userNni'] = $userNni;
+        $options['words'] = Arrays::getFormattedWords($options['search']['searchText']);
+        $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
+        $sheet = new Sheet();
+        $answer = [];
+        $sheetProvider = new SheetProvider();
+        $sheetFiliale = new SheetBeneficiary();
+        $sheetZone = new SheetArea();
+        $sheetGroup = new SheetGroup();
+        $committee = new Committee();
+        $sheetContract = new SheetContract();
+        $result = $sheet->searchWithoutPagination($options, $userNni);
+        
+        $header = [
+            'Titre',
+            'Date de début part ferme',
+            'Date de fin part ferme',
+            'Options',
+            'Commentaires',
+            'Approvisionnement sous dauphin',
+            'Marché ouvert au personnel EDF',
+            'Stipulation pour autrui',
+            'Partenariat de productivité',
+            'Secteur protégé',
+            'Fournisseurs',
+            'Bénéficiaires',
+            'Zone géographique d’application des marchés',
+            'Directions opérationnelles (DOA)',
+            'Comité de Gestion de la Demande',
+            'Segments',
+            'Sous-ensemble',
+            'Statut',
+            'Kit de déploiement',
+            'Mots clés',
+            'contrat',
+            'fournisseur',
+            'contact'
+        ];
+        $csv = [
+            'header' => $header,
+            'data' => []
+        ];
+        $sheetOption = new SheetOption();
+        $sheetDomain = new SheetDomain();
+        $sheetSubDomain = new SheetSubDomain();
+        $array = ['contrat'=>[], 'provider'=>[], 'contact'=>[]];
+        foreach ($result['sheets'] as $sheet) {
+            if (isset($sheet['committee'])) {
+                $committeeItem = $committee->getByCode($sheet['committee']);
+                if (!is_null($committeeItem) && is_array($committeeItem) && isset($committeeItem['label'])) {
+                    $sheet['committee'] = $committeeItem['label'];
+                }
+            }
+
+            $providers = $sheetProvider->getBySheet($sheet['id']);
+            $sheet['providers'] = '';
+                foreach ($providers as $key => $provider) {
+                    if ($key !== 0) {
+                        $sheet['providers'] .= '|';
+                    }
+
+                    $sheet['providers'] .= $provider['name'];
+                }
+
+            $filiales = $sheetFiliale->getBySheet($sheet['id']);
+            $sheet['filiales'] = '';
+            foreach ($filiales as $key => $filiale) {
+                if ($key !== 0) {
+                    $sheet['filiales'] .= '|';
+                }
+
+                $sheet['filiales'] .= $filiale['name'];
+            }
+
+            $zones = $sheetZone->getBySheet($sheet['id']);
+            $sheet['zones'] = '';
+            foreach ($zones as $key => $zone) {
+                if ($key !== 0) {
+                    $sheet['zones'] .= '|';
+                }
+                $sheet['zones'] .= $zone['name'];
+            }
+
+            $groups = $sheetGroup->getBySheet($sheet['id']);
+            $sheet['groups'] = '';
+            foreach ($groups as $key => $group) {
+                if ($key !== 0) {
+                    $sheet['groups'] .= '|';
+                }
+                $sheet['groups'] .= $group['name'];
+            }
+
+           
+            $options = $sheetOption->getBySheet($sheet['id']);
+            $details['options'] = '';
+
+            foreach ($options as $key => $option) {
+
+                if ($key !== 0) {
+                    $sheet['options'] .= '|';
+                }
+
+                $startDate = date_create($option['start_date']);
+                $endDate = date_create($option['end_date']);
+                $sheet['options'] .= date_format($startDate, "d/m/Y") . ' - '  . date_format($endDate, "d/m/Y");
+            }
+
+            $domains = $sheetDomain->getBySheet($sheet['id']);
+            $details['domain'] = '';
+            foreach ($domains as $key => $domain) {
+                if ($key !== 0) {
+                    $sheet['domains'] .= '|';
+                }
+                $sheet['domains'] .= $domain['name'];
+            }
+
+            $subdomains = $sheetSubDomain->getBySheet($sheet['id']);
+
+            $details['subdomains'] = '';
+            foreach ($subdomains as $key => $subdomain) {
+                if ($key !== 0) {
+                    $sheet['subdomains'] .= '|';
+                }
+                $sheet['subdomains'] .= $subdomain['name'];
+            }
+
+
+            $sheet['dauphin'] = ($sheet['dauphin'] == 1) ? 'Oui' : 'Non';
+            $sheet['edf_open'] = ($sheet['edf_open'] == 1) ? 'Oui' : 'Non';
+            $sheet['stipulation_for_others'] = ($sheet['stipulation_for_others'] == 1) ? 'Oui' : 'Non';
+            $sheet['protected_sector'] = ($sheet['protected_sector'] == 1) ? 'Oui' : 'Non';
+            $sheet['partnership'] = ($sheet['partnership'] == 1) ? 'Oui' : 'Non';
+            $sheet['status'] = $status[$sheet['status']];
+            $sheet['description'] = $this->toPlainText($sheet['description']);
+            unset($sheet['contracts']);
+            $sheet['contrat'] = '';
+            $sheet['provider'] = '';
+            $sheet['contact'] = '';
+            $contracts = $sheetContract->getBySheet($sheet['id']);
+            $contractCodes = [];
+            $content=$sheet['content'];
+            unset($sheet['id']);
+            unset($sheet['content']);
+            $netAchatContracts = false;
+            foreach ($contracts as $key => $contract) {
+                if (!in_array($contract['contract_code'], $contractCodes)) {
+                    $contractCodes[] = $contract['contract_code'];
+                    $sheet['contrat'] = $contract['contract_code'];
+                    $sheet['provider'] = $contract['provider'];
+                    $sheet['contact'] = $contract['contacts'];
+                    $csv['data'][] = $sheet;
+                }
+            }
+            
+            if (!empty($content)) {
+
+                libxml_use_internal_errors(true);
+                $dom = new DOMDocument('1.0', 'UTF-8');
+                @$dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'));
+                $dom->encoding = 'utf-8';
+                $table = $dom->getElementsByTagName('table');
+                foreach ($table as $index => $tble) {
+                    $tr = $tble->getElementsByTagName('tr');
+                    foreach ($tr as $k => $h2) {
+                        if ($k == 0) continue;
+                        $td = $h2->getElementsByTagName('td');
+                        if ($td->length != 3) {
+                            continue;
+                        }
+                    $empty = true;
+                    $sheet['contrat'] = '';
+                    $sheet['provider'] = '';
+                    $sheet['contact'] = '';
+
+                        foreach ($td as $key => $te) {
+                            if ($key == 0 && !empty($te->textContent)){
+                                $empty = false;
+                                $sheet['contrat'] = $te->textContent;
+                            }
+                               
+                            if ($key == 1 && !empty($te->textContent)){
+                                $empty = false;
+                                $sheet['provider'] = $te->textContent;
+                            }
+                                
+                            if ($key == 2 && !empty($te->textContent)){
+                                 $empty = false;
+                                 $sheet['contact'] = $te->textContent;
+                            }
+                        }
+
+                        if(!$empty){
+                            $csv['data'][] = $sheet;
+                            $netAchatContracts = true;
+                        }
+                    }
+                }
+            }
+
+
+            if (count($contracts) == 0 && !$netAchatContracts ) {
+                $csv['data'][] = $sheet;
+            }
+
         }
         return $csv;
     }
