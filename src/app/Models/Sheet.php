@@ -33,6 +33,7 @@ class Sheet extends Model
     protected $searchCondition;
     protected $committeeTable;
     protected $sheetContract ;
+    protected $subscriptionTable ;
 
     public function __construct()
     {
@@ -60,11 +61,14 @@ class Sheet extends Model
             $direction = $options['direction'] ?? 'desc';
 
             $data = [];
-            $query = "select distinct  sss.label, sss.start_date, sss.end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words 
-            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
-            QUERY) AS RANK,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words
+            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words 
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
+
+            QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
+
+            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
-                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}  
+                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction} , RANK desc, RANK1 desc
                       )
                       as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
                       ";
@@ -91,14 +95,16 @@ class Sheet extends Model
             WHEN sub.sheet_id is not NULL THEN true
             ELSE false
             END subscribed
-            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label)) || ' ' || unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
+            from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
 
-            QUERY) AS RANK, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
+            QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
+
+            QUERY) AS RANK1, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
                      
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                        
                       
-                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}  LIMIT {$perpage} offset {$page} 
+                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}, RANK desc, RANK1  desc  LIMIT {$perpage} offset {$page} 
                       )
                       
                       as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni

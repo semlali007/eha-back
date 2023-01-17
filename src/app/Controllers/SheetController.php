@@ -59,7 +59,7 @@ class SheetController extends Controller {
 
     public function export() {
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
-        return $this->response(['sheets' => $this->sheetRepository->export($options)], $this->currentUser->getNni());
+        return $this->response(['sheets' => $this->sheetRepository->exportAll($options)], $this->currentUser->getNni());
     }
 
     public function update() {
