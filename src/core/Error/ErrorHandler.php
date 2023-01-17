@@ -44,7 +44,12 @@ class ErrorHandler {
         
         (new Logger(APP_CHANNEL))->log(self::generateMessageError($exception, self::TXT_MSG, false), Level::WARNING) ;
         // Affichage message d'erreur sous forme HTML
-        print self::generateMessageError($exception, self::HTML_MSG, false);
+        if(getenv("ENV")!=="PROD"){
+            print self::generateMessageError($exception, self::HTML_MSG, false);
+        }else{
+            print self::DEFAULT_MSG_PROD ;
+        }
+        
     }
 
     /**
