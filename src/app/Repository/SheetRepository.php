@@ -638,10 +638,12 @@ class SheetRepository extends AbstractRepository {
     public function getFormattedWords($text)
     {
         $wordList = Arrays::getWordsFromText($text);
-        $wordList = $this->removeIgnored($wordList);
-        $wordList = $this->getAllSynonymous($wordList);
-        $wordList = Arrays::getWithOrWithoutPlural($wordList) ;
-        return implode("|", $wordList);
+        $wordListSynonyme = $this->getAllSynonymous($wordList);
+        $wordListSource = $this->getAllSource($wordList);
+        $list = array_merge($wordListSynonyme, $wordListSource, $wordList);
+        $list = Arrays::getWithOrWithoutPlural($list) ;
+        $list = $this->removeIgnored($list);
+        return implode("|", $list);
     }
 
     public function removeIgnored($wordList)
@@ -670,8 +672,28 @@ class SheetRepository extends AbstractRepository {
                     }
             }
         }
-        return array_merge($globalList, $wordList);
+
+         return $globalList;
+        
     }
+
+    public function getAllSource($wordList)
+    {
+        $associated = new SearchAssociated();
+        $synonymous = new SearchSynonymous();
+        $globalList = [];
+        foreach ($wordList as $key => $word) {
+            $sources = $synonymous->getBySynonymous($word);
+            foreach($sources as $source){
+                $item = $associated->get($source['source']);
+                $globalList[] = $item['word'];
+            }
+        }
+
+        return $globalList;
+       
+    }
+
 
     public function getSheetByContract($contractCode){
         $sheet = new Sheet();

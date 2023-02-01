@@ -80,5 +80,18 @@ class SearchSynonymous extends Model
         }
     }
 
+    public function getBySynonymous($synonymous)
+    {
+        try {
+            $query = "SELECT distinct source  FROM {$this->table} WHERE synonymous = :synonymous";
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':synonymous', $synonymous, PDO::PARAM_STR);
+            $sth->execute();
+            return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
     
 }
