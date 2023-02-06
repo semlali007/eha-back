@@ -169,6 +169,17 @@ $router->get('/admin/recherche/synonymous/delete/:id', 'App\Controllers\SearchCo
 $router->post('/admin/recherche/associated/update/:id', 'App\Controllers\SearchConfigController@updateAssociated', ["roles"=>['USER']]);
 $router->get('/admin/recherche/associated/delete/:id', 'App\Controllers\SearchConfigController@deleteAssociated', ["roles"=>['USER']]);
 
+
+// User management
+$router->get('/saml/login', 'App\Controllers\AuthenticationController@login');
+$router->get('/saml/post-login', 'App\Controllers\AuthenticationController@postLogin');
+$router->get('/saml/post-logout', 'App\Controllers\AuthenticationController@postLogout');
+$router->post('/saml/post-logout', 'App\Controllers\AuthenticationController@postLogout');
+
+$router->get('/saml/login-other', 'App\Controllers\AuthenticationController@otherConnexion');
+$router->get('/saml/logout', 'App\Controllers\AuthenticationController@logout');
+$router->get('/saml/attributes', 'App\Controllers\AuthenticationController@attributes');
+
 // Log Front informations
 $router->post('/front/logs', 'App\Controllers\FrontController@logs');
 

@@ -2,7 +2,10 @@
     "name": "achatpedia/api",
     "version": "2.0.0",
     "config": {
-        "secure-http": true
+        "secure-http": true,
+        "allow-plugins": {
+            "simplesamlphp/composer-module-installer": false
+        }
     },
     "repositories": [
         {
@@ -23,8 +26,9 @@
     "require": {
         "firebase/php-jwt": "^5.4", 
         "symfony/console": "^5.3",
-        "twig/twig": "^3.0",
-        "monolog/monolog": "^2.8"
+        "monolog/monolog": "^2.8",
+        "simplesamlphp/simplesamlphp": "^1.19",
+        "twig/twig": "*"
     },
     "require-dev": {
          "phpunit/phpunit": "^9.5"
