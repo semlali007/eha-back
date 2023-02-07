@@ -1,13 +1,8 @@
 <?php
 
-require_once('/appli/projects/EHA/nginx_1.22/html/src/core/Util/DotEnv.php');
+require_once(__DIR__ . '/../../../../core/Util/DotEnv.php');
 use Core\Util\DotEnv;
 (new DotEnv(__DIR__ . '/../../../../.env',__DIR__ . '/../../../../.env.dev'))->load(); // Charger le dotenv module
-if(!getenv('LOGS_FILE_SIZE')){
-var_dump(getenv('LOGS_FILE_SIZE'));
-exit;
-}
-
 
 $config = [
     /*

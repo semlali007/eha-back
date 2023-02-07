@@ -3,15 +3,12 @@
 /**
  * The configuration of SimpleSAMLphp
  */
-//use Core\Util\DotEnv;
-require_once('/appli/projects/EHA/nginx_1.22/html/src/core/Util/DotEnv.php');
+
+require_once(__DIR__ . '/../../../../core/Util/DotEnv.php');
 use Core\Util\DotEnv;
 (new DotEnv(__DIR__ . '/../../../../.env',__DIR__ . '/../../../../.env.dev'))->load(); // Charger le dotenv module
-if(!getenv('LOGS_FILE_SIZE')){
-var_dump(getenv('LOGS_FILE_SIZE'));
-exit;
-}
-//var_dump('test');exit;
+$metadataDir = __DIR__ . '/../../../../app/Config/saml/metadata';
+
 $config = [
 
     /*******************************
@@ -1075,7 +1072,7 @@ $config = [
      * This option allows you to specify a directory for your metadata outside of the standard metadata directory
      * included in the standard distribution of the software.
      */
-    'metadatadir' => '/appli/projects/EHA/nginx_1.22/html/src/app/Config/saml/metadata',
+    'metadatadir' => $metadataDir,
 
     /*
      * This option configures the metadata sources. The metadata sources is given as an array with
