@@ -1,19 +1,5 @@
 <?php
-require_once(__DIR__ . '/../../../../core/Util/DotEnv.php');
-
-use Core\Util\DotEnv;
-
-(new DotEnv(__DIR__ . '/../../../../.env', __DIR__ . '/../../../../.env.dev'))->load(); // Charger le dotenv module
-
-/**
- * SAML 2.0 remote SP metadata for SimpleSAMLphp.
- *
- * See: https://simplesamlphp.org/docs/stable/simplesamlphp-reference-sp-remote
- */
-
-/*
- * Example SimpleSAMLphp SAML 2.0 SP
- */
+require_once(__DIR__ . '/../../../../app/Config/saml/include.php');
 
 $metadata[getenv('SAML_SP_META_ID')] = [
     'entityid' => getenv('SAML_SP_META_ID'),

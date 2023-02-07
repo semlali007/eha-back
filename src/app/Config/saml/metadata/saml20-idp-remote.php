@@ -1,17 +1,5 @@
 <?php
-require_once(__DIR__ . '/../../../../core/Util/DotEnv.php');
-
-use Core\Util\DotEnv;
-
-(new DotEnv(__DIR__ . '/../../../../.env', __DIR__ . '/../../../../.env.dev'))->load(); // Charger le dotenv module
-
-/**
- * SAML 2.0 remote IdP metadata for SimpleSAMLphp.
- *
- * Remember to remove the IdPs you don't use from this file.
- *
- * See: https://simplesamlphp.org/docs/stable/simplesamlphp-reference-idp-remote
- */
+require_once(__DIR__ . '/../../../../app/Config/saml/include.php');
 $metadata[getenv('SAML_IDP')] = [
     'entityid' => getenv('SAML_IDP'),
     'contacts' => [],
