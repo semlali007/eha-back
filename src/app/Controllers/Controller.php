@@ -123,11 +123,6 @@ abstract class Controller
                 throw new AccessDeniedException('You must authenticate');
             }
         }
-
-        /*
-            $authorization = new AuthorizationSecurity();
-            $this->currentUser = $authorization->checkUserAuthorization($this->roles);
-   */
     }
 
 

@@ -172,11 +172,7 @@ $router->get('/admin/recherche/associated/delete/:id', 'App\Controllers\SearchCo
 
 // User management
 $router->get('/saml/login', 'App\Controllers\AuthenticationController@login');
-$router->get('/saml/post-login', 'App\Controllers\AuthenticationController@postLogin');
-$router->get('/saml/post-logout', 'App\Controllers\AuthenticationController@postLogout');
-$router->post('/saml/post-logout', 'App\Controllers\AuthenticationController@postLogout');
 
-$router->get('/saml/login-other', 'App\Controllers\AuthenticationController@otherConnexion');
 $router->get('/saml/logout', 'App\Controllers\AuthenticationController@logout');
 $router->get('/saml/attributes', 'App\Controllers\AuthenticationController@attributes');
 

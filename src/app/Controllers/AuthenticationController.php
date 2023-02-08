@@ -2,10 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Models\External;
-use App\Models\Administrator;
-use App\Services\EntityService;
-use Core\Http\Request;
 
 class AuthenticationController extends Controller
 {
@@ -18,34 +14,13 @@ class AuthenticationController extends Controller
      * 
      * @return mixed
      */
+
     public function login(): mixed
     {
         $this->getSp()->requireAuth(['ReturnTo' => '/app/accueil']);
-
         header('Location: /app/accueil');
-        exit;
-        return $this->response($this->getSp()->getAttributes());
     }
 
-    public function postLogin(): mixed
-    {
-        $attributes =  $this->getSp()->getAttributes();
-        return $this->response($attributes);
-    }
-
-    public function postLogout(): mixed
-    {
-        $attributes =  $this->getSp()->getAttributes();
-        return $this->response($attributes);
-    }
-
-
-    public function otherConnexion()
-    {
-        $url = $this->getSp()->getLoginURL();
-
-        print('<a href="' . htmlspecialchars($url) . '">Login</a>');
-    }
 
     public function attributes(): mixed
     {
@@ -59,6 +34,7 @@ class AuthenticationController extends Controller
         $this->getSp()->logout([
             'ReturnTo' => '/app/accueil',
         ]);
+
         SimpleSAML_Session::getSessionFromRequest()->cleanup();
     }
 }
