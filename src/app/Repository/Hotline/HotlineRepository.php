@@ -82,14 +82,26 @@ class HotlineRepository extends AbstractRepository
             }
         }
         // On met en forme les messages relatifs aux pièces jointes :
+            $nature = '';
         for ($i = 0; $i < $c; $i++) {
             $row = $answer['data']['timeline'][$i];
+            if(!empty($row['nature'])){
+                $nature = $nature.$row['nature'];
+            }
             if ($row['nature'] === 'U') {
                 $p = strpos($row['message'], ':');
                 $answer['data']['timeline'][$i]['message'] = substr($row['message'], $p + 1);
                 $answer['data']['timeline'][$i]['file'] = substr($row['message'], 0, $p);
             }
             $answer['data']['timeline'][$i]['message'] = str_replace("da-dag-achatpedia@edf.fr", "*****@edf.fr", $answer['data']['timeline'][$i]['message']) ;
+        }
+
+        if (in_array($nature, array('O', 'OF', 'FO'))) {
+            $answer['data']['info']['step'] = 'new';
+        } else if (strpos($nature, 'C') !== false || $answer['data']['closed_at'] != null) {
+            $answer['data']['info']['step'] = 'end';
+        } else {
+            $answer['data']['info']['step'] = 'progress';
         }
 
         return $answer;

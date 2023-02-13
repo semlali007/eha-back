@@ -10,6 +10,7 @@ use App\Models\HotlineEmail;
 use App\Models\HotlineFil;
 use App\Models\HotlineFile;
 use App\Models\HotlineTheme;
+use App\Security\User;
 use App\Services\EmailService;
 use App\Services\StaticTextService;
 use App\Services\UserService;
@@ -94,23 +95,22 @@ class HotlineActionManager extends AbstractManager
     }
 
 
-    public function close($options)
+    public function close($options, User $user)
     {
         $validator = new Validator($_POST);
         $errors = $validator->validate([
             'id' => ['required'],
-            'sha' => ['required'],
             'note' => ['required'],
         ]);
 
 
         $id = $options['id'];
-        $sha = $options['sha'];
+        $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
         $note = $options['note'];
         $feedback = isset($options['feedback']) ? $options['feedback'] : '';
         $infos = (new Hotline())->getInfos($id, $sha);
         $isHotline = $infos['status'];
-        if ($isHotline === null) {
+        if ($isHotline === null && !$user->hasRole(['EHA_GESTIONNAIRE'])) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
             return $answer;
         }
