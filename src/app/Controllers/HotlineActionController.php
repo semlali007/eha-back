@@ -79,7 +79,8 @@ class HotlineActionController extends Controller
     {
         try {
             $options = $this->decode(file_get_contents("php://input"));
-            return $this->response($this->hotlineActionManager->close($options));
+            $currentUser = $this->currentUser;
+            return $this->response($this->hotlineActionManager->close($options, $currentUser));
         } catch (Exception $ex) {
             return $this->error($ex);
         }

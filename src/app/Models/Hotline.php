@@ -306,13 +306,24 @@ class Hotline extends Model {
      */
     public function getExpiredDiscussion(mixed $endDate = 30): mixed {
         $maxDays = $endDate;
-        if ($maxDays < 1) {
-            exit();
+        
+        if ($maxDays < -1) {
+            return[];
+         }
+
+         $now = date('Y-m-d');
+
+        if ($maxDays == -1) {
+            $dateCondition = " md.quand <= '2022-06-30' ";
+        } else {
+            $dateCondition = " DATE_PART('day', '$now' - md.quand) >= {$maxDays} ";
         }
+
+      
         // On va identifier l'ensemble des fils de discussion ouverts
         // et du côté de l'utilisateur, et sans réponse de ce dernier depuis
         // au moins "$maxdays" jours.
-        $now = date('Y-m-d');
+        
         $query = "SELECT d.discussion, h.question, concat(h.email_from, ',', d.emails) as emails
 	FROM (
 		SELECT d.discussion, string_agg(DISTINCT hf.email, ',') as emails
@@ -328,8 +339,7 @@ class Hotline extends Model {
 			LEFT JOIN {$this->hotelineFileTable}  AS hf
 			ON hf.discussion = md.discussion AND hf.quand = md.quand
 			WHERE h.closed_at IS NULL 
-			
-                        AND DATE_PART('day', '$now' - md.quand) >= {$maxDays}
+            AND $dateCondition
 		) AS d
 		LEFT JOIN {$this->hotelineFileTable} AS hf
 		ON hf.discussion = d.discussion
@@ -337,7 +347,6 @@ class Hotline extends Model {
 	) AS d
 	LEFT JOIN {$this->table} AS h
 	ON h.discussion = d.discussion 
-    limit 1
 ";
         $sth = $this->db->getPDO()  ->prepare($query);
         $sth->execute(); // Lancer la requete
