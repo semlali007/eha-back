@@ -167,6 +167,8 @@ $router->post('/admin/recherche/synonymous/add', 'App\Controllers\SearchConfigCo
 $router->get('/admin/recherche/synonymous/delete/:id', 'App\Controllers\SearchConfigController@deleteSynonymous', ["roles"=>['USER']]);
 $router->post('/admin/recherche/associated/update/:id', 'App\Controllers\SearchConfigController@updateAssociated', ["roles"=>['USER']]);
 $router->get('/admin/recherche/associated/delete/:id', 'App\Controllers\SearchConfigController@deleteAssociated', ["roles"=>['USER']]);
+$router->get('/admin/users/list', 'App\Controllers\UsersController@index');
+
 
 // Log Front informations
 $router->post('/front/logs', 'App\Controllers\FrontController@logs');

@@ -142,7 +142,8 @@ class SheetRepository extends AbstractRepository {
             $details = (new Sheet())->get($id);
 
             $committee = new Committee();
-            $committetSheet = $committee->getByCode($details['committee']);
+            //$committetSheet = $committee->getByCode($details['committee']);
+            $committetSheet = [];
            
             if (!is_array($committetSheet)) {
                 $committetSheet = [];
@@ -184,7 +185,33 @@ class SheetRepository extends AbstractRepository {
             $details['subdomain'] = $sheetSubDomain->getBySheet($id);
 
             return $details;
+            $details['history'] = [
+            [
+            'id'=>1,
+            'fields'=>'label',
+            'old' => 'Label 1',
+            'new' => 'Label 2',
+            'date' => '2023-02-15 à 10h'
+            ],
+            [
+            'id'=>2,
+            'fields'=>'description',
+            'old' => 'description 1',
+            'new' => 'description 2',
+            'date' => '2023-02-15 à 11h'
+            ],
+            [
+            'id'=>3,'fields'=>'status',
+            'old' => 'publiée',
+            'new' => 'archivée',
+            'date' => '2023-02-15 à 12h'
+            ]
+            ];
         } catch (\Exception $e) {
+        
+            var_dump($e->getMessage());exit;
+
+
             throw new Exception($e->getMessage());
         }
     }

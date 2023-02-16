@@ -134,7 +134,7 @@ class Sheet extends Model
     
     {
         $search = '';
-        $schema = pg_escape_string(getenv("DB_SCHEMA"));
+        $schema = (getenv("DB_SCHEMA"));
         $options = $params['search'] ?? [];
         if (!is_array($forFilter) || !array_key_exists('beneficiary', $forFilter)) {
             $beneficiariesList = $options['beneficiaries'] ?? [];
@@ -182,7 +182,7 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->subscriptionTable} ss on ss.sheet_id = s.id and ss.user_nni = '$userNni' ";
         }
 
-        $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
+        $searchProvider = (strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
             $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
@@ -195,7 +195,7 @@ class Sheet extends Model
             ) spa 
             on spa.sheet_id = s.id  ";
         }
-        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
+        $search_input = (strtolower($options['searchText'] ?? ""));
         $isCode = SheetService::isCodeContract($search_input);
         if ($isCode) {
             $search .= " LEFT JOIN {$this->sheetContract} sc ON  sc.sheet_id = s.ID ";
@@ -308,6 +308,7 @@ class Sheet extends Model
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
+            //var_dump($e->getMessage());exit;
             throw new InternalServerException();
         }
     }
