@@ -25,6 +25,12 @@ class AuthenticationController extends Controller
     public function attributes(): mixed
     {
         $attr =  $this->getSp()->getAttributes();
+
+        $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
+        $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
+        $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
+        $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
+
         return $this->response($attr);
     }
 
