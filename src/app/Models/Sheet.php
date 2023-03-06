@@ -577,7 +577,7 @@ class Sheet extends Model
             $sth->bindParam(':protected_sector', $data['protected_sector'], PDO::PARAM_BOOL);
             $sth->bindParam(':committee', $data['committee'], PDO::PARAM_INT);
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
-            $sth->bindParam(':content', $data['content'], PDO::PARAM_BOOL);
+            $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
@@ -756,4 +756,19 @@ class Sheet extends Model
     }
     
 
+
+
+    public function updateEndDate($id, $endDate)
+    {
+        try {
+            $query = "UPDATE {$this->table}  set end_date=:end_date where id=:id   ";
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':end_date', $endDate, PDO::PARAM_STR);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            return $sth->execute();
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
 }

@@ -114,12 +114,21 @@ class HotlineRepository extends AbstractRepository
      * @param array $options
      * @return array|null
      */
-    public function getAnswers(array $res,User $user,array $options):?array {
-        $answer = ['status' => true,'message' => '','data' => ['new' => [],'progress' => [],'end' => []]];
+
+    public function getAnswers(array $res, User $user, array $options): ?array
+    {
+        $isDag = false;
+
+        if (strtolower($options['email']) == 'da-dag-achatpedia@edf.fr') {
+            if (in_array(strtolower($user->getEmail()), ['alix.florent@edf.fr', 'loren.pilard@edf.fr', 'françois.rusch@edf.fr', 'veronick.boudre@edf.fr', 'jordan-externe.michanhom@edf.fr', 'marie.bertin@edf.fr'])) {
+                $isDag = true;
+            }
+        }
+        $answer = ['status' => true, 'message' => '', 'data' => ['new' => [], 'progress' => [], 'end' => []]];
         foreach ($res as $row) {
             if (in_array($row['natures'], array('O', 'OF', 'FO'))) {
                 $key = 'new';
-            } else if (strpos($row['natures'], 'C') !== false || $row['closed_at']!=null) {
+            } else if (strpos($row['natures'], 'C') !== false || $row['closed_at'] != null) {
                 $key = 'end';
             } else {
                 $key = 'progress';
@@ -129,7 +138,32 @@ class HotlineRepository extends AbstractRepository
                 'opened_at' => $row['opened_at'],
                 'closed_at' => $row['closed_at'],
                 'question' => $row['question'],
-                'sha' => ($user->getEmail() == $options['email']) ? ($row['is_hotline'] ? $row['sha_hotline'] : $row['sha_demandeur']) : '',
+                'sha' => ($user->getEmail() == $options['email'] || $isDag) ? ($row['is_hotline'] ? $row['sha_hotline'] : $row['sha_demandeur']) : '',
+            );
+        }
+        return $answer;
+    }
+
+    public function getAnswers1(array $res,User $user,array $options):?array {
+        $answer = ['status' => true,'message' => '','data' => ['new' => [],'progress' => [],'end' => []]];
+        foreach ($res as $row) {
+            if (in_array($row['natures'], array('O', 'OF', 'FO'))) {
+                $key = 'new';
+            } else if (strpos($row['natures'], 'C') !== false || $row['closed_at']!=null) {
+                $key = 'end';
+            } else {
+                $key = 'progress';
+            }
+            if($user->getEmail() == $options['email']){
+
+            }
+
+            $answer['data'][$key][] = array(
+                'id' => $row['discussion'],
+                'opened_at' => $row['opened_at'],
+                'closed_at' => $row['closed_at'],
+                'question' => $row['question'],
+                'sha' => ($user->getEmail() == $options['email'] || $isDag) ? ($row['is_hotline'] ? $row['sha_hotline'] : $row['sha_demandeur']) : '',
             );
         }
         return $answer ;

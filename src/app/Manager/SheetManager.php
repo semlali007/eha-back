@@ -20,12 +20,16 @@ use App\Security\User;
 use App\Models\Provider;
 use App\Models\Beneficiary;
 use App\Models\Area;
+use App\Models\Committee;
 use App\Models\Group;
 use phpDocumentor\Reflection\Types\Null_;
 use App\Models\Domain;
 use App\Models\SheetDomain;
+use App\Models\SheetLogs;
 use App\Models\SheetSubDomain;
 use App\Models\SubDomain;
+use Core\Util\Arrays;
+use PhpParser\Comment;
 
 class SheetManager extends AbstractManager
 {
@@ -34,6 +38,8 @@ class SheetManager extends AbstractManager
     {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
         try {
+            
+            
             $data['id'] = $sheetData['id'];
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
@@ -49,6 +55,7 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
             $data['status'] = $sheetData['status'] ?? '0';
+
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
                 $data['status'] = '0';
             } else {
@@ -82,10 +89,74 @@ class SheetManager extends AbstractManager
             $data['options'] = $sheetData['options'] ?? [];
 
             $sheet = new Sheet();
+            $commitee = new Committee();
+
             try {
                 $id = $data['id'];
+                $previousSheet = $sheet->get($id);
                 $this->db->getPDO()->beginTransaction();
                 $sheet->update($data);
+                $currentSheet = $sheet->get($id);
+                $labelsFields =[
+                    'status'=>'Statut',
+                    'committee'=>'Comité de Gestion de la Demande',
+                    'dauphin'=>'Approvisionnement sous dauphin',
+                    'edf_open'=>'Marché ouvert au personnel EDF',
+                    'stipulation_for_others'=>'Stipulation pour autrui',
+                    'partnership'=>'Partenariat de productivité',
+                    'protected_sector'=>'Secteur protégé',
+                    'label'=>'Titre',
+                    'start_date'=>'Date de début de validité',
+                    'end_date'=>'Date de fin de validité',
+                    'description'=>'Commentaires',
+                    'search_words'=>'Mots clés',
+                    'content'=>'Contenu',
+
+                ];
+                $diff = array_diff_assoc($previousSheet, $currentSheet);
+                $logs = new SheetLogs();
+                $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
+                foreach ($diff as $k => $d) {
+                    $diffLogs = [];
+                    $diffLogs['source'] = $id;
+                   
+                    $diffLogs['old'] = $previousSheet[$k];
+                    $diffLogs['new'] = $currentSheet[$k];
+                    $diffLogs['date'] = $date;
+
+                    switch ($k) {
+                        case 'updated_at':
+                        case 'updated_by':
+                        case 'updated_by_full_name':
+                            continue 2;
+                            break;
+                        case 'status':
+                            $diffLogs['old'] = $status[$previousSheet[$k]];
+                            $diffLogs['new'] = $status[$currentSheet[$k]];
+                            break;
+                        case 'committee':
+                            if (is_numeric($previousSheet[$k]) &&  $previousSheet[$k] > 1) {
+                                $diffLogs['old'] = $commitee->getByCode($previousSheet[$k])['label'];
+                            }
+
+                            if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] > 1) {
+                                $diffLogs['new'] = $commitee->getByCode($currentSheet[$k])['label'];
+                            }
+                            break;
+                        case 'dauphin':
+                        case 'edf_open':
+                        case 'stipulation_for_others':
+                        case 'partnership':
+                        case 'protected_sector':
+                            $diffLogs['old'] = ($previousSheet[$k] == 1) ? 'Oui' : 'Non';
+                            $diffLogs['new'] = ($currentSheet[$k] == 1) ? 'Oui' : 'Non';
+                            break;
+                    }
+
+                    $diffLogs['fields'] =  $labelsFields[$k];
+                    $logs->add($diffLogs);
+                }
+
                 $sheetFile = new SheetFile();
                 foreach ($data['files'] as $file) {
                     if (isset($file['file_name']) && isset($file['file_url'])) {
@@ -122,12 +193,42 @@ class SheetManager extends AbstractManager
                 $sheetFiliale->deleteFiliales($id, $filialesId);
 
                 $sheetProvider = new SheetProvider();
+
+                $previousProviders = $sheetProvider->getBySheet($id);
                 $providers = [];
                 foreach ($data['providers'] as $p) {
                     $providers[] = $p['id'];
                     $sheetProvider->add($id, $p['id']);
                 }
                 $sheetProvider->deleteProviders($id, $providers);
+                $currentProviders = $sheetProvider->getBySheet($id);
+                $diffProviders = Arrays::arrayDiffAssocRecursive($currentProviders, $previousProviders);
+                if(is_array($diffProviders)){
+                    $diffLogs = [];
+                    $diffLogs['source'] = $id;
+                    $old = '<ul>';
+                    foreach ($previousProviders as $p) {
+                        $old .= "<li >"
+                                .$p['name'].
+                                "</li>";
+                    }
+
+                    $old .= '<ul>';
+                    $new = '<ul>';
+
+                    foreach ($currentProviders as $p) {
+                        $new .= "<li >"
+                            . $p['name'] .
+                            "</li>";
+                    }
+
+                    $new .= '<ul>';
+                    $diffLogs['old'] =  $old;
+                    $diffLogs['new'] = $new;
+                    $diffLogs['date'] = $date;
+                    $diffLogs['fields'] =  'Fournisseurs';
+                    $logs->add($diffLogs);
+                }
                 $sheetGroup = new SheetGroup();
                 $groups = [];
                 foreach ($data['groups'] as $p) {
@@ -168,6 +269,7 @@ class SheetManager extends AbstractManager
                 $sheetLot->deleteLots($id, $lots);
 
                 $sheetOption = new SheetOption();
+                $previousOptions = $sheetOption->getBySheet($id);
                 $options = [];
                 foreach ($data['options'] as $option) {
                     if (isset($option['id'])) {
@@ -186,9 +288,41 @@ class SheetManager extends AbstractManager
                         $sheetOption->delete($op['id']);
                     }
                 }
+                $currentOptions = $sheetOption->getBySheet($id);
 
+                $diffOptions = Arrays::arrayDiffAssocRecursive($currentOptions, $previousOptions);
+                if(is_array($diffOptions)){
+                    $diffLogs = [];
+                    $diffLogs['source'] = $id;
+                   
+                    $old = '<ul>';
+                    $c=1;
+                    foreach ($previousOptions as $p) {
+                        $old .= "<li >
+                                <label>Option  $c : du ".$p['start_date']." au ".$p['start_date']."</label>
+                                </li>";
+                                $c++;
+                    }
+                    $old .= '<ul>';
+
+                    $new = '<ul>';
+                    $cn=1;
+                    foreach ($currentOptions as $co) {
+                        $new .= "<li >
+                                <label>Option  $cn : du ".$co['start_date']." au ".$co['start_date']."</label>
+                                </li>";
+                                $cn++;
+                    }
+                    $new .= '<ul>';
+                    $diffLogs['old'] =  $old;
+                    $diffLogs['new'] = $new;
+                    $diffLogs['date'] = $date;
+                    $diffLogs['fields'] =  'Options';
+                    $logs->add($diffLogs);
+                }
                 $this->db->getPDO()->commit();
             } catch (\Exception $e) {
+                var_dump($e->getMessage());
                 if ($this->db->getPDO()->inTransaction()) {
                     $this->db->getPDO()->rollback();
                 }
