@@ -109,8 +109,8 @@ abstract class Controller
                 }
 
                 $user->setEmail(getenv("DEFAULT_SEND_EMAIL"));
-                if (array_key_exists("email", $userInfo) && !empty($userInfo['email'])) {
-                    $user->setEmail($userInfo['email'][0]);
+                if (array_key_exists("gardianwebsso_mail", $userInfo) && !empty($userInfo['gardianwebsso_mail'])) {
+                    $user->setEmail($userInfo['gardianwebsso_mail'][0]);
                 }
                 // Traduction des roles de Standard to EHA_ROLES
                 $roles = $this->translateRoles($this->roles);
