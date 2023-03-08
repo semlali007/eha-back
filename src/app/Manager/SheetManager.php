@@ -169,7 +169,16 @@ class SheetManager extends AbstractManager
                 }
 
                 $sheetContract = new SheetContract();
+                $previousContracts  = $sheetContract->getBySheet($id);
+               
+
                 $sheetLot = new SheetLot();
+
+
+                foreach ($previousContracts as $k => $c) {
+                    $previousContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+                }
+
                 $sheetContract->deleteContracts($id, $data['contracts']);
 
                 foreach ($data['contracts'] as $contract) {
@@ -183,14 +192,90 @@ class SheetManager extends AbstractManager
 
                     $sheetLot->deleteContractLots($id, $contract['contract_code'], $lots);
                 }
+                $currentsContracts  = $sheetContract->getBySheet($id);
+                foreach ($currentsContracts as $k => $c) {
+                    $currentsContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+                }
+              
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                    foreach ($previousContracts as $p) {
+                        $old .= "<li >";
+
+                          $old .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
+                          foreach ($p['lots'] as $p) {
+                            $old .= ", "
+                                . $p['name'] ;
+                        }
+                            $old .= "</li >";
+                    }
+
+                   $old .= '</ul>';
+                   $new = '<ul>';
+                    foreach ($currentsContracts as $p) {
+                        $new .= "<li >";
+
+                          $new .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
+                          foreach ($p['lots'] as $p) {
+                            $new .= ", "
+                                . $p['name'] ;
+                        }
+                            $new .= "</li >";
+                    }
+
+                   $new .= '</ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Contrats';
+                   $logs->add($diffLogs);
+               }
+
 
                 $sheetFiliale = new SheetBeneficiary();
+                $previousFiliale  = $sheetFiliale->getBySheet($id);
                 $filialesId = [];
                 foreach ($data['filiales'] as $f) {
                     $filialesId[] = $f['id'];
                     $sheetFiliale->add($id, $f['id']);
                 }
                 $sheetFiliale->deleteFiliales($id, $filialesId);
+                $currentFiliale  = $sheetFiliale->getBySheet($id);
+
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale, $previousFiliale))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale, $currentFiliale))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousFiliale as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentFiliale as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Bénéficiaires';
+                   $logs->add($diffLogs);
+               }
+
+
 
                 $sheetProvider = new SheetProvider();
 
@@ -200,10 +285,11 @@ class SheetManager extends AbstractManager
                     $providers[] = $p['id'];
                     $sheetProvider->add($id, $p['id']);
                 }
+
                 $sheetProvider->deleteProviders($id, $providers);
                 $currentProviders = $sheetProvider->getBySheet($id);
-                $diffProviders = Arrays::arrayDiffAssocRecursive($currentProviders, $previousProviders);
-                if(is_array($diffProviders)){
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentProviders, $previousProviders))
+                 || is_array(Arrays::arrayDiffAssocRecursive($previousProviders, $currentProviders))){
                     $diffLogs = [];
                     $diffLogs['source'] = $id;
                     $old = '<ul>';
@@ -230,13 +316,46 @@ class SheetManager extends AbstractManager
                     $logs->add($diffLogs);
                 }
                 $sheetGroup = new SheetGroup();
+                $previousGroups  = $sheetGroup->getBySheet($id);
                 $groups = [];
                 foreach ($data['groups'] as $p) {
                     $groups[] = $p['id'];
                     $sheetGroup->add($id, $p['id']);
                 }
                 $sheetGroup->deleteGroups($id, $groups);
+
+                $currentGroups  = $sheetGroup->getBySheet($id);
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentGroups, $previousGroups))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousGroups, $currentGroups))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousGroups as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentGroups as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Directions opérationnelles (DOA)';
+                   $logs->add($diffLogs);
+               }
+
                 $sheetDomain = new SheetDomain();
+                $previousDomains  = $sheetDomain->getBySheet($id);
                 $domains = [];
                 foreach ($data['domains'] as $d) {
                     $domains[] = $d['code'];
@@ -244,7 +363,39 @@ class SheetManager extends AbstractManager
                 }
                 $sheetDomain->deleteDomains($id, $domains);
 
+
+                $currentDomains  = $sheetDomain->getBySheet($id);
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentDomains, $previousDomains))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousDomains, $currentDomains))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousDomains as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentDomains as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Segments';
+                   $logs->add($diffLogs);
+               }
+
                 $sheetSubDomain = new SheetSubDomain();
+                $previousSubDomains  = $sheetSubDomain->getBySheet($id);
                 $subDomains = [];
                 foreach ($data['subdomains'] as $d) {
                     $subDomains[] = $d['code'];
@@ -252,13 +403,74 @@ class SheetManager extends AbstractManager
                 }
                 $sheetSubDomain->deleteSubDomains($id, $subDomains);
 
+
+                $currentSubDomains  = $sheetSubDomain->getBySheet($id);
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentSubDomains, $previousSubDomains))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousSubDomains, $currentSubDomains))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousSubDomains as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentSubDomains as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Sous-ensemble';
+                   $logs->add($diffLogs);
+               }
+
                 $sheetZone = new SheetArea();
+                $previousZones  = $sheetZone->getBySheet($id);
                 $zones = [];
                 foreach ($data['zones'] as $p) {
                     $zones[] = $p['id'];
                     $sheetZone->add($id, $p['id']);
                 }
                 $sheetZone->deleteZones($id, $zones);
+                $currentsZones  = $sheetZone->getBySheet($id);
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentsZones, $previousZones))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousZones, $currentsZones))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousZones as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentsZones as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Zone géographique d’application des marchés';
+                   $logs->add($diffLogs);
+               }
 
                 $lots = [];
                 foreach ($data['lots'] as $lot) {
