@@ -15,17 +15,17 @@ class AuthenticationController extends Controller
      * @return mixed
      */
 
-    public function login(): mixed
+    public function login($state = '/app/accueil'): mixed
     {
-        $this->getSp()->requireAuth(['ReturnTo' => '/app/accueil']);
-        header('Location: /app/accueil');
+        $url = urldecode($state);
+        $this->getSp()->requireAuth(['ReturnTo' => $url]);
+        header('Location: ' . $url);
     }
 
 
     public function attributes(): mixed
     {
         $attr =  $this->getSp()->getAttributes();
-
         $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
         $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
         $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
