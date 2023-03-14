@@ -142,7 +142,7 @@ class HotlineRepository extends AbstractRepository
         }
         return $answer;
     }
-    
+  
     /**
      * 
      * @param int $questionId
