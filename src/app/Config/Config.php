@@ -130,7 +130,24 @@ $configuration = [
             "PHA, consultation A Publier => Initié" => Status::INTEGRER_EN_AFFAIRE,
             "PHA, consultation Attribution => Initié" => Status::INTEGRER_EN_AFFAIRE,
             "PHA, consultation" => Status::INTEGRER_EN_AFFAIRE,
+        ],
+        'mdm'=>
+    [
+        "pwd" => getenv("HLK_MDM_API_PASS"), // Token Password 
+        "url" => getenv("HLK_MDM_API_URL"),
+        "actions" =>[
+            'search_by_pgi_number' => [
+                "search_by" => "pgi_number",
+            ],
+            'search_by_legal_number' => [
+                "search_by" => "legal_number",
+            ],
+            'search_by_supplier_name' => [
+                "search_by" => "supplier_name",
+            ],
         ]
+
+    ],
     ],
         'roles' => [
             "ADMIN" => "EHA_ADMIN",

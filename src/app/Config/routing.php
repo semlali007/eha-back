@@ -169,6 +169,11 @@ $router->get('/admin/recherche/synonymous/delete/:id', 'App\Controllers\SearchCo
 $router->post('/admin/recherche/associated/update/:id', 'App\Controllers\SearchConfigController@updateAssociated', ["roles"=>['USER']]);
 $router->get('/admin/recherche/associated/delete/:id', 'App\Controllers\SearchConfigController@deleteAssociated', ["roles"=>['USER']]);
 
+$router->post('/admin/news-cast/list', 'App\Controllers\NewsCastController@list', ["roles" => ['ADMIN']]);
+$router->get('/admin/news-cast/categories', 'App\Controllers\NewsCastController@getCategories', ["roles" => ['ADMIN']]);
+$router->post('/admin/news-cast/create', 'App\Controllers\NewsCastController@create', ["roles" => ['ADMIN']]);
+$router->post('/admin/news-cast/update', 'App\Controllers\NewsCastController@update', ["roles" => ['ADMIN']]);
+$router->get('/admin/news-cast/get/:id', 'App\Controllers\NewsCastController@getNews', ["roles" => ['ADMIN']]);
 
 // User management
 $router->get('/saml/login', 'App\Controllers\AuthenticationController@login');

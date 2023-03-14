@@ -73,6 +73,8 @@ class ProviderRepository extends AbstractRepository {
             if(is_null($response)|| empty($response)){
                 return [] ;
             }
+        $mdmProvider = $this->searchByPgiNumber(['words'=>$word]);
+        $response['infos'] = $mdmProvider[0];
         return $response ;
     }
 
@@ -132,4 +134,43 @@ class ProviderRepository extends AbstractRepository {
             }
         }
     }
+    public function serachMdmProviders(?array $options): mixed
+    {
+        return array_merge($this->searchByPgiNumber($options), $this->searchByLegalNumber($options), $this->searchBySupplierName($options));
+    }
+
+    public function searchByPgiNumber(?array $options): mixed
+    {
+        $actions = HLK['mdm']["actions"];
+        $pgiNumberAction = $actions["search_by_pgi_number"]["search_by"];
+        $queryData = [
+            'search_by' => $pgiNumberAction,
+            'value' => $options['words']
+        ];
+        return HttpClientService::exec_get(HLK['mdm']['url'], $queryData, ["API-HLK-Key: " . HLK['mdm']['pwd']]);
+    }
+    public function searchByLegalNumber(?array $options): mixed
+    {
+
+        $actions = HLK['mdm']["actions"];
+        $legalNumberAction = $actions["search_by_legal_number"]["search_by"];
+        $queryData = [
+            'search_by' => $legalNumberAction,
+            'value' => $options['words']
+        ];
+        return HttpClientService::exec_get(HLK['mdm']['url'], $queryData,  ["API-HLK-Key: " . HLK['mdm']['pwd']]);
+    }
+
+    public function searchBySupplierName(?array $options): mixed
+    {
+        $actions = HLK['mdm']["actions"];
+        $supplierNameAction = $actions["search_by_supplier_name"]["search_by"];
+        $queryData = [
+            'search_by' => $supplierNameAction,
+            'value' => $options['words']
+        ];
+        return HttpClientService::exec_get(HLK['mdm']['url'], $queryData,  ["API-HLK-Key: " . HLK['mdm']['pwd']]);
+    }
+
+
 }
