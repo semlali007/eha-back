@@ -7,20 +7,20 @@ $metadata[getenv('SAML_IDP')] = [
     'SingleSignOnService' => [
         [
             'Binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
-            'Location' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/SSOPOST/metaAlias/multiauth/idp3-20240420',
+            'Location' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/SSOPOST/metaAlias/multiauth/idp6-20240420',
         ],
     ],
     'SingleLogoutService' => [
         [
             'Binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
-            'Location' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/IDPSloRedirect/metaAlias/multiauth/idp3-20240420',
-            'ResponseLocation' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/IDPSloRedirect/metaAlias/multiauth/idp3-20240420',
+            'Location' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/IDPSloRedirect/metaAlias/multiauth/idp6-20240420',
+            'ResponseLocation' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/IDPSloRedirect/metaAlias/multiauth/idp6-20240420',
         ],
     ],
     'ArtifactResolutionService' => [
         [
             'Binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:SOAP',
-            'Location' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/ArtifactResolver/metaAlias/multiauth/idp3-20240420',
+            'Location' => getenv('SAML_IDP_BASE_URL').'/gardianwebsso/ArtifactResolver/metaAlias/multiauth/idp6-20240420',
             'index' => 0,
             'isDefault' => true,
         ],
