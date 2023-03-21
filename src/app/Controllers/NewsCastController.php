@@ -63,4 +63,14 @@ class NewsCastController extends Controller
         return  $this->response($this->newsRepository->getNews($id));
     }
 
+    public function sort() {
+        $options = $this->decode(file_get_contents("php://input"));
+        return $this->response($this->newsRepository->sort($options));
+    }
+    public function delete() {
+        $options = $this->decode(file_get_contents("php://input"));
+        return $this->response($this->newsRepository->delete($options));
+    }
+
+
 }

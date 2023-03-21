@@ -129,6 +129,8 @@ class SheetManager extends AbstractManager
                         case 'updated_by':
                         case 'updated_by_full_name':
                             continue 2;
+                        case 'content':
+                            continue 2;
                             break;
                         case 'status':
                             $diffLogs['old'] = $status[$previousSheet[$k]];

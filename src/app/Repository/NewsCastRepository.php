@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Models\NewsCast;
 use App\Models\NewsCastCategory;
+use Exception;
 
 class NewsCastRepository extends AbstractRepository
 {
@@ -47,4 +48,35 @@ class NewsCastRepository extends AbstractRepository
         return
             $news->update($options);
     }
+    public function sort(array $options = []): void
+    {
+        try {
+            $news = new NewsCast();
+            foreach ($options['items'] as $item) {
+                $news->updatePosition($item['id'], $item['position']);
+            }
+        } catch (Exception $ex) {
+            http_response_code(500);
+            echo json_encode([
+                'error' => $ex->getCode(),
+                'message' => 'un problème est survenu. réessayez plus tard',
+            ]);
+        }
+    }
+    public function delete(array $options = []): void
+    {
+        try {
+            $news = new NewsCast();
+            if(is_numeric($options['id']))
+            $news->delete($options['id']);
+        } catch (Exception $ex) {
+            http_response_code(500);
+            echo json_encode([
+                'error' => $ex->getCode(),
+                'message' => 'un problème est survenu. réessayez plus tard',
+            ]);
+        }
+    }
+
+    
 }

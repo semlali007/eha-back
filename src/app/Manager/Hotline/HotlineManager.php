@@ -33,7 +33,7 @@ class HotlineManager extends AbstractManager
         }
         $email = $user->getEmail();
 
-        if($email == getenv('DEFAULT_SEND_EMAIL') && isset($options['email'])){
+        if($email == getenv('DEFAULT_SEND_EMAIL') && isset($options['email']) && !empty($options['email'])){
             $email = $options['email'];
         }
 

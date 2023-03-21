@@ -187,13 +187,19 @@ class SheetRepository extends AbstractRepository {
             $details['domain'] = $sheetDomain->getBySheet($id);
             $details['subdomain'] = $sheetSubDomain->getBySheet($id);
             $sheetLogs = new SheetLogs();
-            $details['history'] = $sheetLogs->getBySheet($id);
+           // $details['history'] = $sheetLogs->getBySheet($id);
 
             return $details;
         } catch (\Exception $e) {
             var_dump($e->getMessage());exit;
             throw new Exception($e->getMessage());
         }
+    }
+
+    public function getHistory($options){
+        $sheetLogs = new SheetLogs();
+        return ['data'=>$sheetLogs->getBySheet($options['id'], $options['page']),'total'=>$sheetLogs->countBySheet($options['id'])];
+        
     }
 
     public function export($options, $userNni = null) {

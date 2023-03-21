@@ -32,14 +32,28 @@ class SheetLogs extends Model
         }
     }
 
-    public function getBySheet($sheetId)
+    public function getBySheet($sheetId, $page = 0)
     {
         try {
-            $query = 'SELECT DISTINCT  * FROM ' . $this->table . '  WHERE id_source = :id_source ORDER BY date desc ';
+            $offset = $page * 10;
+            $query = 'SELECT DISTINCT  * FROM ' . $this->table . '  WHERE id_source = :id_source ORDER BY date desc LIMIT 10 offset 0' . $offset;
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id_source', $sheetId, PDO::PARAM_INT);
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+    
+    public function countBySheet($sheetId)
+    {
+        try {
+            $query = 'SELECT COUNT (*) FROM ' . $this->table . '  WHERE id_source = :id_source';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id_source', $sheetId, PDO::PARAM_INT);
+            $sth->execute();
+            return  $sth->fetch(PDO::FETCH_ASSOC)['count'];
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

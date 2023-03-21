@@ -156,7 +156,8 @@ class ProviderRepository extends AbstractRepository {
         $legalNumberAction = $actions["search_by_legal_number"]["search_by"];
         $queryData = [
             'search_by' => $legalNumberAction,
-            'value' => $options['words']
+            'value' => $options['words'],
+            'code' => 'FR'
         ];
         return HttpClientService::exec_get(HLK['mdm']['url'], $queryData,  ["API-HLK-Key: " . HLK['mdm']['pwd']]);
     }
