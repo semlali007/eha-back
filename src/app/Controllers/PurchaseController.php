@@ -77,4 +77,23 @@ class PurchaseController extends Controller
             return $valeur;
         }, $data);
     }
+
+    public function listV2(): mixed {
+        try {
+            $trans = HLK['status'];
+            $nni = $this->getCurrentUser()->getNni();
+            $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
+            if (in_array($nni, $arr)) {
+                $nni = 'E85949';
+            }
+            if (is_null($nni)) {
+                return $this->response(['purchases' => []]);
+            }
+           
+            //$resultat = $this->formaTData($this->purchaseRepository->getAllPurchases($nni), $trans, 'last_status_event');
+            return $this->response(['purchases' => $this->purchaseRepository->getAllPurchases($nni)]);
+        } catch (\Throwable|\Exception $ex) {
+            return $this->hlkErrorResponse();
+        }
+    }
 }

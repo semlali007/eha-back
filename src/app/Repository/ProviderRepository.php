@@ -141,36 +141,36 @@ class ProviderRepository extends AbstractRepository {
 
     public function searchByPgiNumber(?array $options): mixed
     {
-        $actions = HLK['mdm']["actions"];
+        $actions = HLK['v2']["actions"];
         $pgiNumberAction = $actions["search_by_pgi_number"]["search_by"];
         $queryData = [
             'search_by' => $pgiNumberAction,
             'value' => $options['words']
         ];
-        return HttpClientService::exec_get(HLK['mdm']['url'], $queryData, ["API-HLK-Key: " . HLK['mdm']['pwd']]);
+        return HttpClientService::exec_get(HLK['v2']['url'].'/'.$actions["search_by_pgi_number"]['api'], $queryData, ["API-HLK-Key: " . HLK['v2']['pwd']]);
     }
     public function searchByLegalNumber(?array $options): mixed
     {
 
-        $actions = HLK['mdm']["actions"];
+        $actions = HLK['v2']["actions"];
         $legalNumberAction = $actions["search_by_legal_number"]["search_by"];
         $queryData = [
             'search_by' => $legalNumberAction,
             'value' => $options['words'],
             'code' => 'FR'
         ];
-        return HttpClientService::exec_get(HLK['mdm']['url'], $queryData,  ["API-HLK-Key: " . HLK['mdm']['pwd']]);
+        return HttpClientService::exec_get(HLK['v2']['url'].'/'.$actions["search_by_legal_number"]['api'], $queryData,  ["API-HLK-Key: " . HLK['v2']['pwd']]);
     }
 
     public function searchBySupplierName(?array $options): mixed
     {
-        $actions = HLK['mdm']["actions"];
+        $actions = HLK['v2']["actions"];
         $supplierNameAction = $actions["search_by_supplier_name"]["search_by"];
         $queryData = [
             'search_by' => $supplierNameAction,
             'value' => $options['words']
         ];
-        return HttpClientService::exec_get(HLK['mdm']['url'], $queryData,  ["API-HLK-Key: " . HLK['mdm']['pwd']]);
+        return HttpClientService::exec_get(HLK['v2']['url'].'/'.$actions["search_by_supplier_name"]['api'], $queryData,  ["API-HLK-Key: " . HLK['v2']['pwd']]);
     }
 
 

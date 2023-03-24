@@ -177,6 +177,9 @@ $router->get('/admin/news-cast/get/:id', 'App\Controllers\NewsCastController@get
 $router->post('/admin/news-cast/sort', 'App\Controllers\NewsCastController@sort', ["roles"=>['USER']]);
 $router->post('/admin/news-cast/delete', 'App\Controllers\NewsCastController@delete', ["roles"=>['USER']]);
 
+
+$router->post('/purchases-situation/list', 'App\Controllers\PurchaseController@listV2',["roles"=>['USER']]);
+
 $router->post('/sheets/history', 'App\Controllers\SheetController@history', ["roles" => ['USER']]);
 // User management
 $router->get('/saml/login', 'App\Controllers\AuthenticationController@login');

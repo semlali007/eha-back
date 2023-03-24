@@ -47,4 +47,15 @@ class PurchaseRepository extends AbstractRepository {
         
     }
 
+
+    public function getAllPurchases(string $nni) {
+        $actions = HLK['v2']["actions"];
+        $pgiNumberAction = $actions["search_by_nni"]["search_by"];
+        $queryData = [
+            'search_by' => $pgiNumberAction,
+            'value' => $nni
+        ];
+        return HttpClientService::exec_get(HLK['v2']['url'].'/'.$actions["search_by_nni"]['api'], $queryData, ["API-HLK-Key: " . HLK['v2']['pwd']]);
+    }
+
 }
