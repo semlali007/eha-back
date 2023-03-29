@@ -28,6 +28,17 @@ class NewsCastRepository extends AbstractRepository
         return
             $news->getPaginatedList($options);
     }
+
+    public function frontList($options)
+    {
+        $news = new NewsCast();
+        if(isset($options['is_home']) && $options['is_home'] ==1){
+            return
+            $news->getHomePaginatedFrontList($options);
+        }
+        return
+            $news->getPaginatedFrontList($options);
+    }
     public function getCategories()
     {
         $news = new NewsCastCategory();

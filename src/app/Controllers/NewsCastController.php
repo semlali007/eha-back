@@ -67,10 +67,19 @@ class NewsCastController extends Controller
         $options = $this->decode(file_get_contents("php://input"));
         return $this->response($this->newsRepository->sort($options));
     }
+
     public function delete() {
         $options = $this->decode(file_get_contents("php://input"));
         return $this->response($this->newsRepository->delete($options));
     }
+
+    public function frontList()
+    {
+        $options = $this->decode(file_get_contents("php://input"));
+        return  $this->response($this->newsRepository->frontList($options));
+    }
+
+    
 
 
 }

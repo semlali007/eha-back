@@ -183,4 +183,54 @@ class NewsCast extends Model
         }
     }
         
+
+    public function getPaginatedFrontList($options)
+    {
+        try {
+            $perpage = $options['perpage'] ?? 50;
+            $page = $options['page'] ?? 1;
+            $search =" ";
+            if (isset($options['category']) && !empty($options['category'])) {
+                $search .= " AND  n.category = " . $options['category'];
+            }
+            
+            $page = ($page - 1) * $perpage;
+            $query = 'SELECT DISTINCT n.*, nc.label as categ,  nc.code as categ_code FROM ' . $this->table . '  AS n 
+            LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc 
+			ON nc.id = n.category WHERE n.published_date is not null '. $search.'  ORDER BY published_date desc ' . ' LIMIT ' . $perpage . ' offset ' . $page;
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
+            $count_sql = 'SELECT COUNT(*) FROM ' . $this->table .' AS n WHERE n.published_date is not null '. $search ;
+            $res = $this->db->getPDO()->query($count_sql);
+            $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
+            return $data;
+        } catch (\Exception $e) {
+            exit;
+            throw new InternalServerException();
+        }
+    }
+
+    public function getHomePaginatedFrontList($options)
+    {
+        try {
+            $perpage = $options['perpage'] ?? 5;
+            $page = $options['page'] ?? 1;
+            $page = ($page - 1) * $perpage;
+            $query = 'SELECT DISTINCT n.*, nc.label as categ, nc.code as categ_code FROM ' . $this->table . '  AS n 
+            LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc 
+			ON nc.id = n.category  WHERE n.is_home = 1 AND n.published_date is not null ORDER BY is_home_position asc ' . ' LIMIT ' . $perpage . ' offset ' . $page;
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
+            $count_sql = "SELECT COUNT(*) FROM " . $this->table .' WHERE is_home = 1 AND published_date is not null  ';
+            $res = $this->db->getPDO()->query($count_sql);
+            $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
+            return $data;
+        } catch (\Exception $e) {
+            var_dump($e);
+            exit;
+            throw new InternalServerException();
+        }
+    }
     }
