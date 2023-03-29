@@ -17,9 +17,9 @@ class AuthenticationController extends Controller
 
     public function login($state = '/app/accueil'): mixed
     {
-        $url = urldecode($state);
-        $this->getSp()->requireAuth(['ReturnTo' => $url]);
-        header('Location: ' . $url);
+        $state = str_replace('w_t_p', '/', $state);
+        $this->getSp()->requireAuth(['ReturnTo' => $state]);
+        header('Location: '. $state); 
     }
 
 

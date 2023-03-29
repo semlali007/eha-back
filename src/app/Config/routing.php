@@ -169,7 +169,20 @@ $router->get('/admin/recherche/synonymous/delete/:id', 'App\Controllers\SearchCo
 $router->post('/admin/recherche/associated/update/:id', 'App\Controllers\SearchConfigController@updateAssociated', ["roles"=>['USER']]);
 $router->get('/admin/recherche/associated/delete/:id', 'App\Controllers\SearchConfigController@deleteAssociated', ["roles"=>['USER']]);
 
+$router->post('/admin/news-cast/list', 'App\Controllers\NewsCastController@list', ["roles" => ['USER']]);
 
+$router->get('/admin/news-cast/categories', 'App\Controllers\NewsCastController@getCategories', ["roles" => ['ADMIN']]);
+$router->post('/admin/news-cast/create', 'App\Controllers\NewsCastController@create', ["roles" => ['ADMIN']]);
+$router->post('/admin/news-cast/update', 'App\Controllers\NewsCastController@update', ["roles" => ['ADMIN']]);
+$router->get('/admin/news-cast/get/:id', 'App\Controllers\NewsCastController@getNews', ["roles" => ['USER']]);
+$router->post('/admin/news-cast/sort', 'App\Controllers\NewsCastController@sort', ["roles"=>['USER']]);
+$router->post('/admin/news-cast/delete', 'App\Controllers\NewsCastController@delete', ["roles"=>['USER']]);
+
+$router->post('/news-cast/list', 'App\Controllers\NewsCastController@frontList', ["roles" => ['USER']]);
+
+$router->post('/purchases-situation/list', 'App\Controllers\PurchaseController@listV2',["roles"=>['USER']]);
+
+$router->post('/sheets/history', 'App\Controllers\SheetController@history', ["roles" => ['USER']]);
 // User management
 $router->get('/saml/login', 'App\Controllers\AuthenticationController@login');
 $router->get('/saml/login/:url', 'App\Controllers\AuthenticationController@login');

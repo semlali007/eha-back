@@ -314,7 +314,7 @@ class Hotline extends Model {
          $now = date('Y-m-d');
 
         if ($maxDays == -1) {
-            $dateCondition = " md.quand <= '2022-06-30' ";
+            $dateCondition = " md.quand <= '2022-06-29' ";
         } else {
             $dateCondition = " DATE_PART('day', '$now' - md.quand) >= {$maxDays} ";
         }
