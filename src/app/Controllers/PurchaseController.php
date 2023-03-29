@@ -44,7 +44,7 @@ class PurchaseController extends Controller
         try {
             $trans = HLK['status'];
             $nni = $this->getCurrentUser()->getNni();
-            $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N"];
+            $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N", "G68670"];
             if (in_array($nni, $arr)) {
                 $nni = 'E85949';
             }
@@ -76,5 +76,23 @@ class PurchaseController extends Controller
                 }
             return $valeur;
         }, $data);
+    }
+
+    public function listV2(): mixed {
+        try {
+            $trans = HLK['status'];
+            $nni = $this->getCurrentUser()->getNni();
+            $arr = ["HGDDEDBN", "WID03C5N", "ETF93B9N", "G68670"];
+            if (in_array($nni, $arr)) {
+                $nni = 'E85949';
+            }
+            if (is_null($nni)) {
+                return $this->response(['purchases' => []]);
+            }
+
+            return $this->response(['purchases' => $this->purchaseRepository->getAllPurchases($nni)]);
+        } catch (\Throwable|\Exception $ex) {
+            return $this->hlkErrorResponse();
+        }
     }
 }

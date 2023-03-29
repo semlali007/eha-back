@@ -61,7 +61,7 @@ class SheetContract extends Model
     public function getBySheet($sheetId)
     {
         try {
-            $query = 'SELECT DISTINCT  sc.contract_code,sc.provider,sc.contacts, c.contract_code as exist_contract_code,string_agg(DISTINCT concat(c.contract_system,\'__\',c.contract_system_label), \'|\') FROM ' . $this->table . ' sc LEFT JOIN ' . $this->contractTable . ' c ON c.contract_code = sc.contract_code WHERE sheet_id = :sheet_id GROUP BY sc.contract_code,sc.provider, sc.contacts, c.contract_code ORDER BY sc.contract_code ' ;
+            $query = 'SELECT DISTINCT  sc.contract_code,sc.provider,sc.contacts FROM ' . $this->table . ' sc LEFT JOIN ' . $this->contractTable . ' c ON c.contract_code = sc.contract_code WHERE sheet_id = :sheet_id GROUP BY sc.contract_code,sc.provider, sc.contacts, c.contract_code ORDER BY sc.contract_code ' ;
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();

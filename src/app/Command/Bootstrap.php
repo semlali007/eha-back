@@ -11,7 +11,8 @@ use App\Command\Command\{
     RemoveExpiredNotifications,
     Migration,
     DeleteMigration,
-    MigrationDomain
+    MigrationDomain,
+    UpdateSheets
 };
 
 /**
@@ -53,7 +54,8 @@ class Bootstrap {
             new RemoveExpiredNotifications(),
             new Migration(),
             new DeleteMigration(),
-            new MigrationDomain()
+            new MigrationDomain(),
+            new UpdateSheets()
         ] ;
     }
 

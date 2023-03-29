@@ -57,6 +57,11 @@ class SheetController extends Controller {
         return $this->response(['sheet' => $this->sheetRepository->getDetails($id, $this->currentNni)]);
     }
 
+    public function history() {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        return $this->response(['history' => $this->sheetRepository->getHistory($options)]);
+    }
+
     public function export() {
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
         return $this->response(['sheets' => $this->sheetRepository->exportAll($options)], $this->currentUser->getNni());

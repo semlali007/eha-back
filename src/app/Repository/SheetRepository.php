@@ -14,12 +14,15 @@ use App\Models\SheetContract;
 use App\Models\SheetDomain;
 use App\Models\SheetFile;
 use App\Models\SheetGroup;
+use App\Models\SheetLogs;
 use App\Models\SheetLot;
 use App\Models\SheetOption;
 use App\Models\SheetProvider;
 use App\Models\SheetSubDomain;
 use App\Models\Subscription;
 use Core\Util\{Date,Math, Arrays } ;
+use App\Repository\ContractRepository;
+use App\Services\HttpClientService;
 use DOMDocument;
 use Exception;
 
@@ -183,12 +186,20 @@ class SheetRepository extends AbstractRepository {
             $sheetSubDomain = new SheetSubDomain();
             $details['domain'] = $sheetDomain->getBySheet($id);
             $details['subdomain'] = $sheetSubDomain->getBySheet($id);
+            $sheetLogs = new SheetLogs();
+           // $details['history'] = $sheetLogs->getBySheet($id);
 
             return $details;
         } catch (\Exception $e) {
             var_dump($e->getMessage());exit;
             throw new Exception($e->getMessage());
         }
+    }
+
+    public function getHistory($options){
+        $sheetLogs = new SheetLogs();
+        return ['data'=>$sheetLogs->getBySheet($options['id'], $options['page']),'total'=>$sheetLogs->countBySheet($options['id'])];
+        
     }
 
     public function export($options, $userNni = null) {
@@ -698,6 +709,70 @@ class SheetRepository extends AbstractRepository {
     public function getSheetByContract($contractCode){
         $sheet = new Sheet();
         return $sheet->getSheetByContract($contractCode);
+    }
+
+    public function updateSheetEndDate($sheetId){
+        $contractRepository = new ContractRepository();
+        $sheet = new Sheet();
+        var_dump($sheetId);
+        $sheetData =  $sheet->get($sheetId);
+        $contracts = [];
+        preg_match_all('#app/contrat/details/(.*?)\"#', $sheetData['content'], $match);
+            if(isset($match[1])){
+                foreach($match[1] as $m){
+                    $contracts[] = $m;
+                }
+            }
+
+            $dateMax = '';
+        foreach ($contracts as $code) {
+            $contract = null;
+            $contract4 = $this->getContract(['word' => $code . "-PGI-4"]);
+            if (!is_null($contract4)) {
+                $contract = $contract4;
+            } else {
+                $contract2 = $this->getContract(['word' => $code . "-PGI-2"]);
+                if (!is_null($contract2)) {
+                    $contract = $contract2;
+                } else {
+                    $contract1 = $this->getContract(['word' => $code . "-PGI-1"]);
+                    if (!is_null($contract1)) {
+                        $contract = $contract1;
+                    } else {
+                        $contract = $this->getContract(['word' => $code]);
+                    }
+                }
+              
+              
+            }   
+          
+            if($contract['infos']['contract_date_end']>$dateMax){
+                    $dateMax = $contract['infos']['contract_date_end'];
+                }
+        }
+        
+        $sheet->updateEndDate($sheetId, $dateMax);
+
+            //récupérer les contrats de la fiche
+       //appeler HLK et récupérer les information de contrat
+       //Mettre à jour la fiche
+
+        return 12;
+
+    }
+
+
+    public function getContract($options) {
+
+            $queryData = [
+                'password' => getenv("HLK_API_PASS"),
+                'action_code' => 'get_contract',
+                'action_info' => $options['word'],
+                'limit' => 20,
+                'line' => ''
+            ]; 
+            return HttpClientService::post(getenv("HLK_API_URL"), $queryData);
+        return [];
     }
     
 

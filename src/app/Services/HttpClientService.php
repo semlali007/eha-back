@@ -108,4 +108,45 @@ class HttpClientService {
         return $curl ;
         
     }
+
+    public static function exec_get(string $url, array $query, array $headers = Json::DEFAULT_HEADER) {
+        $headers = array_merge(Json::DEFAULT_HEADER,$headers);
+        $curl = self::initGet($url, $headers, $query);
+        $responses = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        if (curl_errno($curl)) {
+            $error = curl_error($curl);
+            curl_close($curl);
+            throw new HttpException($error);
+        } 
+        
+        $json = json_decode($responses, true);
+        curl_close($curl);
+       
+        if (json_last_error() != JSON_ERROR_NONE) {
+            throw new HttpException('json non valide', $httpCode);
+        }
+        return $json;
+    }
+
+    static function initGet (string|null $url, mixed $headers,mixed $query): mixed{
+        $queryUrl = http_build_query($query);
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, "$url?$queryUrl");
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_POST, 0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
+        curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl, CURLOPT_VERBOSE, true);
+
+        return $curl ;
+        
+    }
 }
