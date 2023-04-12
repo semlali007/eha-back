@@ -20,6 +20,7 @@ use App\Security\User;
 use App\Models\Provider;
 use App\Models\Beneficiary;
 use App\Models\Area;
+use App\Models\Category;
 use App\Models\Committee;
 use App\Models\Group;
 use phpDocumentor\Reflection\Types\Null_;
@@ -91,6 +92,7 @@ class SheetManager extends AbstractManager
 
             $sheet = new Sheet();
             $commitee = new Committee();
+            $category = new Category();
 
             try {
                 $id = $data['id'];
@@ -112,6 +114,7 @@ class SheetManager extends AbstractManager
                     'description'=>'Commentaires',
                     'search_words'=>'Mots clés',
                     'content'=>'Contenu',
+                    'category'=>'Catégorie Achats'
 
                 ];
                 $diff = array_diff_assoc($previousSheet, $currentSheet);
@@ -128,7 +131,6 @@ class SheetManager extends AbstractManager
                     switch ($k) {
                         case 'updated_at':
                         case 'updated_by':
-                        case 'category':
                         case 'updated_by_full_name':
                             continue 2;
                         case 'content':
@@ -145,6 +147,16 @@ class SheetManager extends AbstractManager
 
                             if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] > 1) {
                                 $diffLogs['new'] = $commitee->getByCode($currentSheet[$k])['label'];
+                            }
+                            break;
+
+                        case 'category':
+                            if (is_numeric($previousSheet[$k]) &&  $previousSheet[$k] >= 1) {
+                                $diffLogs['old'] = $category->getByCode($previousSheet[$k])['label'];
+                            }
+
+                            if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] >= 1) {
+                                $diffLogs['new'] = $category->getByCode($currentSheet[$k])['label'];
                             }
                             break;
                         case 'dauphin':
@@ -572,6 +584,7 @@ class SheetManager extends AbstractManager
             $data['end_date'] = ($sheetData['end_date'] && $sheetData['end_date'] != '') ?$sheetData['end_date']: null;
             $data['dauphin'] = $sheetData['dauphin'];
             $data['committee'] = $sheetData['committee'] ?? 0;
+            $data['category'] = $sheetData['category'] ?? 0;
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];
