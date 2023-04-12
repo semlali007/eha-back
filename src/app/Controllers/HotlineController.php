@@ -62,7 +62,8 @@ class HotlineController extends Controller
         try {
             return $this->response($this->hotlineRepository->getHotline([
                 'id' => $id,
-                'sha' => $sha
+                'sha' => $sha,
+                'user'=>$this->currentUser
             ]));
         } catch (Exception $ex) {
             return $this->error($ex);

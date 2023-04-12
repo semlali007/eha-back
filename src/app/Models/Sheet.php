@@ -559,7 +559,7 @@ class Sheet extends Model
         $id = $data['id'];
         try {
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, showcase=:showcase, content=:content, search_words=:search_words WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -576,6 +576,7 @@ class Sheet extends Model
             $sth->bindParam(':partnership', $data['partnership'], PDO::PARAM_BOOL);
             $sth->bindParam(':protected_sector', $data['protected_sector'], PDO::PARAM_BOOL);
             $sth->bindParam(':committee', $data['committee'], PDO::PARAM_INT);
+            $sth->bindParam(':category', $data['category'], PDO::PARAM_INT);
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
             $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
@@ -593,7 +594,7 @@ class Sheet extends Model
             $data['netachat_type'] = $data['netachat_type']?? '';
             $data['netachat_id'] = $data['netachat_id']?? 0;
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, showcase, content, netachat_id, netachat_type, search_words) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :showcase, :content, :netachat_id, :netachat_type, :search_words);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -613,6 +614,7 @@ class Sheet extends Model
             $sth->bindParam(':partnership', $data['partnership'], PDO::PARAM_BOOL);
             $sth->bindParam(':protected_sector', $data['protected_sector'], PDO::PARAM_BOOL);
             $sth->bindParam(':committee', $data['committee'], PDO::PARAM_INT);
+            $sth->bindParam(':category', $data['category'], PDO::PARAM_INT);
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
             $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':netachat_type', $data['netachat_type'], PDO::PARAM_STR);

@@ -193,6 +193,8 @@ $router->get('/saml/attributes', 'App\Controllers\AuthenticationController@attri
 // Log Front informations
 $router->post('/front/logs', 'App\Controllers\FrontController@logs');
 
+$router->get('/categories', 'App\Controllers\CategoryController@index', ["roles"=>['USER']]);
+
 //try {
 $data = $router->run();
 if (is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE)):

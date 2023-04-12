@@ -51,6 +51,7 @@ class SheetManager extends AbstractManager
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['committee'] = $sheetData['committee'] ?? 0;
+            $data['category'] = $sheetData['category'] ?? 0;
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
@@ -127,6 +128,7 @@ class SheetManager extends AbstractManager
                     switch ($k) {
                         case 'updated_at':
                         case 'updated_by':
+                        case 'category':
                         case 'updated_by_full_name':
                             continue 2;
                         case 'content':
@@ -536,7 +538,6 @@ class SheetManager extends AbstractManager
                 }
                 $this->db->getPDO()->commit();
             } catch (\Exception $e) {
-                var_dump($e->getMessage());
                 if ($this->db->getPDO()->inTransaction()) {
                     $this->db->getPDO()->rollback();
                 }

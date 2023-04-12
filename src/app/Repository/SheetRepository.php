@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Models\Category;
 use App\Models\Committee;
 use App\Models\Provider;
 use App\Models\SearchAssociated;
@@ -144,6 +145,16 @@ class SheetRepository extends AbstractRepository {
     public function getDetails($id, $userNni = null) {
         try {
             $details = (new Sheet())->get($id);
+
+
+            $category = new Category();
+            $categorySheet = $category->getByCode($details['category']);
+           
+            if (!is_array($categorySheet)) {
+                $categorySheet = [];
+            }
+            
+            $details['category'] = $categorySheet;
 
             $committee = new Committee();
             $committetSheet = $committee->getByCode($details['committee']);

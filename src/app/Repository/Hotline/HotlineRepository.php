@@ -93,12 +93,16 @@ class HotlineRepository extends AbstractRepository
                 $answer['data']['timeline'][$i]['message'] = substr($row['message'], $p + 1);
                 $answer['data']['timeline'][$i]['file'] = substr($row['message'], 0, $p);
             }
-            $answer['data']['timeline'][$i]['message'] = str_replace("da-dag-achatpedia@edf.fr", "*****@edf.fr", $answer['data']['timeline'][$i]['message']) ;
+          
+            if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+                $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
+            }
+
         }
 
         if (in_array($nature, array('O', 'OF', 'FO'))) {
             $answer['data']['info']['step'] = 'new';
-        } else if (strpos($nature, 'C') !== false || $answer['data']['closed_at'] != null) {
+        } else if (strpos($nature, 'C') !== false ) {
             $answer['data']['info']['step'] = 'end';
         } else {
             $answer['data']['info']['step'] = 'progress';
