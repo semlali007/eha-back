@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Models\NewsCast;
 use App\Models\NewsCastCategory;
+use App\Models\NewsCastConfig;
 use Exception;
 
 class NewsCastRepository extends AbstractRepository
@@ -21,9 +22,12 @@ class NewsCastRepository extends AbstractRepository
     public function list($options)
     {
         $news = new NewsCast();
-        if(isset($options['is_home']) && $options['is_home'] ==1){
-            return
-            $news->getHomePaginatedList($options);
+        if (isset($options['is_home']) && $options['is_home'] == 1) {
+            $newsData = $news->getHomePaginatedList($options);
+            $newsConfig = new NewsCastConfig();
+            $newsConfigData = $newsConfig->getByConfigLabel('news_home_page');
+            $newsData['active'] = (is_array($newsConfigData) && isset($newsConfigData['config_value'])) ? filter_var($newsConfigData['config_value'], FILTER_VALIDATE_BOOL) : false;
+            return $newsData;
         }
         return
             $news->getPaginatedList($options);
@@ -33,8 +37,14 @@ class NewsCastRepository extends AbstractRepository
     {
         $news = new NewsCast();
         if(isset($options['is_home']) && $options['is_home'] ==1){
+           $newsConfig = new NewsCastConfig();
+           $config = $newsConfig->getByConfigLabel('news_home_page');
+           if(is_array($config) && isset($config['config_value'])  && filter_var($config['config_value'], FILTER_VALIDATE_BOOL)  == true){
             return
             $news->getHomePaginatedFrontList($options);
+           }else{
+            return ['data'=>[], 'total' => 0];
+           }
         }
         return
             $news->getPaginatedFrontList($options);
@@ -59,13 +69,20 @@ class NewsCastRepository extends AbstractRepository
         return
             $news->update($options);
     }
-    public function sort(array $options = []): void
+    public function updateHomePage(array $options = []): void
     {
+       
         try {
             $news = new NewsCast();
+            if(is_bool($options['active'])){
+                $newsConfig = new NewsCastConfig();
+                $newsConfig->updateByConfig('news_home_page',$options['active'] );
+            }
+
             foreach ($options['items'] as $item) {
                 $news->updatePosition($item['id'], $item['position']);
             }
+
         } catch (Exception $ex) {
             http_response_code(500);
             echo json_encode([

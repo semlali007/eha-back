@@ -194,6 +194,10 @@ $router->get('/saml/attributes', 'App\Controllers\AuthenticationController@attri
 $router->post('/front/logs', 'App\Controllers\FrontController@logs');
 
 $router->get('/categories', 'App\Controllers\CategoryController@index', ["roles"=>['USER']]);
+$router->post('/satisfaction/create', 'App\Controllers\SatisfactionController@create', ["roles"=>['USER']]);
+$router->get('/satisfaction/get/:nni/:cockpit_id', 'App\Controllers\SatisfactionController@get', ["roles"=>['USER']]);
+$router->get('/satisfaction/list', 'App\Controllers\SatisfactionController@list', ["roles"=>['USER']]);
+
 
 //try {
 $data = $router->run();
