@@ -18,6 +18,8 @@ class AuthenticationController extends Controller
     public function login($state = '/app/accueil'): mixed
     {
         $state = str_replace('w_t_p', '/', $state);
+        $state = str_replace('w_i_p', '?', $state);
+        $state = str_replace('w_e_p', '&', $state);
         $this->getSp()->requireAuth(['ReturnTo' => $state]);
         header('Location: '. $state); 
     }
