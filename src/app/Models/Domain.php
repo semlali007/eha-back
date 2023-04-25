@@ -65,11 +65,17 @@ class Domain extends Model
             $perpage = $options['perpage'] ?? 5;
             $page = $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
-            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
+            $where = '';
+            if(isset($options['search']) && !empty($options['search'])){
+                $where = " WHERE lower(name) like '%".strtolower(trim($options['search']))."%' ";
+
+            }
+
+            $query = 'SELECT DISTINCT * FROM ' . $this->table . $where .' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
             $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
-            $count_sql = "SELECT COUNT(*) FROM " . $this->table;
+            $count_sql = "SELECT COUNT(*) FROM " . $this->table . $where;
             $st = $this->db->getPDO()->prepare($count_sql);
             $st->execute();
             $data['total'] = $st->fetch(PDO::FETCH_ASSOC)['count'];
