@@ -32,5 +32,8 @@
     },
     "require-dev": {
          "phpunit/phpunit": "^9.5"
+    },
+    "scripts": {
+        "post-install-cmd": "npm install -g apidoc && apidoc -i ../src/app/Controllers/ -o public/apidoc"
     }
 }

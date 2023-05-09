@@ -1,0 +1,13 @@
+{
+    "name": "achatpedia",
+    "version": "0.1.0",
+    "description": "Achatpédia api documentation",
+    "title": "Achatpédia api documentation",
+    "url" : "http://127.0.0.1:9090/",
+    "template": {
+        "showRequiredLabels": false,
+        "withCompare": false,
+        "withGenerator": false,
+        "aloneDisplay": false
+      }
+  }
