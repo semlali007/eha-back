@@ -34,9 +34,8 @@ class Satisfaction extends Model {
     public function get($nni, $cockpitId)
     {
         try {
-            $query = 'SELECT * FROM ' . $this->table  . ' WHERE nni=:nni AND  cockpit_id=:cockpit_id';
+            $query = 'SELECT * FROM ' . $this->table  . ' WHERE   cockpit_id=:cockpit_id';
             $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':nni', $nni, PDO::PARAM_STR);
             $sth->bindParam(':cockpit_id', $cockpitId, PDO::PARAM_STR);
             $sth->execute();
             return  $sth->fetch(PDO::FETCH_ASSOC);
