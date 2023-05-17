@@ -18,6 +18,7 @@ class HotlineFil extends Model
             $query = '
             SELECT nature,
                    quand,
+                   email,
                    is_hotline,
                    message 
             FROM ' . $this->table . '

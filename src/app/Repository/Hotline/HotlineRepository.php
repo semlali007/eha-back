@@ -52,13 +52,19 @@ class HotlineRepository extends AbstractRepository
         }
 
         $timeline = (new HotlineFil())->getTimeLineByQuestion($id);
-       
+        $forward =  array_filter($timeline, function ($item) { return $item['nature'] === 'F' ;});
+        $lastForwarded = end($forward);
+        $currentForwarded = '';
+        if(is_array($lastForwarded) && isset($lastForwarded['email']) && $lastForwarded['email']){
+            $currentForwarded =$lastForwarded['email'];
+        }
         $answer['data'] = array(
             'info' => $question,
             'timeline' => $timeline,
             'isRequester' => false,
             'isHotliner' => false,
-            'status' => true
+            'status' => true,
+            'current_forward'=> $currentForwarded
         );
 
         $isHotliner = false;
@@ -72,7 +78,8 @@ class HotlineRepository extends AbstractRepository
                 $answer['data']['isHotliner'] = true;
             }
         }
-        // Nombre d'éléments dans la discussion :
+
+       
         $c = count($answer['data']['timeline']);
         if (!$isHotliner) {
             // Si on n'est pas hotliner, on supprime alors les noms des acheteurs.
