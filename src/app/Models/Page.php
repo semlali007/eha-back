@@ -31,6 +31,7 @@ class Page extends Model
      * @param array $data
      * @throws Exception
      */
+
     public function update($page, array $data)
     {
         try {
@@ -51,5 +52,27 @@ class Page extends Model
         }
     }
 
+    public function insert($page, array $data)
+    {
+       
+        try {
+            try {
+                $query = '
+                INSERT INTO ' . $this->table . ' (page, content, active, title) VALUES (:page, :content, :active, :title) ON CONFLICT DO NOTHING;
+                ';
+                    $sth = $this->db->getPDO()->prepare($query);
+                    $sth->bindParam(':page', $page, PDO::PARAM_STR);
+                    $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
+                    $sth->bindParam(':active', $data['active'], PDO::PARAM_BOOL);
+                    $sth->bindParam(':title', $page, PDO::PARAM_STR);
+                    $sth->execute();
+                    return  $this->db->getPDO()->lastInsertId();
+            } catch (\Exception $e) {
+                throw new \Exception('erreur de modification de page' . $e->getMessage());
+            }
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+    }
 
 }

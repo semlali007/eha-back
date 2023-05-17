@@ -9,9 +9,18 @@ class PageManager extends AbstractManager
 {
     public function update($pageCode, $data)
     {
+
         try {
+
+
             $page = new Page();
-            $id =  $page->update($pageCode, $data);
+            $existPage = $page->getContent($pageCode);
+            if(!$existPage){
+                $id =  $page->insert($pageCode, $data);
+            }else{
+                 $id =  $page->update($pageCode, $data);
+            }
+           
             return [
                 'status' => true,
                 'id' => $id
