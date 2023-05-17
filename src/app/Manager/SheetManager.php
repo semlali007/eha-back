@@ -77,7 +77,7 @@ class SheetManager extends AbstractManager
             $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
-                'size' => 2100000
+                'size' => 21000000
             ]);
 
             $data['lots'] = $sheetData['lots'] ?? [];
@@ -622,7 +622,7 @@ class SheetManager extends AbstractManager
             $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
-                'size' => 2100000
+                'size' => 21000000
             ]);
 
 

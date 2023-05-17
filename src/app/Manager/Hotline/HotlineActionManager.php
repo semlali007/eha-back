@@ -41,7 +41,7 @@ class HotlineActionManager extends AbstractManager
             return $answer;
         }
 
-        if ($file['size'] > 1000000) {
+        if ($file['size'] > 21000000) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['32'] . '</p>';
             return $answer;
         }
