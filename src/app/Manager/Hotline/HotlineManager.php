@@ -87,7 +87,7 @@ class HotlineManager extends AbstractManager
             $this->sendMail($email, "Achatpédia - Q$id - Création", "mail/hotline_question_creation_to_user.html.twig", [
                 'id' => $id,
                 'sha' => $sha_demandeur,
-            ]);
+            ], "Création");
 
             $themeData = (new HotlineTheme())->get($theme);
             if (isset($themeData['label'])) {
@@ -158,12 +158,12 @@ class HotlineManager extends AbstractManager
                 $this->sendMail($email, $subject, "mail/hotline_question_forword_to_hotliner.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
-                ]);
+                ], "Message");
             } else {
                 $this->sendMail($email, "Achatpédia - Q$id - Pour info", "mail/hotline_question_forword_to_user.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
-                ]);
+                ], "Pour info");
             }
             
             if(!empty($emailcc)) {
@@ -171,7 +171,7 @@ class HotlineManager extends AbstractManager
                     'id' => $id,
                     'sha' => $sha,
                     'email' => $email,
-                ]);
+                ], "Pour info");
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['15'] . '</p>';
         } catch (EmailException $ex) {
@@ -237,12 +237,12 @@ class HotlineManager extends AbstractManager
                 $this->sendMail($emails, "Achatpédia - Q$id - Nouveau message de la hotline", "mail/hotline_new_question_post_from_hotline.html.twig", [
                     'id' => $id,
                     'sha' => $infos['sha_demandeur'],
-                ]);
+                ], "Nouveau message de la hotline");
             } else {
                 $this->sendMail($emails, "Achatpédia - Q$id - Nouveau message du demandeur", "mail/hotline_new_question_post_from_user.html.twig", [
                     'id' => $id,
                     'sha' => $infos['sha_hotline'],
-                ]);
+                ], "Nouveau message de la hotline");
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['20'] . '</p>';
         } catch (EmailException $ex) {
@@ -251,21 +251,39 @@ class HotlineManager extends AbstractManager
         return $answer;
     }
 
-
-
-    public function sendMail($recepients, $subject, $template, $params)
+    public function sendMail($recepients, $subject, $template, $params, $action)
     {
+        if (is_string($recepients)) {
+            $recepients = explode(',', $recepients);
+        }
+
+        $env = getenv('ENV');
+        $envLabel = '';
+        // le sujet de l'e-mail en fonction de l'env
+        if ($env === 'prod') {
+            $prefix = 'P';
+            $envLabel = 'Production';
+        } elseif ($env === 'preprod') {
+            $prefix = 'PP';
+            $envLabel = 'Preproduction';
+        } else {
+            $prefix = 'DEV';
+            $envLabel = 'Developpement';
+        }
+        // Ajoute l'env au sujet de l'e-mail
+        $subjectWithEnvironment = "Achatpédia - Q" . $prefix . $params['id'] . '-' . $envLabel . '-' . $action;
+
         try {
             $params['config_domain'] = getenv('CONFIG_DOMAINE');
 
             $mailer =  (new Mailer())
-                ->setSubject($subject)
+                ->setSubject($subjectWithEnvironment)
                 ->setRecepients($recepients)
                 ->html($template, $params);
-            $mailer->send(); // Envoyer l'email
+            $mailer->send(); 
         } catch (Exception $e) {
+            error_log("Error sending email: " . $e->getMessage());
             throw new EmailException();
         }
-        
     }
 }
