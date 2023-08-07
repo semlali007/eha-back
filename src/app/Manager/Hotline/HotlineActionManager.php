@@ -84,7 +84,7 @@ class HotlineActionManager extends AbstractManager
             $this->sendMail($emails, "Achatpédia - Q$id - Pièce jointe ajoutée", "mail/hotline_question_upload_file.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
-            ]);
+            ], "Pièce jointe ajoutée");
 
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['34'] . '</p>';
         } catch (EmailException $ex) {
@@ -147,22 +147,41 @@ class HotlineActionManager extends AbstractManager
             $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
-            ]);
+            ], "Fin");
         }
         return ['status'  =>  true, 'message'=>'<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
     }
 
-    public function sendMail($recepients, $subject, $template, $params)
+    public function sendMail($recepients, $subject, $template, $params, $action)
     {
-        try{
-        $params['config_domain'] = getenv('CONFIG_DOMAINE');
-        $mailer =  (new Mailer())
-            ->setSubject($subject)
-            ->setRecepients($recepients)
-            ->html($template, $params);
-        $mailer->send(); // Envoyer l'email 
-    } catch (Exception $e) {
-        throw new EmailException();
+        $env = getenv('INSTALL_ENV');
+        // le sujet de l'e-mail en fonction de l'env
+
+        if ($env === 'PROD') {
+            $prefix = 'P';
+            $envLabel = 'Production';
+        } elseif ($env === 'PREPROD') {
+            $prefix = 'PP';
+            $envLabel = 'Preproduction';
+        } else {
+            $prefix = 'DEV';
+            $envLabel = 'Developpement';
+        }
+        // Ajoute l'env au sujet de l'e-mail
+        $subjectWithEnvironment = "Achatpédia - Q" . $prefix . $params['id'] . '-' . $envLabel . '-' . $action;
+
+        try {
+            $params['config_domain'] = getenv('CONFIG_DOMAINE');
+
+            $mailer =  (new Mailer())
+                ->setSubject($subjectWithEnvironment)
+                ->setRecepients($recepients)
+                ->html($template, $params);
+            $mailer->send(); // Envoyer l'email
+        } catch (Exception $e) {
+            error_log("Error sending email: " . $e->getMessage());
+            throw new EmailException();
+        }
     }
-    }
+    
 }
