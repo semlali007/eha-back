@@ -32,6 +32,13 @@ class AuthenticationController extends Controller
         $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
         $attr['gardianwebsso_email'] = $attr['gardianwebsso_mail'][0];
         return $this->response($attr);
+
+        //pour voir les attribus
+        var_dump($attr);
+        //
+        echo " ************************************ "
+        
+        dump($attr);
     }
 
     public function logout()
