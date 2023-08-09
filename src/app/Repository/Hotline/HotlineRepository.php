@@ -100,10 +100,17 @@ class HotlineRepository extends AbstractRepository
                 $answer['data']['timeline'][$i]['message'] = substr($row['message'], $p + 1);
                 $answer['data']['timeline'][$i]['file'] = substr($row['message'], 0, $p);
             }
-          
-            if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+
+            if(($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+                //adresses email visibles par les user 'EHA_ADMIN', 'EHA_GESTIONNAIRE'
+            } else {
+                // Masquer uniquement l'adresse email de expéditeur dans le contenu du message
                 $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
             }
+          
+            // if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+            //     $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
+            // }
 
         }
 
