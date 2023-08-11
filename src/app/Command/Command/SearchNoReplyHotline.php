@@ -125,8 +125,20 @@ class SearchNoReplyHotline extends Command {
      * @param string $emailTo
      */
     public function sendMail(string $emailTo, int $id, string $sha_hotline):void {
+        $env = getenv('INSTALL_ENV');
+        // le sujet de l'e-mail en fonction de l'env
+        if ($env === 'PROD') {
+            $prefix = 'P';
+            $envLabel = 'Production';
+        } elseif ($env === 'PREPROD') {
+            $prefix = 'PP';
+            $envLabel = 'Preproduction';
+        } else {
+            $prefix = 'DEV';
+            $envLabel = 'Developpement';
+        }
         (new Builder())
-                ->setSubject("Achatpedia - Q{$id} - Rappel")->setRecepients($emailTo) 
+                ->setSubject("Achatpedia - Q" . $prefix . $id . '-' . $envLabel . '-' . "Rappel")->setRecepients($emailTo) 
                 ->html("mail/hotline_question_creation_to_hotliner.html.twig", [
                     'id' => $id,
                     'sha_hotline' => $sha_hotline,
