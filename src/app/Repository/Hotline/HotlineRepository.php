@@ -104,9 +104,7 @@ class HotlineRepository extends AbstractRepository
                 // Adresses email visibles par les utilisateurs 'EHA_ADMIN', 'EHA_GESTIONNAIRE'
             } else {
                 // Masquer l'adresse email
-                if (($row['email'] === $currentForwarded || $row['email'] === $question['email']) &&
-                    !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])
-                ) {
+                if ($row['email'] === $currentForwarded || $row['email'] === $question['email']) {
                     $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $row['message']);
                 }
             }            
