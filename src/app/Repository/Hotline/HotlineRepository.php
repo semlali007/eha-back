@@ -100,21 +100,29 @@ class HotlineRepository extends AbstractRepository
                 $answer['data']['timeline'][$i]['message'] = substr($row['message'], $p + 1);
                 $answer['data']['timeline'][$i]['file'] = substr($row['message'], 0, $p);
             }
-
-            if(($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
-                //adresses email visibles par les user 'EHA_ADMIN', 'EHA_GESTIONNAIRE'
+            if (($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])) {
+                // Adresses email visibles par les utilisateurs 'EHA_ADMIN', 'EHA_GESTIONNAIRE'
             } else {
-                // Masquer l'adresse email de l'expéditeur dans le contenu du message
-                if ($row['email'] === $currentForwarded) {
+                // Masquer l'adresse email
+                if ($row['email'] === $currentForwarded && $row['email'] === $question['email'] && ($options['user'] instanceof User) && $row['email'] === $options['user']->getEmail()) {
                     $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $row['message']);
-                } else {
-                    $answer['data']['timeline'][$i]['message'] = $row['message'];
                 }
             }
+
+            // if(($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+            //     //adresses email visibles par les user 'EHA_ADMIN', 'EHA_GESTIONNAIRE'
+            // } else {
+            //     // Masquer l'adresse email de l'expéditeur dans le contenu du message
+            //     if ($row['email'] === $currentForwarded) {
+            //         $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $row['message']);
+            //     } else {
+            //         $answer['data']['timeline'][$i]['message'] = $row['message'];
+            //     }
+            // }
           
-            if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
-                $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
-            }
+            // if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+            //     $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
+            // }
 
         }
 
