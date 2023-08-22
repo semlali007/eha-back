@@ -81,7 +81,7 @@ class HotlineManager extends AbstractManager
                 'nature' => 'F',
                 'is_hotline' => true,
                 'email' => $emailTo,
-                'message' => 'Question affectée automatiquement à ' . $emailTo,
+                'message' => ($isHotline) ? 'Question affectée automatiquement à ' . $emailTo,
             ]);
 
             $this->sendMail($email, "Achatpédia - Q$id - Création", "mail/hotline_question_creation_to_user.html.twig", [
