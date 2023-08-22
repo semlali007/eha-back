@@ -112,9 +112,9 @@ class HotlineRepository extends AbstractRepository
                 }
             }
           
-            // if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
-            //     $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
-            // }
+            if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
+                $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
+            }
 
         }
 
