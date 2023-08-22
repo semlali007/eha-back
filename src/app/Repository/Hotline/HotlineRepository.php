@@ -106,6 +106,8 @@ class HotlineRepository extends AbstractRepository
                 // Masquer l'adresse email
                 if ($row['email'] === $currentForwarded && $row['email'] === $question['email'] && ($options['user'] instanceof User) && $row['email'] === $options['user']->getEmail()) {
                     $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $row['message']);
+                } else {
+                    $answer['data']['timeline'][$i]['message'] = $row['message'];
                 }
             }
 
