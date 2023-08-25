@@ -89,15 +89,15 @@ abstract class Controller
             //var_dump($userInfo);exit;
             if (is_array($userInfo) && isset($userInfo['gardianwebsso_id'][0]) &&  !empty($userInfo['gardianwebsso_id'][0])) {
                 
-                // // Filtre des utilisateurs fournisseurs
-                // foreach ($userInfo['gardianwebsso_ismemberof'] as $value) {
-                //     if ($value === "P") {
-                //         error_log("Accès refusé pour l'utilisateur avec '{$value}' ");
-                //         throw new AccessDeniedException("Type d'employé non autorisé");
-                //     } else {
-                //         error_log("Accès accordé pour l'utilisateur avec '{$value}' ");
-                //     }
-                // }
+                // Filtre des utilisateurs fournisseurs
+                foreach ($userInfo['gardianwebsso_ismemberof'] as $value) {
+                    if ($value === "P") {
+                        error_log("Accès refusé pour l'utilisateur avec '{$value}' ");
+                        throw new AccessDeniedException("Type d'employé non autorisé");
+                    } else {
+                        error_log("Accès accordé pour l'utilisateur avec '{$value}' ");
+                    }
+                }
 
                 //var_dump($userInfo);exit;
                 $user = new SecurityUser();
