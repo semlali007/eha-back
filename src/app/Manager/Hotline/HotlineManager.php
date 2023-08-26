@@ -75,13 +75,20 @@ class HotlineManager extends AbstractManager
                 'email' => $email,
                 'message' => substr($post, 0, 4900),
             ]);
+            $isAdminOrManager = ($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE']);
+
+            if ($isAdminOrManager) {
+                $message = 'Question affectée automatiquement à ' . $emailTo;
+            } else {
+                $message = 'Question affectée automatiquement à *****@edf.fr';
+            }
 
             $hotlineFilTime->insert([
                 'discussion' => $id,
                 'nature' => 'F',
                 'is_hotline' => true,
                 'email' => $emailTo,
-                'message' => 'Question affectée automatiquement à ' . $emailTo,
+                'message' => $message,
             ]);
 
             $this->sendMail($email, "Achatpédia - Q$id - Création", "mail/hotline_question_creation_to_user.html.twig", [
