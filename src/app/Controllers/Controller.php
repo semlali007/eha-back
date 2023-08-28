@@ -89,6 +89,9 @@ abstract class Controller
             //var_dump($userInfo);exit;
             if (is_array($userInfo) && isset($userInfo['gardianwebsso_id'][0]) &&  !empty($userInfo['gardianwebsso_id'][0])) {
                 
+                if(isset($userInfo["gardianwebsso_status"])){
+                    error_log("la valeur de gardianwebsso_status est :" . $userInfo["gardianwebsso_status"]);
+                }
                 // Filtre des utilisateurs fournisseurs
                 if (isset($userInfo["gardianwebsso_status"]) && $userInfo["gardianwebsso_status"]  === "P") {
                     error_log("Type d'employé non autorisé");
