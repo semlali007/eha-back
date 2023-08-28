@@ -94,12 +94,15 @@ abstract class Controller
                 }
                 
                 // Filtre des utilisateurs fournisseurs
-                if (isset($userInfo["gardianwebsso_status"]) && $userInfo["gardianwebsso_status"]  === "P") {
-                    error_log("Type d'employé non autorisé");
-                    throw new AccessDeniedException("Type d'employé non autorisé");
-                }else {
-                    error_log("Type d'employé autorisé");
+                if (isset($userInfo["gardianwebsso_status"])) {
+                    if (in_array("P", $userInfo["gardianwebsso_status"])) {
+                        error_log("Type d'employé non autorisé");
+                        throw new AccessDeniedException("Type d'employé non autorisé");
+                    } else {
+                        error_log("Type d'employé autorisé");
+                    }
                 }
+                
 
                 //var_dump($userInfo);exit;
                 $user = new SecurityUser();
