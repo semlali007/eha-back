@@ -97,7 +97,7 @@ abstract class Controller
                 if (isset($userInfo["gardianwebsso_status"])) {
                     if (in_array("P", $userInfo["gardianwebsso_status"])) {
                         error_log("Type d'employé non autorisé");
-                        throw new AccessDeniedException("Type d'employé non autorisé");
+                        throw new AccessDeniedException();
                     } else {
                         error_log("Type d'employé autorisé");
                     }
