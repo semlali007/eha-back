@@ -75,6 +75,13 @@ abstract class Controller
     {
         return json_decode($json, true) ?? [];
     }
+    protected function showAccessDeniedPage()
+    {
+        //throw new AccessDeniedException();
+        header("HTTP/1.1 403 Forbidden");
+        echo "Accès non autorisé";
+        exit;
+    }
 
     /**
      *
@@ -94,15 +101,21 @@ abstract class Controller
                 }
                 
                 // Filtre des utilisateurs fournisseurs
+                // if (isset($userInfo["gardianwebsso_status"])) {
+                //     if (in_array("P", $userInfo["gardianwebsso_status"])) {
+                //         error_log("Type d'employé non autorisé");
+                //         throw new AccessDeniedException();
+                //     } else {
+                //         error_log("Type d'employé autorisé");
+                //     }
+                // }
                 if (isset($userInfo["gardianwebsso_status"])) {
                     if (in_array("P", $userInfo["gardianwebsso_status"])) {
-                        error_log("Type d'employé non autorisé");
-                        throw new AccessDeniedException();
+                        $this->showAccessDeniedPage();
                     } else {
                         error_log("Type d'employé autorisé");
                     }
                 }
-                
 
                 //var_dump($userInfo);exit;
                 $user = new SecurityUser();
