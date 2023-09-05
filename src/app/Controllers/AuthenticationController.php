@@ -39,30 +39,19 @@ class AuthenticationController extends Controller
     // }
 
 
-    // public function attributes(): mixed
-    // {
-    //     $attr =  $this->getSp()->getAttributes();
-    //     $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
-    //     $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
-    //     $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
-    //     $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
-    //     $attr['gardianwebsso_email'] = $attr['gardianwebsso_mail'][0];
-    //     $attr['gardianwebsso_status'] = $attr['gardianwebsso_status'][0];
-    //     return $this->response($attr);
-    // }
-    public function attributes(): array
+    public function attributes(): mixed
     {
-        $attr = $this->getSp()->getAttributes();
-        // Assurez-vous que les attributs sont des tableaux s'ils existent
-        $attr['gardianwebsso_groupid'] = isset($attr['gardianwebsso_groupid'][0]) ? $attr['gardianwebsso_groupid'][0] : '';
-        $attr['gardianwebsso_id'] = isset($attr['gardianwebsso_id'][0]) ? $attr['gardianwebsso_id'][0] : '';
-        $attr['gardianwebsso_cn'] = isset($attr['gardianwebsso_cn'][0]) ? $attr['gardianwebsso_cn'][0] : '';
-        $attr['gardianwebsso_department'] = isset($attr['gardianwebsso_department'][0]) ? $attr['gardianwebsso_department'][0] : '';
-        $attr['gardianwebsso_email'] = isset($attr['gardianwebsso_mail'][0]) ? $attr['gardianwebsso_mail'][0] : '';
+        $attr =  $this->getSp()->getAttributes();
+        $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
+        $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
+        $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
+        $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
+        $attr['gardianwebsso_email'] = $attr['gardianwebsso_mail'][0];
+        // $attr['gardianwebsso_status'] = $attr['gardianwebsso_status'][0];
         $attr['gardianwebsso_status'] = isset($attr['gardianwebsso_status'][0]) ? $attr['gardianwebsso_status'][0] : '';
-
-        return $attr;
+        return $this->response($attr);
     }
+    
 
 
     public function logout()
