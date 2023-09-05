@@ -17,15 +17,28 @@ class AuthenticationController extends Controller
     public function login($state = '/app/accueil'): mixed
     {
         $state = str_replace('w_t_p', '/', $state);
-        $attr = $this->attributes(); // Obtenir les attributs de l'utilisateur
 
-        // Vérifier la valeur de gardianwebsso_status
-        if ($attr['gardianwebsso_status'] === 'P') {
-            // L'utilisateur n'est pas autorisé
-            http_response_code(401); // Code de réponse HTTP pour non autorisé
-            echo json_encode(['message' => 'Accès non autorisé']);
-            exit;
+        $userInfo =  $this->getSp()->getAttributes();
+            //var_dump($userInfo);exit;
+        if (is_array($userInfo)) {
+            if (isset($userInfo["gardianwebsso_status"])) {
+                if (in_array("P", $userInfo["gardianwebsso_status"])) {
+                    $this->showAccessDeniedPage();
+                } else {
+                    error_log("Type d'employé autorisé");
+                }
+            }
+                
+        } else {
+                throw new AccessDeniedException('You must authenticate');
         }
+        // // Vérifier la valeur de gardianwebsso_status
+        // if ($attr['gardianwebsso_status'] === 'P') {
+        //     // L'utilisateur n'est pas autorisé
+        //     http_response_code(401); // Code de réponse HTTP pour non autorisé
+        //     echo json_encode(['message' => 'Accès non autorisé']);
+        //     exit;
+        // }
 
         $this->getSp()->requireAuth(['ReturnTo' => $state]);
         header('Location: '. $state);
