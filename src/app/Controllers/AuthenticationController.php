@@ -20,8 +20,8 @@ class AuthenticationController extends Controller
         $attr = $this->attributes(); // Obtenir les attributs de l'utilisateur
 
         // Vérifier la valeur de gardianwebsso_status
-        if ($attr['gardianwebsso_status'] !== 'P') {
-            // L'utilisateur n'est pas autorisé, renvoyer un message de non autorisé au front
+        if ($attr['gardianwebsso_status'] === 'P') {
+            // L'utilisateur n'est pas autorisé
             http_response_code(401); // Code de réponse HTTP pour non autorisé
             echo json_encode(['message' => 'Accès non autorisé']);
             exit;
@@ -39,17 +39,31 @@ class AuthenticationController extends Controller
     // }
 
 
-    public function attributes(): mixed
+    // public function attributes(): mixed
+    // {
+    //     $attr =  $this->getSp()->getAttributes();
+    //     $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
+    //     $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
+    //     $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
+    //     $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
+    //     $attr['gardianwebsso_email'] = $attr['gardianwebsso_mail'][0];
+    //     $attr['gardianwebsso_status'] = $attr['gardianwebsso_status'][0];
+    //     return $this->response($attr);
+    // }
+    public function attributes(): array
     {
-        $attr =  $this->getSp()->getAttributes();
-        $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
-        $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
-        $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
-        $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
-        $attr['gardianwebsso_email'] = $attr['gardianwebsso_mail'][0];
-        $attr['gardianwebsso_status'] = $attr['gardianwebsso_status'][0];
-        return $this->response($attr);
+        $attr = $this->getSp()->getAttributes();
+        // Assurez-vous que les attributs sont des tableaux s'ils existent
+        $attr['gardianwebsso_groupid'] = isset($attr['gardianwebsso_groupid'][0]) ? $attr['gardianwebsso_groupid'][0] : '';
+        $attr['gardianwebsso_id'] = isset($attr['gardianwebsso_id'][0]) ? $attr['gardianwebsso_id'][0] : '';
+        $attr['gardianwebsso_cn'] = isset($attr['gardianwebsso_cn'][0]) ? $attr['gardianwebsso_cn'][0] : '';
+        $attr['gardianwebsso_department'] = isset($attr['gardianwebsso_department'][0]) ? $attr['gardianwebsso_department'][0] : '';
+        $attr['gardianwebsso_email'] = isset($attr['gardianwebsso_mail'][0]) ? $attr['gardianwebsso_mail'][0] : '';
+        $attr['gardianwebsso_status'] = isset($attr['gardianwebsso_status'][0]) ? $attr['gardianwebsso_status'][0] : '';
+
+        return $this->response($attr);;
     }
+
 
     public function logout()
     {
