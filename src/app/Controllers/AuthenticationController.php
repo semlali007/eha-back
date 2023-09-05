@@ -61,7 +61,7 @@ class AuthenticationController extends Controller
         $attr['gardianwebsso_email'] = isset($attr['gardianwebsso_mail'][0]) ? $attr['gardianwebsso_mail'][0] : '';
         $attr['gardianwebsso_status'] = isset($attr['gardianwebsso_status'][0]) ? $attr['gardianwebsso_status'][0] : '';
 
-        return $this->response($attr);;
+        return $attr;
     }
 
 
