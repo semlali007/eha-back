@@ -37,13 +37,15 @@ class SearchController extends Controller
         try {
             $providers = [];
             $data = $this->providerRepository->serachMdmProviders($options);
-            foreach($data as $p ){
-                $providers[] = [
-                    'code' => $p['supplier_business_unit_app_id'],
-                    'label' => $p['supplier_business_legal_registration_name'],
-                    'other' => 'SIRET: ' . $p['supplier_business_unit_registration_id'] . ', Adresse: ' . $p['supplier_business_unit_address_street']
-                     .' '. $p['supplier_business_unit_address_postal_zone'].' '. $p['supplier_business_unit_address_town']
-                ];
+            foreach ($data as $p) {
+                if ($p['supplier_business_unit_source_name'] === 'edf_pgi') {
+                    $providers[] = [
+                        'code' => $p['supplier_business_unit_app_id'],
+                        'label' => $p['supplier_business_legal_registration_name'],
+                        'other' => 'SIRET: ' . $p['supplier_business_unit_registration_id'] . ', Adresse: ' . $p['supplier_business_unit_address_street']
+                         .' '. $p['supplier_business_unit_address_postal_zone'].' '. $p['supplier_business_unit_address_town']
+                    ];
+                }
             }
         
             $contracts = $this->contractRepository->searchFromApi($options);
