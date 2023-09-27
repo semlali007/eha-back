@@ -38,9 +38,26 @@ class SatisfactionController extends Controller
         }
     }
 
+    // public function list()
+    // {
+    //     try {
+    //         return $this->response($this->satisfactionRepository->getList());
+    //     } catch (Exception $ex) {
+    //         return $this->error($ex);
+    //     }
+    // }
     public function list()
     {
         try {
+            $apiKey = getenv('HLK_API_PASS_V2');
+            
+            $apiKeyFromHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+            
+            if ($apiKeyFromHeader !== $apiKey) {
+                // si clé invalide, lever une exception
+                throw new Exception("Cle d'authentification invalide");
+            }
+
             return $this->response($this->satisfactionRepository->getList());
         } catch (Exception $ex) {
             return $this->error($ex);
