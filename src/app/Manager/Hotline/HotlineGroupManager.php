@@ -29,4 +29,22 @@ class HotlineGroupManager extends AbstractManager
             ];
         }
     }
+    public function add($options)
+    {
+        try {
+            
+            $group = new HotlineGroup();
+            $group->add($options);
+            return [
+                'status' => true,
+                'message' => 'groupe modifié'
+            ];
+        } catch (Exception $ex) {
+            return [
+                'status' => false,
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
+
 }
