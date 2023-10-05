@@ -100,7 +100,7 @@ class HotlineActionManager extends AbstractManager
         $validator = new Validator($_POST);
         $errors = $validator->validate([
             'id' => ['required'],
-            'note' => ['required'],
+            // 'note' => ['required'],
         ]);
 
 
