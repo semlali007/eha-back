@@ -100,13 +100,13 @@ class HotlineActionManager extends AbstractManager
         $validator = new Validator($_POST);
         $errors = $validator->validate([
             'id' => ['required'],
-            // 'note' => ['required'],
+            'note' => ['required'],
         ]);
 
 
         $id = $options['id'];
         $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
-        // $note = $options['note'];
+        $note = $options['note'];
         $feedback = isset($options['feedback']) ? $options['feedback'] : '';
         $infos = (new Hotline())->getInfos($id, $sha);
         $isHotline = $infos['status'];
@@ -132,16 +132,15 @@ class HotlineActionManager extends AbstractManager
             'message' => 'Discussion fermée',
         ]);
 
-        // $hotlineFilTime->insert([
-        //     'discussion' => $id,
-        //     'nature' => 'N',
-        //     'is_hotline' => false,
-        //     'email' => '',
-        //     'message' => $note,
-        // ]);
+        $hotlineFilTime->insert([
+            'discussion' => $id,
+            'nature' => 'N',
+            'is_hotline' => false,
+            'email' => '',
+            'message' => $note,
+        ]);
 
-        // $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
-        $infos = (new Hotline())->close($id,Hotline::$status["GESTIONNAIRE"]);
+        $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
         $emails = (new Hotline())->getAllRecepients($id);
        
         if (!empty($emails)) {
