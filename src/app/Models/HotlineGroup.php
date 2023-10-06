@@ -64,10 +64,46 @@ class HotlineGroup extends Model
     public function add($options)
     {
         try {
+            $labelWords = explode(' ', $options['label']);
+            $initials = '';
+
+            // Règle 1 : Un seul mot
+            if (count($labelWords) === 1) {
+                $initials = strtoupper(substr($labelWords[0], 0, 2));
+            }
+            // Règle 2 : Deux mots
+            elseif (count($labelWords) === 2) {
+                $initials = strtoupper(substr($labelWords[0], 0, 1) . substr($labelWords[1], 0, 1));
+            }
+            // Règle 3 : Trois mots
+            elseif (count($labelWords) === 3) {
+                $initials = strtoupper(substr($labelWords[0], 0, 1) . substr($labelWords[2], 0, 1));
+            }
+
+            // si un enregistrement avec ID existe déjà
+            $existingRecord = $this->get($initials);
+
+            if ($existingRecord) {
+                // enregistrement avec ID existe déjà, le prochain numéro
+                $counter = 1;
+                while ($this->get($initials . $counter)) {
+                    $counter++;
+                }
+
+                // Ajouter le compteur à l'ID
+                $options['id'] = $initials . $counter;
+            } else {
+                // L'ID n'existe pas, utilise simplement les initiales
+                $options['id'] = $initials;
+            }
+
+            // Insérer avec l'ID généré
             $query = '
-        INSERT INTO ' . $this->table . ' (label, living) VALUES (:label, :living);
-        ';
+                INSERT INTO ' . $this->table . ' (id, label, living) VALUES (:id, :label, :living);
+            ';
+
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $options['id'], PDO::PARAM_STR);
             $sth->bindParam(':label', $options['label'], PDO::PARAM_STR);
             $sth->bindParam(':living', $options['living'], PDO::PARAM_BOOL);
             $sth->execute();
