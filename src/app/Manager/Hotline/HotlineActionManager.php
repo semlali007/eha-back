@@ -157,6 +157,7 @@ class HotlineActionManager extends AbstractManager
         $errors = $validator->validate([
             'id' => ['required'],
         ]);
+        $valdef = 4;
 
         $id = $options['id'];
         $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
@@ -178,7 +179,7 @@ class HotlineActionManager extends AbstractManager
         ]);
 
         // Fermer la hotline
-        $infos = (new Hotline())->close($id, '', Hotline::$status["GESTIONNAIRE"]);
+        $infos = (new Hotline())->close($id, $valdef, Hotline::$status["GESTIONNAIRE"]);
         $emails = (new Hotline())->getAllRecepients($id);
 
         if (!empty($emails)) {
