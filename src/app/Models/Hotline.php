@@ -224,21 +224,39 @@ class Hotline extends Model {
     }
 
 
-   /**
-    * 
-    * @param int|null $id
-    * @param string|null $note
-    * @param int|null $type
-    * @return void
-    * @throws InternalServerException
-    */
-    public function close(?int $id, ?string $note,?int $type):void
+//    /**
+//     * 
+//     * @param int|null $id
+//     * @param string|null $note
+//     * @param int|null $type
+//     * @return void
+//     * @throws InternalServerException
+//     */
+//     public function close(?int $id, ?string $note,?int $type):void
+//     {
+//         try {
+
+//             $query = ' UPDATE ' . $this->table . ' SET closed_at = now(), closed_note =:note, closed_type=:type WHERE discussion =:id AND closed_at IS NULL ';
+//             $sth = $this->db->getPDO()->prepare($query);
+//             $sth->bindParam(':note', $note, PDO::PARAM_STR);
+//             $sth->bindParam(':id', $id, PDO::PARAM_INT);
+//             $sth->bindParam(':type', $type, PDO::PARAM_INT);
+//             $sth->execute();
+//         } catch (\Exception $e) {
+//             throw new InternalServerException();
+//         }
+//     }
+    /**
+     * @param int|null $id
+     * @param int|null $type
+     * @return void
+     * @throws InternalServerException
+     */
+    public function close(?int $id, ?int $type): void
     {
         try {
-
-            $query = ' UPDATE ' . $this->table . ' SET closed_at = now(), closed_note =:note, closed_type=:type WHERE discussion =:id AND closed_at IS NULL ';
+            $query = 'UPDATE ' . $this->table . ' SET closed_at = now(), closed_type = :type WHERE discussion = :id AND closed_at IS NULL';
             $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':note', $note, PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->bindParam(':type', $type, PDO::PARAM_INT);
             $sth->execute();

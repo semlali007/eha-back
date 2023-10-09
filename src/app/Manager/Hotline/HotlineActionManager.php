@@ -95,35 +95,80 @@ class HotlineActionManager extends AbstractManager
     }
 
 
+    // public function close($options, User $user)
+    // {
+    //     $validator = new Validator($_POST);
+    //     $errors = $validator->validate([
+    //         'id' => ['required'],
+    //         'note' => ['required'],
+    //     ]);
+
+
+    //     $id = $options['id'];
+    //     $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
+    //     $note = $options['note'];
+    //     $feedback = isset($options['feedback']) ? $options['feedback'] : '';
+    //     $infos = (new Hotline())->getInfos($id, $sha);
+    //     $isHotline = $infos['status'];
+    //     if ($isHotline === null && !$user->hasRole(['EHA_GESTIONNAIRE'])) {
+    //         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
+    //         return $answer;
+    //     }
+    //     $hotlineFilTime = new HotlineFil();
+    //     if (!empty($feedback)) {
+    //         $hotlineFilTime->insert([
+    //             'discussion' => $id,
+    //             'nature' => 'E',
+    //             'is_hotline' => false,
+    //             'email' => '',
+    //             'message' => $feedback,
+    //         ]);
+    //     }
+    //     $hotlineFilTime->insert([
+    //         'discussion' => $id,
+    //         'nature' => 'C',
+    //         'is_hotline' => false,
+    //         'email' => '',
+    //         'message' => 'Discussion fermée',
+    //     ]);
+
+    //     $hotlineFilTime->insert([
+    //         'discussion' => $id,
+    //         'nature' => 'N',
+    //         'is_hotline' => false,
+    //         'email' => '',
+    //         'message' => $note,
+    //     ]);
+
+    //     $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
+    //     $emails = (new Hotline())->getAllRecepients($id);
+       
+    //     if (!empty($emails)) {
+    //         $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
+    //             'id' => $id,
+    //             'sha' => $sha,
+    //         ], "Fin");
+    //     }
+    //     return ['status'  =>  true, 'message'=>'<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
+    // }
     public function close($options, User $user)
     {
         $validator = new Validator($_POST);
         $errors = $validator->validate([
             'id' => ['required'],
-            'note' => ['required'],
         ]);
-
 
         $id = $options['id'];
         $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
-        $note = $options['note'];
-        $feedback = isset($options['feedback']) ? $options['feedback'] : '';
         $infos = (new Hotline())->getInfos($id, $sha);
         $isHotline = $infos['status'];
+
         if ($isHotline === null && !$user->hasRole(['EHA_GESTIONNAIRE'])) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
             return $answer;
         }
+
         $hotlineFilTime = new HotlineFil();
-        if (!empty($feedback)) {
-            $hotlineFilTime->insert([
-                'discussion' => $id,
-                'nature' => 'E',
-                'is_hotline' => false,
-                'email' => '',
-                'message' => $feedback,
-            ]);
-        }
         $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'C',
@@ -132,25 +177,20 @@ class HotlineActionManager extends AbstractManager
             'message' => 'Discussion fermée',
         ]);
 
-        $hotlineFilTime->insert([
-            'discussion' => $id,
-            'nature' => 'N',
-            'is_hotline' => false,
-            'email' => '',
-            'message' => $note,
-        ]);
-
-        $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
+        // Fermer la hotline
+        $infos = (new Hotline())->close($id, '', Hotline::$status["GESTIONNAIRE"]);
         $emails = (new Hotline())->getAllRecepients($id);
-       
+
         if (!empty($emails)) {
             $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
             ], "Fin");
         }
-        return ['status'  =>  true, 'message'=>'<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
+        
+        return ['status' => true, 'message' => '<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
     }
+
 
     public function sendMail($recepients, $subject, $template, $params, $action)
     {
