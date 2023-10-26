@@ -182,9 +182,9 @@ class SheetRepository extends AbstractRepository {
             $details['groups'] = $sheetGroup->getBySheet($id);
             $sheetLot = new SheetLot();
             $details['lots'] = $sheetLot->getBySheet($id);
-            foreach ($details['contracts'] as $k => $c) {
-                $details['contracts'][$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
-            }
+            // foreach ($details['contracts'] as $k => $c) {
+            //     $details['contracts'][$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+            // }
 
             $sheetFile = new SheetFile();
             $documents = $sheetFile->getBySheet($id);

@@ -25,17 +25,17 @@ class SheetContract extends Model
     {
         try {
             $query = '
-            INSERT INTO ' . $this->table . ' (sheet_id, contract_code, provider, contacts) VALUES (:sheet_id, :contract_code, :provider, :contacts)
-             ON CONFLICT(sheet_id,contract_code) DO UPDATE SET provider = :prvdr, contacts = :contacts
-
+            INSERT INTO ' . $this->table . ' (sheet_id, contract_code, provider, contacts, lots) VALUES (:sheet_id, :contract_code, :provider, :contacts, :lots)
+            ON CONFLICT(sheet_id, contract_code) DO UPDATE SET provider = :prvdr, contacts = :contacts, lots = :lots
             ';
 
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->bindParam(':contract_code', $contract['contract_code'], PDO::PARAM_STR);
             $sth->bindParam(':provider', $contract['provider'], PDO::PARAM_STR);
-            $sth->bindParam(':contacts',  $contract['contacts'], PDO::PARAM_STR);
-            $sth->bindParam(':prvdr',  $contract['provider'], PDO::PARAM_STR);
+            $sth->bindParam(':contacts', $contract['contacts'], PDO::PARAM_STR);
+            $sth->bindParam(':lots', $contract['lots'], PDO::PARAM_STR);
+            $sth->bindParam(':prvdr', $contract['provider'], PDO::PARAM_STR);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -59,17 +59,17 @@ class SheetContract extends Model
     }
 
     public function getBySheet($sheetId)
-    {
-        try {
-            $query = 'SELECT DISTINCT  sc.contract_code,sc.provider,sc.contacts FROM ' . $this->table . ' sc LEFT JOIN ' . $this->contractTable . ' c ON c.contract_code = sc.contract_code WHERE sheet_id = :sheet_id GROUP BY sc.contract_code,sc.provider, sc.contacts, c.contract_code ORDER BY sc.contract_code ' ;
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
-            $sth->execute();
-            return  $sth->fetchall(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            throw new InternalServerException();
-        }
-    }
+	{
+	    try {
+	        $query = 'SELECT DISTINCT sc.contract_code, sc.provider, sc.contacts, sc.lots FROM ' . $this->table . ' sc LEFT JOIN ' . $this->contractTable . ' c ON c.contract_code = sc.contract_code WHERE sheet_id = :sheet_id GROUP BY sc.contract_code, sc.provider, sc.contacts, sc.lots, c.contract_code ORDER BY sc.contract_code';
+	        $sth = $this->db->getPDO()->prepare($query);
+	        $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
+	        $sth->execute();
+	        return $sth->fetchAll(PDO::FETCH_ASSOC);
+	    } catch (\Exception $e) {
+	        throw new InternalServerException();
+	    }
+	}
 
     
     public function deleteBySheet($sheetId)
