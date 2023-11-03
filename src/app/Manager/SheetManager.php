@@ -6,6 +6,7 @@ use App\Exceptions\SheetException;
 use App\Models\Sheet;
 use App\Models\SheetArea;
 use App\Models\SheetBeneficiary;
+use App\Models\SheetStipulation;
 use App\Models\SheetContract;
 use App\Models\SheetFile;
 use App\Models\SheetGroup;
@@ -19,6 +20,7 @@ use Exception;
 use App\Security\User;
 use App\Models\Provider;
 use App\Models\Beneficiary;
+use App\Models\Stipulation;
 use App\Models\Area;
 use App\Models\Category;
 use App\Models\Committee;
@@ -253,15 +255,18 @@ class SheetManager extends AbstractManager
 
 
                 $sheetFiliale = new SheetBeneficiary();
-                $previousFiliale  = $sheetFiliale->getBySheet($id);
+                $sheetFiliale0 = new SheetStipulation();
+                $previousFiliale  = [$sheetFiliale->getBySheet($id), $sheetFiliale0->getBySheet($id)];
                 $filialesId = [];
                 foreach ($data['filiales'] as $f) {
                     $filialesId[] = $f['id'];
                     $sheetFiliale->add($id, $f['id']);
+                    $sheetFiliale->add($id, $f['id']);
                 }
                 $sheetFiliale->deleteFiliales($id, $filialesId);
-                $currentFiliale  = $sheetFiliale->getBySheet($id);
+                $sheetFiliale0->deleteFiliales($id, $filialesId);
 
+                $currentFiliale  = [$sheetFiliale->getBySheet($id), $sheetFiliale0->getBySheet($id)];
 
                 if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale, $previousFiliale))
                 || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale, $currentFiliale))){
@@ -667,9 +672,13 @@ class SheetManager extends AbstractManager
             }
 
             $sheetFiliale = new SheetBeneficiary();
+            $sheetFiliale0 = new SheetStipulation();
             foreach ($data['filiales'] as $filiale) {
                 if (isset($filiale['id'])) {
                     $sheetFiliale->add($id, $filiale['id']);
+                }
+                if (isset($filiale['id'])) {
+                    $sheetFiliale0->add($id, $filiale['id']);
                 }
             }
 
@@ -1085,6 +1094,7 @@ class SheetManager extends AbstractManager
         $data['zones'] = [];
        
         $filiale = new Beneficiary();
+        $filiale0 = new Stipulation();
         $provider = new Provider();
         $zone = new Area();
         
@@ -1108,6 +1118,17 @@ class SheetManager extends AbstractManager
                 $data['filiales'][] = ['id' => $p[0]['id']];
             }else{
                 $fId = $filiale->add(['name' => $itemB['Label']]);
+                $data['filiales'][] = ['id' => $fId];
+            }
+        }
+
+        foreach ($row['StipulationAutrui'] as $itemB) {
+            
+            $p = $filiale0->get(['name' => $itemB['Label']]);
+            if (count($p) > 0) {
+                $data['filiales'][] = ['id' => $p[0]['id']];
+            }else{
+                $fId = $filiale0->add(['name' => $itemB['Label']]);
                 $data['filiales'][] = ['id' => $fId];
             }
         }

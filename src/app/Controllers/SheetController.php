@@ -136,6 +136,9 @@ class SheetController extends Controller {
             case 'beneficiary':
                 return $this->response($this->sheetRepository->getSheetByBeneficiary($options['code']));
                 break;
+            case 'stipulation':
+                return $this->response($this->sheetRepository->getSheetByStipulation($options['code']));
+                break;
             case 'provider':
                 return $this->response($this->sheetRepository->getSheetByProvider($options['code']));
                 break;

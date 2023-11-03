@@ -67,6 +67,10 @@ $router->post('/beneficiaries/search', 'App\Controllers\BeneficiaryController@se
 $router->post('/beneficiaries/add', 'App\Controllers\BeneficiaryController@add', ["roles"=>['USER']]);
 $router->get('/beneficiaries/remove/:id', 'App\Controllers\BeneficiaryController@remove', ["roles"=>['USER']]);
 
+$router->get('/stipulationAutrui/autocomplete/:word', 'App\Controllers\StipulationController@autocomplete', ["roles"=>['USER']]);
+$router->post('/stipulationAutrui/search', 'App\Controllers\StipulationController@search', ["roles"=>['USER']]);
+$router->post('/stipulationAutrui/add', 'App\Controllers\StipulationController@add', ["roles"=>['USER']]);
+$router->get('/stipulationAutrui/remove/:id', 'App\Controllers\StipulationController@remove', ["roles"=>['USER']]);
 
 $router->get('/areas/autocomplete/:word', 'App\Controllers\AreaController@autocomplete', ["roles"=>['USER']]);
 $router->post('/areas/search', 'App\Controllers\AreaController@search', ["roles"=>['USER']]);

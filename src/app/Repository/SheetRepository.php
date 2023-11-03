@@ -11,6 +11,7 @@ use App\Models\SearchSynonymous;
 use App\Models\Sheet;
 use App\Models\SheetArea;
 use App\Models\SheetBeneficiary;
+use App\Models\SheetStipulation;
 use App\Models\SheetContract;
 use App\Models\SheetDomain;
 use App\Models\SheetFile;
@@ -54,6 +55,7 @@ class SheetRepository extends AbstractRepository {
                         'protected_sector' => self::addAttribute($sectors),
                         'dauphin' => self::addAttribute($dauphins),
                         'beneficiaries' => $sheet->groupedByFiliale($options),
+                        'stipulationAutrui' => $sheet->groupedByFiliale0($options),
                         'areas' => $sheet->groupedByZone($options),
                         'providers' =>$sheet->groupedByProvider($options),
                         'directions' => self::addTooltip($directions),
@@ -173,7 +175,8 @@ class SheetRepository extends AbstractRepository {
             $sheetContract = new SheetContract();
             $details['contracts'] = $sheetContract->getBySheet($id);
             $sheetFiliale = new SheetBeneficiary();
-            $details['filiales'] = $sheetFiliale->getBySheet($id);
+            $sheetFiliale0 = new SheetStipulation();
+            $details['filiales'] = [ $sheetFiliale->getBySheet($id), $sheetFiliale0->getBySheet($id) ];
             $sheetProvider = new SheetProvider();
             $details['providers'] = $sheetProvider->getBySheet($id);
             $sheetZone = new SheetArea();
@@ -221,6 +224,7 @@ class SheetRepository extends AbstractRepository {
         $answer = [];
         $sheetProvider = new SheetProvider();
         $sheetFiliale = new SheetBeneficiary();
+        $sheetFiliale0 = new SheetStipulation();
         $sheetZone = new SheetArea();
         $sheetGroup = new SheetGroup();
         $committee = new Committee();
@@ -239,6 +243,7 @@ class SheetRepository extends AbstractRepository {
             'Secteur protégé',
             'Fournisseurs',
             'Bénéficiaires',
+            'Stipulation pour Autrui',
             'Zone géographique d’application des marchés',
             'Directions opérationnelles (DOA)',
             'Comité de Gestion de la Demande',
@@ -384,6 +389,7 @@ class SheetRepository extends AbstractRepository {
         $answer = [];
         $sheetProvider = new SheetProvider();
         $sheetFiliale = new SheetBeneficiary();
+        $sheetFiliale0 = new SheetStipulation();
         $sheetZone = new SheetArea();
         $sheetGroup = new SheetGroup();
         $committee = new Committee();
@@ -403,6 +409,7 @@ class SheetRepository extends AbstractRepository {
             'Secteur protégé',
             'Fournisseurs',
             'Bénéficiaires',
+            'Stipulation pour Autrui',
             'Zone géographique d’application des marchés',
             'Directions opérationnelles (DOA)',
             'Comité de Gestion de la Demande',
@@ -619,6 +626,23 @@ class SheetRepository extends AbstractRepository {
         }
     }
 
+    public function getSheetByStipulation($stipulationId)
+    {
+        try {
+           
+            $sheet = new Sheet();
+            return [
+                'status' => true,
+                'sheets' => $sheet->getSheetByStipulation($stipulationId)
+            ];
+        } catch (Exception $ex) {
+            http_response_code(500);
+            return [
+                'error' => $ex->getCode(),
+                'message' => $ex->getMessage(),
+            ];
+        }
+    }
 
     public function getSheetByProvider($pId)
     {

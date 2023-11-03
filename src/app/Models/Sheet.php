@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Exceptions\InternalServerException;
 use App\Exceptions\SheetException;
 use App\Models\Beneficiary;
+use App\Models\Stipulation;
 use App\Models\Area;
 use App\Models\Group;
 use App\Models\SheetArea;
 use App\Models\SheetProvider;
 use App\Models\SheetGroup;
 use App\Models\SheetBeneficiary;
+use App\Models\SheetStipulation;
 use App\Models\Committee;
 use App\Models\Subscription;
 use App\Services\SheetService ;
@@ -23,10 +25,12 @@ class Sheet extends Model
 {
     protected $tableName = 'sheet_headers';
     protected $beneficiaryTable;
+    protected $stipulationTable;
     protected $areaTable;
     protected $groupTable;
     protected $providerTable;
     protected $sheetBeneficiaryTable;
+    protected $sheetStipulationTable;
     protected $sheetAreaTable;
     protected $sheetProviderTable;
     protected $sheetGroupTable;
@@ -39,10 +43,12 @@ class Sheet extends Model
     {
         parent::__construct();
         $this->beneficiaryTable = (new Beneficiary())->table;
+        $this->stipulationTable = (new Stipulation())->table;
         $this->areaTable = (new Area())->table;
         $this->groupTable = (new Group())->table;
         $this->providerTable = (new Provider())->table;
         $this->sheetBeneficiaryTable = (new SheetBeneficiary())->table;
+        $this->sheetStipulationTable = (new SheetStipulation())->table;
         $this->sheetAreaTable = (new SheetArea())->table;
         $this->sheetProviderTable = (new SheetProvider())->table;
         $this->sheetGroupTable = (new SheetGroup())->table;
@@ -151,6 +157,17 @@ class Sheet extends Model
             if (count($beneficiaries) > 0) {
                 $beneficiariesStr = '(' . implode(', ', $beneficiaries) . ')';
                 $search .= " INNER JOIN {$this->sheetBeneficiaryTable} sf on sf.sheet_id = s.id and sf.filiale_id in $beneficiariesStr  ";
+            }
+        }
+        if (!is_array($forFilter) || !array_key_exists('stipulation', $forFilter)) {
+            $stipulationAutruiList = $options['stipulationAutrui'] ?? [];
+            $stipulationAutrui = [];
+            foreach ($stipulationAutruiList as $stipulation) {
+                $stipulationAutrui[] = $stipulation['code'];
+            }
+            if (count($stipulationAutrui) > 0) {
+                $stipulationAutruiStr = '(' . implode(', ', $$stipulationAutrui) . ')';
+                $search .= " INNER JOIN {$this->sheetStipulationTable} sf on sf.sheet_id = s.id and sf.filiale_id in $stipulationAutruiStr  ";
             }
         }
 
@@ -366,6 +383,27 @@ class Sheet extends Model
        END AS COUNT, f.id  from {$this->beneficiaryTable} f  LEFT join  
         (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetBeneficiaryTable} sb WHERE sb.sheet_id  in
          ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['beneficiary'=>true])} ) GROUP BY sb.filiale_id)  benificiaries on f.id =  benificiaries.code
+         
+         order by COUNT desc, f.id 
+         ";
+
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+    public function groupedByFiliale0($options)
+    {
+        try {
+            $sql = "
+       SELECT f.name , f.id as code , CASE WHEN BENIFICIARIES.COUNT IS NULL 
+       THEN 0 
+       ELSE BENIFICIARIES.COUNT 
+       END AS COUNT, f.id  from {$this->stipulationTable} f  LEFT join  
+        (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetStipulationTable} sb WHERE sb.sheet_id  in
+         ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['stipulation'=>true])} ) GROUP BY sb.filiale_id)  stipulationAutrui on f.id =  stipulationAutrui.code
          
          order by COUNT desc, f.id 
          ";
@@ -635,6 +673,7 @@ class Sheet extends Model
             (new SheetContract)->deleteBySheet($id);
             (new SheetLot())->deleteLots($id, []);
             (new SheetBeneficiary)->deleteFiliales($id, []);
+            (new SheetStipulation)->deleteFiliales($id, []);
             (new SheetProvider)->deleteProviders($id, []);
             (new SheetArea)->deleteZones($id, []);
             (new SheetGroup)->deleteGroups($id, []);
@@ -693,6 +732,19 @@ class Sheet extends Model
     {
         try {
             $query = 'SELECT DISTINCT  s.id, s.label FROM ' . $this->table . ' s INNER JOIN ' . $this->sheetBeneficiaryTable . ' sf ON sf.sheet_id = s.id WHERE sf.filiale_id = :filiale_id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':filiale_id', $bId, PDO::PARAM_INT);
+            $sth->execute();
+            return  $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function getSheetByStipulation($bId)
+    {
+        try {
+            $query = 'SELECT DISTINCT  s.id, s.label FROM ' . $this->table . ' s INNER JOIN ' . $this->sheetStipulationTable . ' sf ON sf.sheet_id = s.id WHERE sf.filiale_id = :filiale_id';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':filiale_id', $bId, PDO::PARAM_INT);
             $sth->execute();
