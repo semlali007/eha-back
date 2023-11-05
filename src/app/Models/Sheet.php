@@ -398,9 +398,9 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT f.name , f.id as code , CASE WHEN BENIFICIARIES.COUNT IS NULL 
+       SELECT f.name , f.id as code , CASE WHEN STIPULATIONAUTRUI.COUNT IS NULL 
        THEN 0 
-       ELSE BENIFICIARIES.COUNT 
+       ELSE STIPULATIONAUTRUI.COUNT 
        END AS COUNT, f.id  from {$this->stipulationTable} f  LEFT join  
         (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetStipulationTable} sb WHERE sb.sheet_id  in
          ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['stipulation'=>true])} ) GROUP BY sb.filiale_id)  stipulationAutrui on f.id =  stipulationAutrui.code
