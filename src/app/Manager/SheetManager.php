@@ -255,18 +255,15 @@ class SheetManager extends AbstractManager
 
 
                 $sheetFiliale = new SheetBeneficiary();
-                $sheetFiliale0 = new SheetStipulation();
-                $previousFiliale  = [$sheetFiliale->getBySheet($id), $sheetFiliale0->getBySheet($id)];
+                $previousFiliale  = $sheetFiliale->getBySheet($id);
                 $filialesId = [];
                 foreach ($data['filiales'] as $f) {
                     $filialesId[] = $f['id'];
                     $sheetFiliale->add($id, $f['id']);
-                    $sheetFiliale->add($id, $f['id']);
                 }
                 $sheetFiliale->deleteFiliales($id, $filialesId);
-                $sheetFiliale0->deleteFiliales($id, $filialesId);
 
-                $currentFiliale  = [$sheetFiliale->getBySheet($id), $sheetFiliale0->getBySheet($id)];
+                $currentFiliale  = $sheetFiliale->getBySheet($id);
 
                 if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale, $previousFiliale))
                 || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale, $currentFiliale))){
@@ -296,7 +293,45 @@ class SheetManager extends AbstractManager
                    $logs->add($diffLogs);
                }
 
+                $sheetFiliale0 = new SheetStipulation();
+                $previousFiliale0  = $sheetFiliale0->getBySheet($id);
+                $filialesId0 = [];
+                foreach ($data['filiales'] as $f) {
+                    $filialesId0[] = $f['id'];
+                    $sheetFiliale->add($id, $f['id']);
+                }
+                $sheetFiliale0->deleteFiliales($id, $filialesId0);
 
+                $currentFiliale0  = $sheetFiliale0->getBySheet($id);
+
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale0, $previousFiliale0))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale0, $currentFiliale0))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousFiliale0 as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentFiliale0 as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Stipulation pour Autrui';
+                   $logs->add($diffLogs);
+               }
 
                 $sheetProvider = new SheetProvider();
 
@@ -595,6 +630,7 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
             $data['filiales'] = $sheetData['filiales'];
+            $data['filiales0'] = $sheetData['filiales'];
             $data['providers'] = $sheetData['providers'];
             $data['zones'] = $sheetData['zones'];
             $data['groups'] = $sheetData['groups'];
@@ -672,11 +708,14 @@ class SheetManager extends AbstractManager
             }
 
             $sheetFiliale = new SheetBeneficiary();
-            $sheetFiliale0 = new SheetStipulation();
             foreach ($data['filiales'] as $filiale) {
                 if (isset($filiale['id'])) {
                     $sheetFiliale->add($id, $filiale['id']);
                 }
+            }
+
+            $sheetFiliale0 = new SheetStipulation();
+            foreach ($data['filiales0'] as $filiale) {
                 if (isset($filiale['id'])) {
                     $sheetFiliale0->add($id, $filiale['id']);
                 }
@@ -1122,13 +1161,13 @@ class SheetManager extends AbstractManager
             }
         }
 
-        foreach ($row['StipulationAutrui'] as $itemB) {
+        foreach ($row['StipulationAutrui'] as $itemS) {
             
-            $p = $filiale0->get(['name' => $itemB['Label']]);
+            $p = $filiale0->get(['name' => $itemS['Label']]);
             if (count($p) > 0) {
                 $data['filiales'][] = ['id' => $p[0]['id']];
             }else{
-                $fId = $filiale0->add(['name' => $itemB['Label']]);
+                $fId = $filiale0->add(['name' => $itemS['Label']]);
                 $data['filiales'][] = ['id' => $fId];
             }
         }
