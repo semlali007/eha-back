@@ -84,6 +84,7 @@ class SheetManager extends AbstractManager
 
             $data['lots'] = $sheetData['lots'] ?? [];
             $data['filiales'] = $sheetData['filiales'] ?? [];
+            $data['filiales0'] = $sheetData['filiales0'] ?? [];//...
             $data['providers'] = $sheetData['providers'] ?? [];
             $data['groups'] = $sheetData['groups'] ?? [];
             $data['domains'] = $sheetData['domains'] ?? [];
@@ -294,21 +295,21 @@ class SheetManager extends AbstractManager
                }
 
                 $sheetFiliale0 = new SheetStipulation();
-                $previousFiliale0  = $sheetFiliale0->getBySheet($id);
+                $previousFiliale0  = $sheetFiliale0->getBySheet($id0);
                 $filialesId0 = [];
-                foreach ($data['filiales'] as $f) {
+                foreach ($data['filiales0'] as $f) {
                     $filialesId0[] = $f['id'];
-                    $sheetFiliale->add($id, $f['id']);
+                    $sheetFiliale0->add($id, $f['id']);
                 }
                 $sheetFiliale0->deleteFiliales($id, $filialesId0);
 
-                $currentFiliale0  = $sheetFiliale0->getBySheet($id);
+                $currentFiliale0  = $sheetFiliale0->getBySheet($id0);
 
 
                 if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale0, $previousFiliale0))
                 || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale0, $currentFiliale0))){
                    $diffLogs = [];
-                   $diffLogs['source'] = $id;
+                   $diffLogs['source'] = $id0;
                    $old = '<ul>';
                    foreach ($previousFiliale0 as $p) {
                        $old .= "<li >"
@@ -329,7 +330,7 @@ class SheetManager extends AbstractManager
                    $diffLogs['old'] =  $old;
                    $diffLogs['new'] = $new;
                    $diffLogs['date'] = $date;
-                   $diffLogs['fields'] =  'Stipulation pour Autrui';
+                   $diffLogs['fields'] =  'Stipulation pour autrui';
                    $logs->add($diffLogs);
                }
 

@@ -175,8 +175,9 @@ class SheetRepository extends AbstractRepository {
             $sheetContract = new SheetContract();
             $details['contracts'] = $sheetContract->getBySheet($id);
             $sheetFiliale = new SheetBeneficiary();
+            $details['filiales'] = $sheetFiliale->getBySheet($id);
             $sheetFiliale0 = new SheetStipulation();
-            $details['filiales'] = [ $sheetFiliale->getBySheet($id), $sheetFiliale0->getBySheet($id) ];
+            $details['filiales0'] =$sheetFiliale0->getBySheet($id) ;
             $sheetProvider = new SheetProvider();
             $details['providers'] = $sheetProvider->getBySheet($id);
             $sheetZone = new SheetArea();
@@ -287,6 +288,16 @@ class SheetRepository extends AbstractRepository {
                 }
 
                 $sheet['filiales'] .= $filiale['name'];
+            }
+
+            $filiales0 = $sheetFiliale0->getBySheet($sheet['id']);
+            $sheet['filiales0'] = '';
+            foreach ($filiales0 as $key => $filiale0) {
+                if ($key !== 0) {
+                    $sheet['filiales0'] .= '|';
+                }
+
+                $sheet['filiales0'] .= $filiale0['name'];
             }
 
             $zones = $sheetZone->getBySheet($sheet['id']);
@@ -456,6 +467,16 @@ class SheetRepository extends AbstractRepository {
                 }
 
                 $sheet['filiales'] .= $filiale['name'];
+            }
+
+            $filiales0 = $sheetFiliale0->getBySheet($sheet['id']);
+            $sheet['filiales0'] = '';
+            foreach ($filiales0 as $key => $filiale0) {
+                if ($key !== 0) {
+                    $sheet['filiales0'] .= '|';
+                }
+
+                $sheet['filiales0'] .= $filiale0['name'];
             }
 
             $zones = $sheetZone->getBySheet($sheet['id']);
