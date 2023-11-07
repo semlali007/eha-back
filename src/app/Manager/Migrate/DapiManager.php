@@ -81,14 +81,14 @@ class DapiManager extends MigrateManager
                             }
                         }
                     }
-                    $data['filiales'] = [];
+                    $data['filiales0'] = [];
                     $filiales0 = $list['stipulationAutui'];
                     foreach (explode(';#', $filiales0) as $item) {
                         if (!is_numeric($item) && !empty($item)) {
                             $filiale0->add(['name' => $item]);
                             $p = $filiale0->get(['name' => $item]);
                             if (count($p) > 0) {
-                                $data['filiales'][] = ['id' => $p[0]['id']];
+                                $data['filiales0'][] = ['id' => $p[0]['id']];
                             }
                         }
                     }

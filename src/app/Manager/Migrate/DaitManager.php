@@ -66,6 +66,7 @@ class DaitManager extends MigrateManager
                     }
 
                     $data['filiales'] = [];
+                    $data['filiales0'] = [];
                     $data['groups'] = [];
                     $groups = $list['da_groupe'];
 

@@ -631,6 +631,7 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
             $data['filiales'] = $sheetData['filiales'];
+            $data['filiales0'] = $sheetData['filiales0'];
             $data['filiales0'] = $sheetData['filiales'];
             $data['providers'] = $sheetData['providers'];
             $data['zones'] = $sheetData['zones'];
@@ -1027,6 +1028,7 @@ class SheetManager extends AbstractManager
         $data['stipulation_for_others'] = boolval($sheet['StipulationPourAutrui.value']);
         $data['providers'] = [];
         $data['filiales'] = [];
+        $data['filiales0'] = [];
         $data['zones'] = [];
         $data['files'] = [];
         $data['groups'] = [];
@@ -1131,6 +1133,7 @@ class SheetManager extends AbstractManager
         $data = [];
         $data['providers'] = [];
         $data['filiales'] = [];
+        $data['filiales0'] = [];
         $data['zones'] = [];
        
         $filiale = new Beneficiary();
@@ -1166,10 +1169,10 @@ class SheetManager extends AbstractManager
             
             $p = $filiale0->get(['name' => $itemS['Label']]);
             if (count($p) > 0) {
-                $data['filiales'][] = ['id' => $p[0]['id']];
+                $data['filiales0'][] = ['id' => $p[0]['id']];
             }else{
                 $fId = $filiale0->add(['name' => $itemS['Label']]);
-                $data['filiales'][] = ['id' => $fId];
+                $data['filiales0'][] = ['id' => $fId];
             }
         }
 
