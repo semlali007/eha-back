@@ -166,7 +166,7 @@ class Sheet extends Model
                 $stipulationAutrui[] = $stipulation['code'];
             }
             if (count($stipulationAutrui) > 0) {
-                $stipulationAutruiStr = '(' . implode(', ', $$stipulationAutrui) . ')';
+                $stipulationAutruiStr = '(' . implode(', ', $stipulationAutrui) . ')';
                 $search .= " INNER JOIN {$this->sheetStipulationTable} sf on sf.sheet_id = s.id and sf.filiale_id in $stipulationAutruiStr  ";
             }
         }
