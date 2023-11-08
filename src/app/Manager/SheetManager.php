@@ -715,9 +715,17 @@ class SheetManager extends AbstractManager
                 }
             }
 
-            $sheetFiliale0 = new SheetStipulation();
-            foreach ($data['filiales0'] as $filiale0) {
-                if (isset($filiale0['id'])) {
+            // $sheetFiliale0 = new SheetStipulation();
+            // foreach ($data['filiales0'] as $filiale0) {
+            //     if (isset($filiale0['id'])) {
+            //         $sheetFiliale0->add($id, $filiale0['id']);
+            //     }
+            // }
+            if (array_key_exists('filiales0', $data)) {
+                $sheetFiliale0 = new SheetStipulation();
+                $stipulation = [];
+                foreach ($data['filiales0'] as $filiale0) {
+                    $stipulation[] = $filiale0['id'];
                     $sheetFiliale0->add($id, $filiale0['id']);
                 }
             }

@@ -8,7 +8,7 @@ use PDO;
 
 class SheetStipulation extends Model
 {
-    protected $tableName = 'sheet_filiales';
+    protected $tableName = 'sheet_filiales0';
     protected $stipulationTable;
 
     public function __construct()
