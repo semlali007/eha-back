@@ -397,16 +397,29 @@ class Sheet extends Model
     public function groupedByFiliale0($options)
     {
         try {
-            $sql = "
-       SELECT f.name , f.id as code , CASE WHEN STIPULATIONAUTRUI.COUNT IS NULL 
-       THEN 0 
-       ELSE STIPULATIONAUTRUI.COUNT 
-       END AS COUNT, f.id  from {$this->stipulationTable} f  LEFT join  
-        (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetStipulationTable} sb WHERE sb.sheet_id  in
-         ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['stipulation'=>true])} ) GROUP BY sb.filiale_id)  stipulationAutrui on f.id =  stipulationAutrui.code
+            $sql = "SELECT f.name, f.id as code, 
+                CASE WHEN stipulationAutrui.COUNT IS NULL THEN 0 ELSE stipulationAutrui.COUNT END AS COUNT
+            FROM {$this->stipulationTable} f
+            LEFT JOIN (
+                SELECT COUNT(sb.*) as COUNT, sb.filiale_id as code 
+                FROM {$this->sheetStipulationTable} sb 
+                WHERE sb.sheet_id IN (
+                    SELECT s.id 
+                    FROM " . $this->table . " s
+                ) 
+                GROUP BY sb.filiale_id
+            ) stipulationAutrui ON f.id = stipulationAutrui.code
+            ORDER BY COUNT DESC, f.id";
+    //         $sql = "
+    //    SELECT f.name , f.id as code , CASE WHEN STIPULATIONAUTRUI.COUNT IS NULL 
+    //    THEN 0 
+    //    ELSE STIPULATIONAUTRUI.COUNT 
+    //    END AS COUNT, f.id  from {$this->stipulationTable} f  LEFT join  
+    //     (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetStipulationTable} sb WHERE sb.sheet_id  in
+    //      ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['stipulation'=>true])} ) GROUP BY sb.filiale_id)  stipulationAutrui on f.id =  stipulationAutrui.code
          
-         order by COUNT desc, f.id 
-         ";
+    //      order by COUNT desc, f.id 
+    //      ";
 
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
