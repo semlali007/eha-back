@@ -82,8 +82,6 @@ class SheetController extends Controller {
 
     public function add() {
         $sheetData = json_decode($_POST['model'], true);
-        var_dump($sheetData);;exit;
-        var_dump($this->sheetManager);exit;
         return $this->sheetManager->add($this->currentUser,$sheetData);
     }
 

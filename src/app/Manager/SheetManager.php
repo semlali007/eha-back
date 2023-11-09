@@ -108,7 +108,7 @@ class SheetManager extends AbstractManager
                     'committee'=>'Comité de Gestion de la Demande',
                     'dauphin'=>'Approvisionnement sous dauphin',
                     'edf_open'=>'Marché ouvert au personnel EDF',
-                    'stipulation_for_others'=>'Stipulation pour autrui',
+                    'stipulation_for_others'=>'Stipulationautrui',
                     'partnership'=>'Partenariat de productivité',
                     'protected_sector'=>'Secteur protégé',
                     'label'=>'Titre',
@@ -714,21 +714,22 @@ class SheetManager extends AbstractManager
                     $sheetFiliale->add($id, $filiale['id']);
                 }
             }
-
-            // $sheetFiliale0 = new SheetStipulation();
-            // foreach ($data['filiales0'] as $filiale0) {
-            //     if (isset($filiale0['id'])) {
+            if (array_key_exists('filiales0', $data)) {
+                $sheetFiliale0 = new SheetStipulation();
+                foreach ($data['filiales0'] as $filiale0) {
+                    if (isset($filiale0['id'])) {
+                        $sheetFiliale0->add($id, $filiale0['id']);
+                    }
+                }
+            }
+            // if (array_key_exists('filiales0', $data)) {
+            //     $sheetFiliale0 = new SheetStipulation();
+            //     $stipulation = [];
+            //     foreach ($data['filiales0'] as $filiale0) {
+            //         $stipulation[] = $filiale0['id'];
             //         $sheetFiliale0->add($id, $filiale0['id']);
             //     }
             // }
-            if (array_key_exists('filiales0', $data)) {
-                $sheetFiliale0 = new SheetStipulation();
-                $stipulation = [];
-                foreach ($data['filiales0'] as $filiale0) {
-                    $stipulation[] = $filiale0['id'];
-                    $sheetFiliale0->add($id, $filiale0['id']);
-                }
-            }
 
             $sheetProvider = new SheetProvider();
             foreach ($data['providers'] as $provider) {
