@@ -28,7 +28,7 @@ class SheetStipulation extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->bindParam(':filiale_id', $filialeId, PDO::PARAM_INT);
-            $sth->bindParam(':type','stipulation', PDO::PARAM_STR);
+            $sth->bindValue(':type','stipulation', PDO::PARAM_STR);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();
