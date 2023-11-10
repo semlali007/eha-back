@@ -43,7 +43,7 @@ class SheetStipulation extends Model
             $query = 'SELECT DISTINCT  f.* FROM ' . $this->stipulationTable . ' f INNER JOIN ' . $this->table . ' sf ON sf.filiale_id = f.id WHERE sf.sheet_id = :sheet_id AND sf.type = :type order by f.name';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
-            $sth->bindParam(':type', $type, PDO::PARAM_STR);
+            $sth->bindValue(':type', $type, PDO::PARAM_STR);
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -74,7 +74,7 @@ class SheetStipulation extends Model
 
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
-            $sth->bindParam(':type', 'stipulation', PDO::PARAM_STR);
+            $sth->bindValue(':type', 'stipulation', PDO::PARAM_STR);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -95,7 +95,7 @@ class SheetStipulation extends Model
 
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':filiale_id', $stipulationId, PDO::PARAM_INT);
-            $sth->bindParam(':type', 'stipulation', PDO::PARAM_STR);
+            $sth->bindValue(':type', 'stipulation', PDO::PARAM_STR);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();
