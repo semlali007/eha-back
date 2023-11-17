@@ -186,73 +186,113 @@ class SheetManager extends AbstractManager
                 foreach ($data['deleted_files'] as $deleted) {
                     $sheetFile->delete($deleted['file_id']);
                 }
-
+                //*
                 $sheetContract = new SheetContract();
-                $previousContracts  = $sheetContract->getBySheet($id);
-               
-
-                $sheetLot = new SheetLot();
-
-
-                foreach ($previousContracts as $k => $c) {
-                    $previousContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
-                }
-
+                $previousContracts = $sheetContract->getBySheet($id);
+                
                 $sheetContract->deleteContracts($id, $data['contracts']);
-
+                
                 foreach ($data['contracts'] as $contract) {
-                    $lots = [];
                     $sheetContract->add($id, $contract);
-
-                    foreach ($contract['lots'] as $lot) {
-                        $lots[] = $lot['name'];
-                        $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
-                    }
-
-                    $sheetLot->deleteContractLots($id, $contract['contract_code'], $lots);
                 }
-                $currentsContracts  = $sheetContract->getBySheet($id);
-                foreach ($currentsContracts as $k => $c) {
-                    $currentsContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
-                }
-              
-
-                if(is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts))
-                || is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))){
-                   $diffLogs = [];
-                   $diffLogs['source'] = $id;
-                   $old = '<ul>';
+                
+                $currentsContracts = $sheetContract->getBySheet($id);
+                
+                if (
+                    is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts)) ||
+                    is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))
+                ) {
+                    $diffLogs = [];
+                    $diffLogs['source'] = $id;
+                    $old = '<ul>';
                     foreach ($previousContracts as $p) {
                         $old .= "<li >";
-
-                          $old .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
-                          foreach ($p['lots'] as $p) {
-                            $old .= ", "
-                                . $p['name'] ;
-                        }
-                            $old .= "</li >";
+                        $old .= "contract:" . $p['contract_code'] . " Fournisseur :" . $p['provider'] . " contacts :" . $p['contacts'] . " lots :" . $p['lots'];
+                        $old .= "</li >";
                     }
-
-                   $old .= '</ul>';
-                   $new = '<ul>';
+                    $old .= '</ul>';
+                
+                    $new = '<ul>';
                     foreach ($currentsContracts as $p) {
                         $new .= "<li >";
-
-                          $new .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
-                          foreach ($p['lots'] as $p) {
-                            $new .= ", "
-                                . $p['name'] ;
-                        }
-                            $new .= "</li >";
+                        $new .= "contract:" . $p['contract_code'] . " Fournisseur :" . $p['provider'] . " contacts :" . $p['contacts'] . " lots :" . $p['lots'];
+                        $new .= "</li >";
                     }
+                    $new .= '</ul>';
+                
+                    $diffLogs['old'] =  $old;
+                    $diffLogs['new'] = $new;
+                    $diffLogs['date'] = $date;
+                    $diffLogs['fields'] =  'Contrats';
+                    $logs->add($diffLogs);
+                }
+                
+            //     $sheetContract = new SheetContract();
+            //     $previousContracts  = $sheetContract->getBySheet($id);
+               
 
-                   $new .= '</ul>';
-                   $diffLogs['old'] =  $old;
-                   $diffLogs['new'] = $new;
-                   $diffLogs['date'] = $date;
-                   $diffLogs['fields'] =  'Contrats';
-                   $logs->add($diffLogs);
-               }
+            //     $sheetLot = new SheetLot();
+
+
+            //     foreach ($previousContracts as $k => $c) {
+            //         $previousContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+            //     }
+
+            //     $sheetContract->deleteContracts($id, $data['contracts']);
+
+            //     foreach ($data['contracts'] as $contract) {
+            //         $lots = [];
+            //         $sheetContract->add($id, $contract);
+
+            //         foreach ($contract['lots'] as $lot) {
+            //             $lots[] = $lot['name'];
+            //             $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
+            //         }
+
+            //         $sheetLot->deleteContractLots($id, $contract['contract_code'], $lots);
+            //     }
+            //     $currentsContracts  = $sheetContract->getBySheet($id);
+            //     foreach ($currentsContracts as $k => $c) {
+            //         $currentsContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+            //     }
+              
+
+            //     if(is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts))
+            //     || is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))){
+            //        $diffLogs = [];
+            //        $diffLogs['source'] = $id;
+            //        $old = '<ul>';
+            //         foreach ($previousContracts as $p) {
+            //             $old .= "<li >";
+
+            //               $old .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
+            //               foreach ($p['lots'] as $p) {
+            //                 $old .= ", "
+            //                     . $p['name'] ;
+            //             }
+            //                 $old .= "</li >";
+            //         }
+
+            //        $old .= '</ul>';
+            //        $new = '<ul>';
+            //         foreach ($currentsContracts as $p) {
+            //             $new .= "<li >";
+
+            //               $new .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
+            //               foreach ($p['lots'] as $p) {
+            //                 $new .= ", "
+            //                     . $p['name'] ;
+            //             }
+            //                 $new .= "</li >";
+            //         }
+
+            //        $new .= '</ul>';
+            //        $diffLogs['old'] =  $old;
+            //        $diffLogs['new'] = $new;
+            //        $diffLogs['date'] = $date;
+            //        $diffLogs['fields'] =  'Contrats';
+            //        $logs->add($diffLogs);
+            //    }
 
 
                 $sheetFiliale = new SheetBeneficiary();
