@@ -737,14 +737,14 @@ class SheetManager extends AbstractManager
                 }
             }
 
-            $sheetLot = new SheetLot();
+            // $sheetLot = new SheetLot();
             $sheetContract = new SheetContract();
             foreach ($data['contracts'] as $contract) {
                 if (isset($contract['contract_code'])) {
                     $sheetContract->add($id, $contract);
-                    foreach ($contract['lots'] as $lot) {
-                        $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
-                    }
+                    // foreach ($contract['lots'] as $lot) {
+                    //     $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
+                    // }
                 }
             }
 
@@ -792,9 +792,10 @@ class SheetManager extends AbstractManager
                 }
             }
 
-            $lots = [];
+            // $lots = [];
+            $sheetLot = new SheetLot();
             foreach ($data['lots'] as $lot) {
-                $lots[] = $lot['name'];
+                // $lots[] = $lot['name'];
                 $sheetLot->add($id, $lot);
             }
 
