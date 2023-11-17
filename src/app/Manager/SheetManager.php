@@ -568,7 +568,7 @@ class SheetManager extends AbstractManager
                    $diffLogs['fields'] =  'Zone géographique d’application des marchés';
                    $logs->add($diffLogs);
                }
-
+                $sheetLot = new SheetLot();
                 $lots = [];
                 foreach ($data['lots'] as $lot) {
                     $lots[] = $lot['name'];
