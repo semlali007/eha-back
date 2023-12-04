@@ -56,8 +56,8 @@ class NotificationsController extends Controller{
      */
     public function add(){
         $data = [
-            0 => ["user_nni" => "HGDDEDBN", "sheet_id" => 3],
-            1 => ["user_nni" => "HGDDEDBN", "sheet_id" => 5]
+            0 => ["sheet_id" => 3],
+            1 => ["sheet_id" => 5]
             ];
         return $this->response($this->notificationsRepository->insertNotification($data));
     }

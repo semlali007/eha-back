@@ -44,16 +44,16 @@ class NotificationsRepository {
     
     /**
      * Example value of $notifs = [ 
-     *   0 => ["user_nni" => "nni", "sheet_id" => "sheetid"],
-     *   1 => ["user_nni" => "nni", "sheet_id" => "sheetid"]
+     *   0 => ["sheet_id" => "sheetid"],
+     *   1 => ["sheet_id" => "sheetid"]
      * ]
      * @param array $notifs
      * @return void
      */
-    public function insertNotification(string $user_nni,int $sheet_id):void{
+    public function insertNotification(int $sheet_id):void{
        
             (new Notification())
-                 ->insertNotification($user_nni,$sheet_id) ;
+                 ->insertNotification($sheet_id) ;
     }
     
     public function getLengthNotifsByNni($nni){
