@@ -59,6 +59,8 @@ class NotificationsController extends Controller{
             0 => ["sheet_id" => 3],
             1 => ["sheet_id" => 5]
             ];
-        return $this->response($this->notificationsRepository->insertNotification($data));
+            $this->notificationsRepository->insertNotification($data);
+            return $this->response(['message' => 'Notifications inserted successfully']);
     }
+    
 }

@@ -52,9 +52,16 @@ class NotificationsRepository {
      */
     public function insertNotification(int $sheet_id):void{
        
-            (new Notification())
-                 ->insertNotification($sheet_id) ;
+        try {
+            foreach ($sheetIds as $sheet_id) {
+                (new Notification())->insertNotification($sheet_id['sheet_id']);
+            }
+        } catch (\Exception $e) {
+            throw new InternalServerException($e->getMessage());
+        }
     }
+
+    
     
     public function getLengthNotifsByNni($nni){
         return count($this->getListByNni($nni));
