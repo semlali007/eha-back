@@ -22,7 +22,7 @@ class Notification extends Model {
         parent::__construct();
         $this->subscriberTable = (new Subscription())->table;
         $this->sheetHeader = (new Sheet())->table;
-        $this->$subscribers = new Subscription();
+        $this->subscribers = new Subscription();
     }
 
     /**
