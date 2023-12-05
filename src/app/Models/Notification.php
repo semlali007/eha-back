@@ -85,23 +85,28 @@ class Notification extends Model {
      * 
      *
      */
-    public function insertNotification($sheet_id): void{
+    public function insertNotification($sheet_id): void {
         try {
             $updatedAt = (new \DateTime())->format('Y-m-d H:i:s');
-            $notified = false ;
-
-            // On récupére tous les user_nni abonnés à la sheet_id
+            $notified = false;
+    
+            // On récupère tous les user_nni abonnés à la sheet_id
             $listAbonnees = $this->subscribers->getSubscribers($sheet_id);
-
-            // Pour chaque user_nni abonné, on insérere une nouvelle notification
-            foreach ($listAbonnees as $user_nni) {
-                $query = 'INSERT INTO ' . $this->table . '  (user_nni, is_notified, sheet_id, updated_at) VALUES(:user_nni,:notified,:sheet_id,:date)';
-                $sth = $this->db->getPDO()->prepare($query);
-                $sth->bindParam(':notified', $notified, \PDO::PARAM_BOOL);
-                $sth->bindParam(':date', $updatedAt, \PDO::PARAM_STR);
-                $sth->bindParam(':user_nni', $user_nni, \PDO::PARAM_STR);
-                $sth->bindParam(':sheet_id', $sheet_id, \PDO::PARAM_INT);
-                $sth->execute();
+    
+            // si la liste d'abonnés est un tableau non vide
+            if ($listAbonnees && is_array($listAbonnees)) {
+                foreach ($listAbonnees as $abonnee) {
+                    // récupère le user_nni à partir de la liste des abonnés
+                    $user_nni = $abonnee['user_nni'];
+    
+                    $query = 'INSERT INTO ' . $this->table . ' (user_nni, is_notified, sheet_id, updated_at) VALUES (:user_nni, :notified, :sheet_id, :date)';
+                    $sth = $this->db->getPDO()->prepare($query);
+                    $sth->bindParam(':user_nni', $user_nni, \PDO::PARAM_STR);
+                    $sth->bindParam(':notified', $notified, \PDO::PARAM_BOOL);
+                    $sth->bindParam(':sheet_id', $sheet_id, \PDO::PARAM_INT);
+                    $sth->bindParam(':date', $updatedAt, \PDO::PARAM_STR);
+                    $sth->execute();
+                }
             }
         } catch (\Exception $e) {
             throw new InternalServerException($e->getMessage());
