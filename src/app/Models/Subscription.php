@@ -62,7 +62,10 @@ class Subscription extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();
-            return  $sth->rowCount() > 0;
+            // Récupération des abonnés
+            $subscribers = $sth->fetchAll(PDO::FETCH_ASSOC);
+
+            return $subscribers;
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
