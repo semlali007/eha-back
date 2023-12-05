@@ -16,11 +16,13 @@ class Notification extends Model {
     protected $tableName = 'notifications';
     protected $subscriberTable;
     protected $sheetHeader;
+    private $subscribers;
 
     public function __construct() {
         parent::__construct();
         $this->subscriberTable = (new Subscription())->table;
         $this->sheetHeader = (new Sheet())->table;
+        $this->$subscribers = new Subscription();
     }
 
     /**
@@ -81,7 +83,7 @@ class Notification extends Model {
     
     /**
      * 
-     * @param array $notif
+     *
      */
     public function insertNotification($sheet_id): void{
         try {
@@ -89,14 +91,10 @@ class Notification extends Model {
             $notified = false ;
 
             // On récupére tous les user_nni abonnés à la sheet_id
-            $query = "SELECT user_nni FROM {$this->subscriberTable} WHERE sheet_id = :sheet_id";
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':sheet_id', $sheet_id, \PDO::PARAM_INT);
-            $sth->execute();
-            $subscribers = $sth->fetchAll(\PDO::FETCH_COLUMN);
+            $listAbonnees = $this->subscribers->getSubscribers($sheet_id);
 
             // Pour chaque user_nni abonné, on insérere une nouvelle notification
-            foreach ($subscribers as $user_nni) {
+            foreach ($listAbonnees as $user_nni) {
                 $query = 'INSERT INTO ' . $this->table . '  (user_nni, is_notified, sheet_id, updated_at) VALUES(:user_nni,:notified,:sheet_id,:date)';
                 $sth = $this->db->getPDO()->prepare($query);
                 $sth->bindParam(':notified', $notified, \PDO::PARAM_BOOL);

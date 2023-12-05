@@ -43,22 +43,14 @@ class NotificationsRepository {
 
     
     /**
-     * Example value of $notifs = [ 
-     *   0 => ["sheet_id" => "sheetid"],
-     *   1 => ["sheet_id" => "sheetid"]
-     * ]
-     * @param array $notifs
-     * @return void
+     *
+     *
+     *
      */
     public function insertNotification(int $sheet_id):void{
        
-        try {
-            foreach ($sheetIds as $sheet_id) {
-                (new Notification())->insertNotification($sheet_id['sheet_id']);
-            }
-        } catch (\Exception $e) {
-            throw new InternalServerException($e->getMessage());
-        }
+        (new Notification())
+                 ->insertNotification($sheet_id) ;
     }
 
     
