@@ -92,9 +92,7 @@ class Notification extends Model {
     
             // On récupère tous les user_nni abonnés à la sheet_id
             $listAbonnees = $this->subscribers->getSubscribers($sheet_id);
-            echo '<pre>';
-                print_r($listAbonnees);
-            echo '</pre>';
+            
     
             // si la liste d'abonnés est un tableau non vide
             if ($listAbonnees && is_array($listAbonnees)) {
