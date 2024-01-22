@@ -39,6 +39,20 @@ class HotlineGroupController extends Controller
     public function update()
     {
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
-        return  $this->response($this->hotlineGroupManager->update($options));
+        return  $this->response($this->hotlineGroupManager->update($options)); 
+    }
+    public function add()
+    {
+        $options = json_decode(file_get_contents("php://input"), true) ?? [];
+        return  $this->response($this->hotlineGroupManager->add($options));
+    }
+
+    public function edit($id)
+    {
+        return $this->response($this->hotlineGroupRepository->get($id));
+    }
+    public function delete($id)
+    {
+        return $this->response($this->hotlineGroupRepository->delete($id));
     }
 }

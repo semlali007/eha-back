@@ -35,6 +35,7 @@ class UserService {
             (is_array($infos)&& !array_key_exists("last_acted_on", $infos)) ? $infos['last_acted_on'] = time() : $infos;
             cache::storeItemInCache(new CacheItem($cacheName, $infos));
         }
+        var_dump("getinfo");die(); 
         return $infos;
     }
 

@@ -84,7 +84,7 @@ class HotlineActionManager extends AbstractManager
             $this->sendMail($emails, "Achatpédia - Q$id - Pièce jointe ajoutée", "mail/hotline_question_upload_file.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
-            ]);
+            ], "Pièce jointe ajoutée");
 
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['34'] . '</p>';
         } catch (EmailException $ex) {
@@ -95,35 +95,81 @@ class HotlineActionManager extends AbstractManager
     }
 
 
+    // public function close($options, User $user)
+    // {
+    //     $validator = new Validator($_POST);
+    //     $errors = $validator->validate([
+    //         'id' => ['required'],
+    //         'note' => ['required'],
+    //     ]);
+
+
+    //     $id = $options['id'];
+    //     $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
+    //     $note = $options['note'];
+    //     $feedback = isset($options['feedback']) ? $options['feedback'] : '';
+    //     $infos = (new Hotline())->getInfos($id, $sha);
+    //     $isHotline = $infos['status'];
+    //     if ($isHotline === null && !$user->hasRole(['EHA_GESTIONNAIRE'])) {
+    //         $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
+    //         return $answer;
+    //     }
+    //     $hotlineFilTime = new HotlineFil();
+    //     if (!empty($feedback)) {
+    //         $hotlineFilTime->insert([
+    //             'discussion' => $id,
+    //             'nature' => 'E',
+    //             'is_hotline' => false,
+    //             'email' => '',
+    //             'message' => $feedback,
+    //         ]);
+    //     }
+    //     $hotlineFilTime->insert([
+    //         'discussion' => $id,
+    //         'nature' => 'C',
+    //         'is_hotline' => false,
+    //         'email' => '',
+    //         'message' => 'Discussion fermée',
+    //     ]);
+
+    //     $hotlineFilTime->insert([
+    //         'discussion' => $id,
+    //         'nature' => 'N',
+    //         'is_hotline' => false,
+    //         'email' => '',
+    //         'message' => $note,
+    //     ]);
+
+    //     $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
+    //     $emails = (new Hotline())->getAllRecepients($id);
+       
+    //     if (!empty($emails)) {
+    //         $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
+    //             'id' => $id,
+    //             'sha' => $sha,
+    //         ], "Fin");
+    //     }
+    //     return ['status'  =>  true, 'message'=>'<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
+    // }
     public function close($options, User $user)
     {
         $validator = new Validator($_POST);
         $errors = $validator->validate([
             'id' => ['required'],
-            'note' => ['required'],
         ]);
-
+        $valdef = 4;
 
         $id = $options['id'];
         $sha = (isset($options['sha']) && !empty($options['sha'])) ? $options['sha'] : '';
-        $note = $options['note'];
-        $feedback = isset($options['feedback']) ? $options['feedback'] : '';
         $infos = (new Hotline())->getInfos($id, $sha);
         $isHotline = $infos['status'];
+
         if ($isHotline === null && !$user->hasRole(['EHA_GESTIONNAIRE'])) {
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['02'] . '</p>';
             return $answer;
         }
+
         $hotlineFilTime = new HotlineFil();
-        if (!empty($feedback)) {
-            $hotlineFilTime->insert([
-                'discussion' => $id,
-                'nature' => 'E',
-                'is_hotline' => false,
-                'email' => '',
-                'message' => $feedback,
-            ]);
-        }
         $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'C',
@@ -132,37 +178,51 @@ class HotlineActionManager extends AbstractManager
             'message' => 'Discussion fermée',
         ]);
 
-        $hotlineFilTime->insert([
-            'discussion' => $id,
-            'nature' => 'N',
-            'is_hotline' => false,
-            'email' => '',
-            'message' => $note,
-        ]);
-
-        $infos = (new Hotline())->close($id, $note,Hotline::$status["GESTIONNAIRE"]);
+        // Fermer la hotline
+        $infos = (new Hotline())->close($id, $valdef, Hotline::$status["GESTIONNAIRE"]);
         $emails = (new Hotline())->getAllRecepients($id);
-       
+
         if (!empty($emails)) {
             $this->sendMail($emails, "Achatpédia - Q$id - Fin", "mail/hotline_question_closed.html.twig", [
                 'id' => $id,
                 'sha' => $sha,
-            ]);
+            ], "Fin");
         }
-        return ['status'  =>  true, 'message'=>'<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
+        
+        return ['status' => true, 'message' => '<p>' . StaticTextService::$_HOTLINE_TEXT['26'] . '</p>'];
     }
 
-    public function sendMail($recepients, $subject, $template, $params)
+
+    public function sendMail($recepients, $subject, $template, $params, $action)
     {
-        try{
-        $params['config_domain'] = getenv('CONFIG_DOMAINE');
-        $mailer =  (new Mailer())
-            ->setSubject($subject)
-            ->setRecepients($recepients)
-            ->html($template, $params);
-        $mailer->send(); // Envoyer l'email 
-    } catch (Exception $e) {
-        throw new EmailException();
+        $env = getenv('INSTALL_ENV');
+        // le sujet de l'e-mail en fonction de l'env
+
+        if ($env === 'PROD') {
+            $prefix = 'P';
+            $envLabel = 'Production';
+        } elseif ($env === 'PREPROD') {
+            $prefix = 'PP';
+            $envLabel = 'Preproduction';
+        } else {
+            $prefix = 'DEV';
+            $envLabel = 'Developpement';
+        }
+        // Ajoute l'env au sujet de l'e-mail
+        $subjectWithEnvironment = "Achatpédia - Q" . $prefix . $params['id'] . '-' . $envLabel . '-' . $action;
+
+        try {
+            $params['config_domain'] = getenv('CONFIG_DOMAINE');
+
+            $mailer =  (new Mailer())
+                ->setSubject($subjectWithEnvironment)
+                ->setRecepients($recepients)
+                ->html($template, $params);
+            $mailer->send(); // Envoyer l'email
+        } catch (Exception $e) {
+            error_log("Error sending email: " . $e->getMessage());
+            throw new EmailException();
+        }
     }
-    }
+    
 }

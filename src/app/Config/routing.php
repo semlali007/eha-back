@@ -67,6 +67,10 @@ $router->post('/beneficiaries/search', 'App\Controllers\BeneficiaryController@se
 $router->post('/beneficiaries/add', 'App\Controllers\BeneficiaryController@add', ["roles"=>['USER']]);
 $router->get('/beneficiaries/remove/:id', 'App\Controllers\BeneficiaryController@remove', ["roles"=>['USER']]);
 
+$router->get('/stipulationAutrui/autocomplete/:word', 'App\Controllers\StipulationController@autocomplete', ["roles"=>['USER']]);
+$router->post('/stipulationAutrui/search', 'App\Controllers\StipulationController@search', ["roles"=>['USER']]);
+$router->post('/stipulationAutrui/add', 'App\Controllers\StipulationController@add', ["roles"=>['USER']]);
+$router->get('/stipulationAutrui/remove/:id', 'App\Controllers\StipulationController@remove', ["roles"=>['USER']]);
 
 $router->get('/areas/autocomplete/:word', 'App\Controllers\AreaController@autocomplete', ["roles"=>['USER']]);
 $router->post('/areas/search', 'App\Controllers\AreaController@search', ["roles"=>['USER']]);
@@ -118,6 +122,11 @@ $router->get('/hotline-themes/delete/:id', 'App\Controllers\Admin\Hotline\Hotlin
 
 $router->get('/hotline-groups', 'App\Controllers\Admin\Hotline\HotlineGroupController@index', ["roles"=>['USER']]);
 $router->post('/hotline-groups/save', 'App\Controllers\Admin\Hotline\HotlineGroupController@update', ["roles"=>['USER']]);
+//***
+$router->post('/hotline-groups/add', 'App\Controllers\Admin\Hotline\HotlineGroupController@add', ["roles"=>['USER']]);
+$router->get('/hotline-groups/edit/:id', 'App\Controllers\Admin\Hotline\HotlineGroupController@edit', ["roles"=>['USER']]);
+$router->get('/hotline-groups/delete/:id', 'App\Controllers\Admin\Hotline\HotlineGroupController@delete', ["roles"=>['USER']]);
+
 
 $router->get('/hotline-emails', 'App\Controllers\Admin\Hotline\HotlineEmailController@index', ["roles"=>['USER']]);
 $router->post('/hotline-emails/save', 'App\Controllers\Admin\Hotline\HotlineEmailController@update', ["roles"=>['USER']]);
@@ -197,6 +206,8 @@ $router->get('/categories', 'App\Controllers\CategoryController@index', ["roles"
 $router->post('/satisfaction/create', 'App\Controllers\SatisfactionController@create', ["roles"=>['USER']]);
 $router->get('/satisfaction/get/:nni/:cockpit_id', 'App\Controllers\SatisfactionController@get', ["roles"=>['USER']]);
 $router->get('/satisfaction/list', 'App\Controllers\SatisfactionController@list', ["roles"=>['USER']]);
+//
+$router->post('/auth', 'App\Controllers\AuthController@authenticate', ["roles"=>['USER']]);
 
 
 //try {

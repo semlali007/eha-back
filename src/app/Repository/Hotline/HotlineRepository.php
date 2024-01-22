@@ -100,10 +100,17 @@ class HotlineRepository extends AbstractRepository
                 $answer['data']['timeline'][$i]['message'] = substr($row['message'], $p + 1);
                 $answer['data']['timeline'][$i]['file'] = substr($row['message'], 0, $p);
             }
-          
-            if(!isset($options['user']) || !($options['user'] instanceof User) || !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])){
-                $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $answer['data']['timeline'][$i]['message']);
-            }
+            if (($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])) {
+                // Adresses email visibles par les utilisateurs 'EHA_ADMIN', 'EHA_GESTIONNAIRE'
+            } else {
+                // Masquer l'adresse email
+                if ($row['email'] === $currentForwarded || $row['email'] === $question['email'] || 
+                    (($options['user'] instanceof User) && $row['email'] === $options['user']->getEmail() &&
+                    !($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE']))) {
+                    $answer['data']['timeline'][$i]['message'] = preg_replace("/[^@\s]*@[^@\s]*\.[^@\s]*/", '*****@edf.fr', $row['message']);
+                }
+            }           
+
 
         }
 

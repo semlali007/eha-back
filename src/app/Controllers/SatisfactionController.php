@@ -46,4 +46,5 @@ class SatisfactionController extends Controller
             return $this->error($ex);
         }
     }
+    
 }

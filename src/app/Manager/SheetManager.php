@@ -6,6 +6,7 @@ use App\Exceptions\SheetException;
 use App\Models\Sheet;
 use App\Models\SheetArea;
 use App\Models\SheetBeneficiary;
+use App\Models\SheetStipulation;
 use App\Models\SheetContract;
 use App\Models\SheetFile;
 use App\Models\SheetGroup;
@@ -19,6 +20,7 @@ use Exception;
 use App\Security\User;
 use App\Models\Provider;
 use App\Models\Beneficiary;
+use App\Models\Stipulation;
 use App\Models\Area;
 use App\Models\Category;
 use App\Models\Committee;
@@ -82,6 +84,7 @@ class SheetManager extends AbstractManager
 
             $data['lots'] = $sheetData['lots'] ?? [];
             $data['filiales'] = $sheetData['filiales'] ?? [];
+            $data['filiales0'] = $sheetData['filiales0'] ?? [];//...
             $data['providers'] = $sheetData['providers'] ?? [];
             $data['groups'] = $sheetData['groups'] ?? [];
             $data['domains'] = $sheetData['domains'] ?? [];
@@ -105,7 +108,7 @@ class SheetManager extends AbstractManager
                     'committee'=>'Comité de Gestion de la Demande',
                     'dauphin'=>'Approvisionnement sous dauphin',
                     'edf_open'=>'Marché ouvert au personnel EDF',
-                    'stipulation_for_others'=>'Stipulation pour autrui',
+                    'stipulation_for_others'=>'Stipulationautrui',
                     'partnership'=>'Partenariat de productivité',
                     'protected_sector'=>'Secteur protégé',
                     'label'=>'Titre',
@@ -183,73 +186,113 @@ class SheetManager extends AbstractManager
                 foreach ($data['deleted_files'] as $deleted) {
                     $sheetFile->delete($deleted['file_id']);
                 }
-
+                //*
                 $sheetContract = new SheetContract();
-                $previousContracts  = $sheetContract->getBySheet($id);
-               
-
-                $sheetLot = new SheetLot();
-
-
-                foreach ($previousContracts as $k => $c) {
-                    $previousContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
-                }
-
+                $previousContracts = $sheetContract->getBySheet($id);
+                
                 $sheetContract->deleteContracts($id, $data['contracts']);
-
+                
                 foreach ($data['contracts'] as $contract) {
-                    $lots = [];
                     $sheetContract->add($id, $contract);
-
-                    foreach ($contract['lots'] as $lot) {
-                        $lots[] = $lot['name'];
-                        $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
-                    }
-
-                    $sheetLot->deleteContractLots($id, $contract['contract_code'], $lots);
                 }
-                $currentsContracts  = $sheetContract->getBySheet($id);
-                foreach ($currentsContracts as $k => $c) {
-                    $currentsContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
-                }
-              
-
-                if(is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts))
-                || is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))){
-                   $diffLogs = [];
-                   $diffLogs['source'] = $id;
-                   $old = '<ul>';
+                
+                $currentsContracts = $sheetContract->getBySheet($id);
+                
+                if (
+                    is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts)) ||
+                    is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))
+                ) {
+                    $diffLogs = [];
+                    $diffLogs['source'] = $id;
+                    $old = '<ul>';
                     foreach ($previousContracts as $p) {
                         $old .= "<li >";
-
-                          $old .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
-                          foreach ($p['lots'] as $p) {
-                            $old .= ", "
-                                . $p['name'] ;
-                        }
-                            $old .= "</li >";
+                        $old .= "contract:" . $p['contract_code'] . " Fournisseur :" . $p['provider'] . " contacts :" . $p['contacts'] . " lots :" . $p['lots'];
+                        $old .= "</li >";
                     }
-
-                   $old .= '</ul>';
-                   $new = '<ul>';
+                    $old .= '</ul>';
+                
+                    $new = '<ul>';
                     foreach ($currentsContracts as $p) {
                         $new .= "<li >";
-
-                          $new .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
-                          foreach ($p['lots'] as $p) {
-                            $new .= ", "
-                                . $p['name'] ;
-                        }
-                            $new .= "</li >";
+                        $new .= "contract:" . $p['contract_code'] . " Fournisseur :" . $p['provider'] . " contacts :" . $p['contacts'] . " lots :" . $p['lots'];
+                        $new .= "</li >";
                     }
+                    $new .= '</ul>';
+                
+                    $diffLogs['old'] =  $old;
+                    $diffLogs['new'] = $new;
+                    $diffLogs['date'] = $date;
+                    $diffLogs['fields'] =  'Contrats';
+                    $logs->add($diffLogs);
+                }
+                
+            //     $sheetContract = new SheetContract();
+            //     $previousContracts  = $sheetContract->getBySheet($id);
+               
 
-                   $new .= '</ul>';
-                   $diffLogs['old'] =  $old;
-                   $diffLogs['new'] = $new;
-                   $diffLogs['date'] = $date;
-                   $diffLogs['fields'] =  'Contrats';
-                   $logs->add($diffLogs);
-               }
+            //     $sheetLot = new SheetLot();
+
+
+            //     foreach ($previousContracts as $k => $c) {
+            //         $previousContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+            //     }
+
+            //     $sheetContract->deleteContracts($id, $data['contracts']);
+
+            //     foreach ($data['contracts'] as $contract) {
+            //         $lots = [];
+            //         $sheetContract->add($id, $contract);
+
+            //         foreach ($contract['lots'] as $lot) {
+            //             $lots[] = $lot['name'];
+            //             $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
+            //         }
+
+            //         $sheetLot->deleteContractLots($id, $contract['contract_code'], $lots);
+            //     }
+            //     $currentsContracts  = $sheetContract->getBySheet($id);
+            //     foreach ($currentsContracts as $k => $c) {
+            //         $currentsContracts[$k]['lots'] = $sheetLot->getByContract($id, $c['contract_code']);
+            //     }
+              
+
+            //     if(is_array(Arrays::arrayDiffAssocRecursive($currentsContracts, $previousContracts))
+            //     || is_array(Arrays::arrayDiffAssocRecursive($previousContracts, $currentsContracts))){
+            //        $diffLogs = [];
+            //        $diffLogs['source'] = $id;
+            //        $old = '<ul>';
+            //         foreach ($previousContracts as $p) {
+            //             $old .= "<li >";
+
+            //               $old .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
+            //               foreach ($p['lots'] as $p) {
+            //                 $old .= ", "
+            //                     . $p['name'] ;
+            //             }
+            //                 $old .= "</li >";
+            //         }
+
+            //        $old .= '</ul>';
+            //        $new = '<ul>';
+            //         foreach ($currentsContracts as $p) {
+            //             $new .= "<li >";
+
+            //               $new .="contract:". $p['contract_code'] ." Fournisseur :" . $p['provider'] ." contacts :" . $p['contacts']."lots:";
+            //               foreach ($p['lots'] as $p) {
+            //                 $new .= ", "
+            //                     . $p['name'] ;
+            //             }
+            //                 $new .= "</li >";
+            //         }
+
+            //        $new .= '</ul>';
+            //        $diffLogs['old'] =  $old;
+            //        $diffLogs['new'] = $new;
+            //        $diffLogs['date'] = $date;
+            //        $diffLogs['fields'] =  'Contrats';
+            //        $logs->add($diffLogs);
+            //    }
 
 
                 $sheetFiliale = new SheetBeneficiary();
@@ -260,8 +303,8 @@ class SheetManager extends AbstractManager
                     $sheetFiliale->add($id, $f['id']);
                 }
                 $sheetFiliale->deleteFiliales($id, $filialesId);
-                $currentFiliale  = $sheetFiliale->getBySheet($id);
 
+                $currentFiliale  = $sheetFiliale->getBySheet($id);
 
                 if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale, $previousFiliale))
                 || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale, $currentFiliale))){
@@ -291,7 +334,45 @@ class SheetManager extends AbstractManager
                    $logs->add($diffLogs);
                }
 
+                $sheetFiliale0 = new SheetStipulation();
+                $previousFiliale0  = $sheetFiliale0->getBySheet($id);
+                $filiales0Id = [];
+                foreach ($data['filiales0'] as $f) {
+                    $filiales0Id[] = $f['id'];
+                    $sheetFiliale0->add($id, $f['id']);
+                }
+                $sheetFiliale0->deleteFiliales($id, $filiales0Id);
 
+                $currentFiliale0  = $sheetFiliale0->getBySheet($id);
+
+
+                if(is_array(Arrays::arrayDiffAssocRecursive($currentFiliale0, $previousFiliale0))
+                || is_array(Arrays::arrayDiffAssocRecursive($previousFiliale0, $currentFiliale0))){
+                   $diffLogs = [];
+                   $diffLogs['source'] = $id;
+                   $old = '<ul>';
+                   foreach ($previousFiliale0 as $p) {
+                       $old .= "<li >"
+                               .$p['name'].
+                               "</li>";
+                   }
+
+                   $old .= '<ul>';
+                   $new = '<ul>';
+
+                   foreach ($currentFiliale0 as $p) {
+                       $new .= "<li >"
+                           . $p['name'] .
+                           "</li>";
+                   }
+
+                   $new .= '<ul>';
+                   $diffLogs['old'] =  $old;
+                   $diffLogs['new'] = $new;
+                   $diffLogs['date'] = $date;
+                   $diffLogs['fields'] =  'Stipulation pour autrui';
+                   $logs->add($diffLogs);
+               }
 
                 $sheetProvider = new SheetProvider();
 
@@ -487,7 +568,7 @@ class SheetManager extends AbstractManager
                    $diffLogs['fields'] =  'Zone géographique d’application des marchés';
                    $logs->add($diffLogs);
                }
-
+                $sheetLot = new SheetLot();
                 $lots = [];
                 foreach ($data['lots'] as $lot) {
                     $lots[] = $lot['name'];
@@ -590,6 +671,7 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
             $data['filiales'] = $sheetData['filiales'];
+            $data['filiales0'] = $sheetData['filiales0'];
             $data['providers'] = $sheetData['providers'];
             $data['zones'] = $sheetData['zones'];
             $data['groups'] = $sheetData['groups'];
@@ -655,14 +737,14 @@ class SheetManager extends AbstractManager
                 }
             }
 
-            $sheetLot = new SheetLot();
+            // $sheetLot = new SheetLot();
             $sheetContract = new SheetContract();
             foreach ($data['contracts'] as $contract) {
                 if (isset($contract['contract_code'])) {
                     $sheetContract->add($id, $contract);
-                    foreach ($contract['lots'] as $lot) {
-                        $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
-                    }
+                    // foreach ($contract['lots'] as $lot) {
+                    //     $sheetLot->addLot($id, $contract['contract_code'], $lot['name']);
+                    // }
                 }
             }
 
@@ -672,6 +754,22 @@ class SheetManager extends AbstractManager
                     $sheetFiliale->add($id, $filiale['id']);
                 }
             }
+            if (array_key_exists('filiales0', $data)) {
+                $sheetFiliale0 = new SheetStipulation();
+                foreach ($data['filiales0'] as $filiale0) {
+                    if (isset($filiale0['id'])) {
+                        $sheetFiliale0->add($id, $filiale0['id']);
+                    }
+                }
+            }
+            // if (array_key_exists('filiales0', $data)) {
+            //     $sheetFiliale0 = new SheetStipulation();
+            //     $stipulation = [];
+            //     foreach ($data['filiales0'] as $filiale0) {
+            //         $stipulation[] = $filiale0['id'];
+            //         $sheetFiliale0->add($id, $filiale0['id']);
+            //     }
+            // }
 
             $sheetProvider = new SheetProvider();
             foreach ($data['providers'] as $provider) {
@@ -694,9 +792,10 @@ class SheetManager extends AbstractManager
                 }
             }
 
-            $lots = [];
+            // $lots = [];
+            $sheetLot = new SheetLot();
             foreach ($data['lots'] as $lot) {
-                $lots[] = $lot['name'];
+                // $lots[] = $lot['name'];
                 $sheetLot->add($id, $lot);
             }
 
@@ -978,6 +1077,7 @@ class SheetManager extends AbstractManager
         $data['stipulation_for_others'] = boolval($sheet['StipulationPourAutrui.value']);
         $data['providers'] = [];
         $data['filiales'] = [];
+        $data['filiales0'] = [];
         $data['zones'] = [];
         $data['files'] = [];
         $data['groups'] = [];
@@ -1082,9 +1182,11 @@ class SheetManager extends AbstractManager
         $data = [];
         $data['providers'] = [];
         $data['filiales'] = [];
+        $data['filiales0'] = [];
         $data['zones'] = [];
        
         $filiale = new Beneficiary();
+        $filiale0 = new Stipulation();
         $provider = new Provider();
         $zone = new Area();
         
@@ -1109,6 +1211,17 @@ class SheetManager extends AbstractManager
             }else{
                 $fId = $filiale->add(['name' => $itemB['Label']]);
                 $data['filiales'][] = ['id' => $fId];
+            }
+        }
+
+        foreach ($row['StipulationAutrui'] as $itemS) {
+            
+            $p = $filiale0->get(['name' => $itemS['Label']]);
+            if (count($p) > 0) {
+                $data['filiales0'][] = ['id' => $p[0]['id']];
+            }else{
+                $fId = $filiale0->add(['name' => $itemS['Label']]);
+                $data['filiales0'][] = ['id' => $fId];
             }
         }
 

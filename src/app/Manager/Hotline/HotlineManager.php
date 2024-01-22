@@ -75,19 +75,26 @@ class HotlineManager extends AbstractManager
                 'email' => $email,
                 'message' => substr($post, 0, 4900),
             ]);
+            $isAdminOrManager = ($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE']);
+
+            if ($isAdminOrManager) {
+                $message = 'Question affectée automatiquement à ' . $emailTo;
+            } else {
+                $message = 'Question affectée automatiquement à *****@edf.fr';
+            }
 
             $hotlineFilTime->insert([
                 'discussion' => $id,
                 'nature' => 'F',
                 'is_hotline' => true,
                 'email' => $emailTo,
-                'message' => 'Question affectée automatiquement à ' . $emailTo,
+                'message' => $message,
             ]);
 
             $this->sendMail($email, "Achatpédia - Q$id - Création", "mail/hotline_question_creation_to_user.html.twig", [
                 'id' => $id,
                 'sha' => $sha_demandeur,
-            ]);
+            ], "Création");
 
             $themeData = (new HotlineTheme())->get($theme);
             if (isset($themeData['label'])) {
@@ -98,7 +105,7 @@ class HotlineManager extends AbstractManager
                 $this->sendMail($emailTo, $subject, "mail/hotline_question_creation_to_hotliner.html.twig", [
                     'id' => $id,
                     'sha' => $sha_hotline,
-                ]);
+                ], "Création");
             }
         }
     }
@@ -158,12 +165,12 @@ class HotlineManager extends AbstractManager
                 $this->sendMail($email, $subject, "mail/hotline_question_forword_to_hotliner.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
-                ]);
+                ], "Message");
             } else {
                 $this->sendMail($email, "Achatpédia - Q$id - Pour info", "mail/hotline_question_forword_to_user.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
-                ]);
+                ], "Pour info");
             }
             
             if(!empty($emailcc)) {
@@ -171,7 +178,7 @@ class HotlineManager extends AbstractManager
                     'id' => $id,
                     'sha' => $sha,
                     'email' => $email,
-                ]);
+                ], "Pour info");
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['15'] . '</p>';
         } catch (EmailException $ex) {
@@ -237,12 +244,12 @@ class HotlineManager extends AbstractManager
                 $this->sendMail($emails, "Achatpédia - Q$id - Nouveau message de la hotline", "mail/hotline_new_question_post_from_hotline.html.twig", [
                     'id' => $id,
                     'sha' => $infos['sha_demandeur'],
-                ]);
+                ], "Nouveau message de la hotline");
             } else {
                 $this->sendMail($emails, "Achatpédia - Q$id - Nouveau message du demandeur", "mail/hotline_new_question_post_from_user.html.twig", [
                     'id' => $id,
                     'sha' => $infos['sha_hotline'],
-                ]);
+                ], "Nouveau message de la hotline");
             }
             $answer['message'] = '<p>' . StaticTextService::$_HOTLINE_TEXT['20'] . '</p>';
         } catch (EmailException $ex) {
@@ -251,21 +258,36 @@ class HotlineManager extends AbstractManager
         return $answer;
     }
 
-
-
-    public function sendMail($recepients, $subject, $template, $params)
+    public function sendMail($recepients, $subject, $template, $params, $action)
     {
+        $env = getenv('INSTALL_ENV');
+        // le sujet de l'e-mail en fonction de l'env
+
+        if ($env === 'PROD') {
+            $prefix = 'P';
+            $envLabel = 'Production';
+        } elseif ($env === 'PREPROD') {
+            $prefix = 'PP';
+            $envLabel = 'Preproduction';
+        } else {
+            $prefix = 'DEV';
+            $envLabel = 'Developpement';
+        }
+        // Ajoute l'env au sujet de l'e-mail
+        $subjectWithEnvironment = "Achatpédia - Q" . $prefix . $params['id'] . '-' . $envLabel . '-' . $action;
+
         try {
             $params['config_domain'] = getenv('CONFIG_DOMAINE');
 
             $mailer =  (new Mailer())
-                ->setSubject($subject)
+                ->setSubject($subjectWithEnvironment)
                 ->setRecepients($recepients)
                 ->html($template, $params);
             $mailer->send(); // Envoyer l'email
         } catch (Exception $e) {
+            error_log("Error sending email: " . $e->getMessage());
             throw new EmailException();
         }
-        
     }
+
 }

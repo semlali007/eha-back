@@ -5,6 +5,7 @@ namespace App\Manager\Migrate;
 use App\Manager\SheetManager;
 use App\Models\Area;
 use App\Models\Beneficiary;
+use App\Models\Stipulation;
 use App\Models\Group;
 use App\Models\Legacy\LegacyDapi;
 use App\Models\Provider;
@@ -32,6 +33,7 @@ class DapiManager extends MigrateManager
             $zone = new Area();
             $group = new Group();
             $filiale = new Beneficiary();
+            $filiale0 = new Stipulation();
             $sheetManager = new SheetManager();
         
             foreach ($options['items'] as $id) {
@@ -76,6 +78,17 @@ class DapiManager extends MigrateManager
                             $p = $filiale->get(['name' => $item]);
                             if (count($p) > 0) {
                                 $data['filiales'][] = ['id' => $p[0]['id']];
+                            }
+                        }
+                    }
+                    $data['filiales0'] = [];
+                    $filiales0 = $list['stipulationAutui'];
+                    foreach (explode(';#', $filiales0) as $item) {
+                        if (!is_numeric($item) && !empty($item)) {
+                            $filiale0->add(['name' => $item]);
+                            $p = $filiale0->get(['name' => $item]);
+                            if (count($p) > 0) {
+                                $data['filiales0'][] = ['id' => $p[0]['id']];
                             }
                         }
                     }
