@@ -7,7 +7,7 @@ Cette application est la partie back de l'application Achatpédia codée en PHP 
 -   PHP-FPM  **8.0.2**
 -   Nginx  **1.9.2+** (Recommended **1.9.2**)
 
-## Installation
+## Installation (poste de développement)
 
 ### 1- Clonons le repository !
 ```
