@@ -23,9 +23,9 @@ pipeline {
    }
 
    parameters {
-      
+      extendedChoice ( description: 'Selectionner environnment à déployer', multiSelectDelimiter: ',', name: 'environment', quoteValue: false, saveJSONParameterToFile: false, type: 'PT_CHECKBOX', value: 'dev,quali,formation,prod', visibleItemCount: 4, defaultValue: 'dev')      
       booleanParam(name: 'promote_image', defaultValue: true, description: 'l\'image est copiee sur l\'environnement cible, ce qui peut entrainter un redemarrage et une mise à jour automatique')
-      booleanParam(name: 'deploy_k8s_conf', defaultValue: true, description: 'faire le deploy apres le build')
+      booleanParam(name: 'deploy_k8s_conf', defaultValue: true, description: 'faire le deploy apres le build')      
    }   
 
    stages {
@@ -81,8 +81,9 @@ pipeline {
 
                println "myParameters : ${myParameters}"
                println "myParameters.parameters.deploy.dev : ${myParameters.parameters.deploy.dev}"
-               fromImage = myParameters.parameters.deploy.FROM_IMAGE.trim()
-               fromNamespace = myParameters.parameters.BUILD_NAMESPACE.trim()
+               fromImageBuild = myParameters.parameters.FROM_IMAGE.trim()
+               fromImageDeploy = myParameters.parameters.deploy.FROM_IMAGE.trim()
+               buildNamespace = myParameters.parameters.BUILD_NAMESPACE.trim()
 
                applicationName = myParameters.parameters.deploy.APPLICATION_NAME.trim()
                namespaceDeploy = myParameters.parameters.deploy.NAMESPACE_DEPLOY.trim()
@@ -95,11 +96,9 @@ pipeline {
 
                imageName = myParameters.parameters.IMAGE_NAME.trim()
                contextDir = myParameters.parameters.CONTEXT_DIR.trim()
-               fromImage = myParameters.parameters.FROM_IMAGE.trim()
                fromNamespace = myParameters.parameters.FROM_NAMESPACE.trim()
                namespaceBuild = myParameters.parameters.BUILD_NAMESPACE.trim()
                maintainerEmail = myParameters.parameters.MAINTAINER_EMAIL.trim()
-               npmMirror = myParameters.parameters.NPM_MIRROR.trim()
                sourceRegistry= myParameters.parameters.deploy.SOURCE_REGISTRY.trim()
                targetRegistry = myParameters.parameters.deploy.TARGET_REGISTRY.trim()
                
@@ -114,9 +113,9 @@ pipeline {
                }               
 
                // fromcreds : source - cluster hors prod 
-               openshift.withCluster(caasConfig["${fromNamespace.replaceAll("_", "-")}"]["url"]) {
-                  openshift.withProject(caasConfig["${fromNamespace.replaceAll("_", "-")}"]["namespaceName"]){
-                     openshift.withCredentials(caasConfig["${fromNamespace.replaceAll("_", "-")}"]["serviceAccountCredentialId"]){
+               openshift.withCluster(caasConfig["${namespaceBuild.replaceAll("_", "-")}"]["url"]) {
+                  openshift.withProject(caasConfig["${namespaceBuild.replaceAll("_", "-")}"]["namespaceName"]){
+                     openshift.withCredentials(caasConfig["${namespaceBuild.replaceAll("_", "-")}"]["serviceAccountCredentialId"]){
                         fromToken = openshift.raw("whoami", "-t").out.trim()
                         fromCreds = "unused:${fromToken}"
                      }
@@ -151,17 +150,26 @@ pipeline {
       stage('Parameters and files analyze') {
          steps {
             script {
-               if (imageName.length() == 0 || contextDir.length() == 0 || fromImage.length() == 0 || namespaceBuild.length() == 0 || fromNamespace.length() == 0 || maintainerEmail.length() == 0 || npmMirror.length() == 0) {
+               if (imageName.length() == 0 || contextDir.length() == 0 || fromImageBuild.length() == 0 || fromImageDeploy.length() == 0 || namespaceBuild.length() == 0 || fromNamespace.length() == 0 || maintainerEmail.length() == 0) {
                   error("[ERROR] - Missing required parameters in ${PARAMETERS_FILES}.")
                }
                normalizedNamespaceBuild = caasConfig["${namespaceBuild.replaceAll('_', '-')}"]
                try {
-                  currentCaasConfig = normalizedNamespaceBuild
+                  buildCaasConfig = normalizedNamespaceBuild
                } catch (Exception e) {
                   error("[ERROR] - Entry with key ${normalizedNamespaceBuild} not found in caas-subscriptions.json")
                }
 
-               println "currentCaasConfig : ${currentCaasConfig}"
+               println "buildCaasConfig : ${buildCaasConfig}"
+
+               normalizedNamespaceDeploy = caasConfig["${namespaceDeploy.replaceAll('_', '-')}"]
+               try {
+                  deployCaasConfig = normalizedNamespaceDeploy
+               } catch (Exception e) {
+                  error("[ERROR] - Entry with key ${normalizedNamespaceDeploy} not found in caas-subscriptions.json")
+               }
+
+               println "deployCaasConfig : ${deployCaasConfig}"               
             }
          }
       }
@@ -181,9 +189,9 @@ pipeline {
       stage('Build') {
          steps {
             script {
-                  openshift.withCluster(currentCaasConfig['url']) {
-                     openshift.withProject(currentCaasConfig['namespaceName']) {
-                        openshift.withCredentials(currentCaasConfig['serviceAccountCredentialId']) {
+                  openshift.withCluster(buildCaasConfig['url']) {
+                     openshift.withProject(buildCaasConfig['namespaceName']) {
+                        openshift.withCredentials(buildCaasConfig['serviceAccountCredentialId']) {
                         imageReleaseDate = sh (script: 'date --rfc-3339=seconds', returnStdout: true).trim()
 
                         /*
@@ -197,10 +205,9 @@ pipeline {
                            '-p', "GIT_BRANCH='${env.GIT_BRANCH}'",
                            '-p', "IMAGE_RELEASE_DATE='${imageReleaseDate}'",
                            '-p', "IMAGE_RELEASE_NUMBER='${env.BUILD_NUMBER}'",
-                           '-p', "FROM_IMAGE='${fromImage}'",
+                           '-p', "FROM_IMAGE='${fromImageBuild}'",
                            '-p', "FROM_NAMESPACE='${fromNamespace}'",
                            '-p', "MAINTAINER_EMAIL='${maintainerEmail}'",
-                           '-p', "NPM_MIRROR='${npmMirror}'",
                            '-p', "IMAGE_TAG='${branchNormalizedName}'")
 
                         println '[INFO] - Generated template :'
@@ -302,10 +309,10 @@ pipeline {
                wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: "${fromCreds}", var: 'SECRET']]]) {
                   wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: "${toCreds}", var: 'SECRET']]]) {
                      
-                     if ("${fromCreds}" != "" && "${toCreds}" != "" && "${fromNamespace}" != "${namespaceDeploy}") {
+                     if ("${fromCreds}" != "" && "${toCreds}" != "" && "${buildNamespace}" != "${namespaceDeploy}") {
                         // t is the parameter option
                         sh("echo promotion image : dck_${applicationName}:${version}")
-                        sh("skopeo copy docker://${sourceRegistry}/${fromNamespace}/dck_${applicationName}:${version} docker://${targetRegistry}/${namespaceDeploy}/dck_${applicationName}:${version} --screds ${fromCreds} --dcreds ${toCreds}")
+                        sh("skopeo copy docker://${sourceRegistry}/${buildNamespace}/dck_${applicationName}:${version} docker://${targetRegistry}/${namespaceDeploy}/dck_${applicationName}:${version} --screds ${fromCreds} --dcreds ${toCreds}")
                      }
                      else {
                         //sh("skopeo copy docker://${sourceRegistry} docker://${targetRegistry}")
@@ -324,9 +331,9 @@ pipeline {
          when { expression { return params.deploy_k8s_conf } }
          steps{
             script {
-               openshift.withCluster(currentCaasConfig["url"]) {
-                  openshift.withProject(currentCaasConfig['namespaceName']){
-                     openshift.withCredentials(currentCaasConfig['serviceAccountCredentialId']){
+               openshift.withCluster(deployCaasConfig["url"]) {
+                  openshift.withProject(deployCaasConfig['namespaceName']){
+                     openshift.withCredentials(deployCaasConfig['serviceAccountCredentialId']){
 
                         imageReleaseDate = sh (script: "date --rfc-3339=seconds", returnStdout: true).trim()
 
@@ -347,7 +354,7 @@ pipeline {
                            "-o", "yaml")
 
                         def processedDeployTemplate = openshift.process(templateDc,
-                           "-p", "FROM_IMAGE='${fromImage}'",
+                           "-p", "FROM_IMAGE='${fromImageDeploy}'",
                            "-p", "FROM_NAMESPACE='${namespaceDeploy}'",
                            "-p", "VERSION='${version}'",
                            "-p", "APPLICATION_NAME='${applicationName}'",

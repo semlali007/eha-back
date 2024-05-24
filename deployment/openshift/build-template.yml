@@ -77,8 +77,18 @@ objects:
             kind: ImageStreamTag
             name: ${FROM_IMAGE}
             namespace: ${FROM_NAMESPACE}
-          dockerfilePath: docker/Dockerfile
+          dockerfilePath: Dockerfile
           env:
+            - name: COMPOSER_INSTALL
+              value: "true"
+            - name: PHP_INSTANCE
+              value: EHA
+            - name: PHP_PORT
+              value: "9000"
+            - name: PHP_EXTENSIONS
+              value: apcu,curl,date,dom,fileinfo,filter,hash,intl,json,libxml,mailparse,mbstring,openssl,opcache,pcre,pdo, pdo_pgsql,pgsql,posix,session,simplexml,sodium,SPL,zip,zlib
+            - name: URL_DEPOT
+              value: https://si-devops-mirror.edf.fr/repository/packagist.org/
             - name: NEXUS_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -88,7 +98,9 @@ objects:
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: mtb-gitlab-devops          
+                  name: mtb-gitlab-devops
+            - name: YUM7
+              value: 10.117.0.221
         type: Docker
       triggers:
         - imageChange:
@@ -105,7 +117,7 @@ parameters:
   - name: IMAGE_TAG
     required: true
   - name: FROM_NAMESPACE
-    required: true
+    required: true  
   - name: FROM_IMAGE
     required: true
   - name: MAINTAINER_EMAIL
@@ -116,5 +128,3 @@ parameters:
     required: true    
   - name: GIT_BRANCH
     required: true
-  - name: NPM_MIRROR
-    required: true    

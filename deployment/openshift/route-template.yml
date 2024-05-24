@@ -30,7 +30,10 @@ objects:
     spec:
       host: ${EXTERNAL_HOST}
       port:
-        targetPort: 80
+        targetPort: 8181
+      tls:
+        termination: passthrough
+        insecureEdgeTerminationPolicy: Redirect
       to:
         kind: Service
         name: app-${APPLICATION_NAME}-${ENV}-${VERSION}

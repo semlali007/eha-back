@@ -23,7 +23,7 @@ objects:
         filebeat.prospectors:
         - input_type: log
           paths:
-            - /cockpitachat/log/*.log
+            - /achatpedia/log/*.log
         #output.console:
         #  pretty: true
         setup.template.enabled: false
