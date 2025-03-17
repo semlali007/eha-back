@@ -150,7 +150,7 @@ objects:
                     secretKeyRef:
                       key: PPASSWORD
                       name: padaone-credentials-${ENV}
-              image: ${LOCAL_REGISTRY}/openshift/dck_filebeat-centos7:6.4.2
+              image: ${LOCAL_REGISTRY}/openshift/dck_filebeat-ubi:7.9.3
               imagePullPolicy: IfNotPresent
               name: filebeat-container
               ports:
@@ -188,8 +188,8 @@ objects:
           dnsPolicy: ClusterFirst                
           restartPolicy: Always
           securityContext: {}
-          serviceAccount: achatpedia-caas-mtb-mtb
-          serviceAccountName: achatpedia-caas-mtb-mtb
+          serviceAccount: achatpedia-caas-eha
+          serviceAccountName: achatpedia-caas-eha
           schedulerName: default-scheduler          
           terminationGracePeriodSeconds: 30
           volumes:

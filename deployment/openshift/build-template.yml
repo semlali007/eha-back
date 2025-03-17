@@ -64,9 +64,9 @@ objects:
           uri: ${GIT_URL}
         secrets:
           - secret:
-              name: gitlab-devops-mtb-mtb-url-encoded
+              name: gitlab-devops-eha-url-encoded
         sourceSecret:
-          name: gitlab-devops-mtb-mtb
+          name: gitlab-devops-eha
         type: Git
         contextDir: ${CONTEXT_DIR}
       strategy:
@@ -77,7 +77,7 @@ objects:
             kind: ImageStreamTag
             name: ${FROM_IMAGE}
             namespace: ${FROM_NAMESPACE}
-          dockerfilePath: Dockerfile
+          dockerfilePath: docker/Dockerfile
           env:
             - name: COMPOSER_INSTALL
               value: "true"
@@ -93,12 +93,12 @@ objects:
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: mtb-gitlab-devops
+                  name: eha-gitlab-devops
             - name: NEXUS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: mtb-gitlab-devops
+                  name: eha-gitlab-devops
             - name: YUM7
               value: 10.117.0.221
         type: Docker
