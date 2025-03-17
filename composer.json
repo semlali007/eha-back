@@ -1,0 +1,41 @@
+{
+  "name": "achatpedia/api",
+  "version": "3.0.8",
+  "config": {
+      "secure-http": true,
+      "allow-plugins": {
+          "simplesamlphp/composer-module-installer": false
+      }
+  },
+  "repositories": [
+      {
+          "type": "composer",
+          "url": "https://si-devops-mirror.edf.fr/repository/packagist.org/"
+      },
+      {
+          "packagist.org": false
+      }
+  ],
+  "autoload": {
+      "psr-4": {
+          "Core\\": "core/",
+          "App\\": "app/",
+          "Test\\":"tests/"
+      }
+  },
+  "require": {
+      "firebase/php-jwt": "^5.4",
+      "symfony/console": "^5.3",
+      "monolog/monolog": "^2.8",
+      "simplesamlphp/simplesamlphp": "^1.19",
+      "twig/twig": "*"
+  },
+  "require-dev": {
+       "phpunit/phpunit": "^9.5"
+  },
+  "scripts": {
+      "post-install-cmd": "npm install -g apidoc && apidoc -i ../src/app/Controllers/ -o public/apidoc"
+  }
+}
+
+
