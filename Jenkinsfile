@@ -12,7 +12,7 @@ String pvcName
 
 pipeline {
    agent {
-      label 'agent-openshift-latest'
+      label 'agent-cloud-latest'
    }
    options {
       buildDiscarder(logRotator(numToKeepStr:'15'))
@@ -23,7 +23,7 @@ pipeline {
    }
 
    parameters {
-      extendedChoice ( description: 'Selectionner environnment à déployer', multiSelectDelimiter: ',', name: 'environment', quoteValue: false, saveJSONParameterToFile: false, type: 'PT_CHECKBOX', value: 'dev,quali,formation,prod', visibleItemCount: 4, defaultValue: 'dev')      
+      choice( description: 'Selectionner environnment à déployer', name: 'environment', choices: ['recette','prod'])      
       booleanParam(name: 'promote_image', defaultValue: true, description: 'l\'image est copiee sur l\'environnement cible, ce qui peut entrainter un redemarrage et une mise à jour automatique')
       booleanParam(name: 'deploy_k8s_conf', defaultValue: true, description: 'faire le deploy apres le build')      
    }   
@@ -55,13 +55,14 @@ pipeline {
 
                println "branchNormalizedName : ${branchNormalizedName}"
 
-               if (branchNormalizedName == "production") {
+               /*if (branchNormalizedName == "main") {
                   environment = "prod"
                } else if (branchNormalizedName == "recette") {
                   environment = "recette"
                } else {
                   environment = "dev"
-               }
+               }*/
+               environment = params.environment
 
                println "environment : ${environment}"
 
@@ -80,7 +81,6 @@ pipeline {
                myParameters = readYaml file: PARAMETERS_FILE
 
                println "myParameters : ${myParameters}"
-               println "myParameters.parameters.deploy.dev : ${myParameters.parameters.deploy.dev}"
                fromImageBuild = myParameters.parameters.FROM_IMAGE.trim()
                fromImageDeploy = myParameters.parameters.deploy.FROM_IMAGE.trim()
                buildNamespace = myParameters.parameters.BUILD_NAMESPACE.trim()

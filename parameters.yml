@@ -1,7 +1,7 @@
 parameters:
   IMAGE_NAME: "poc-achatpedia-back"
   FROM_NAMESPACE: "openshift"
-  BUILD_NAMESPACE: "mtb-monitoring-tool-for-buyers-dev-grp-hp"
+  BUILD_NAMESPACE: "eha-achatpedia-grp-hp"
   MAINTAINER_EMAIL: "luca-externe.dall-olio@edf.fr"
   CONTEXT_DIR: "./"
   ROUTE_TIMEOUT: "15m"
@@ -9,13 +9,13 @@ parameters:
   deploy: 
     APPLICATION_NAME: "poc-achatpedia-back"
     FROM_IMAGE: "dck_poc-achatpedia-back"  
-    NAMESPACE_DEPLOY: "mtb-monitoring-tool-for-buyers-grp-p"
+    NAMESPACE_DEPLOY: "eha-achatpedia-ext-ns-be-p"
     SOURCE_REGISTRY: "registry.apps.caas-int-hp.automation.edf.fr"
-    TARGET_REGISTRY: "registry.apps.caas-int-p.automation.edf.fr"
-    dev:
-      EXTERNAL_HOST: "poc-achatpedia-dev.grp-p.caas-int-p.automation.edf.fr"
+    TARGET_REGISTRY: "registry.apps.caas-ext-p.automation.edf.fr"
+    recette:
+      EXTERNAL_HOST: "poc-achatpedia-preprod.ext-ns-be-p.caas-ext-p.automation.edf.fr"
       CPU_REQUEST: "500m"
       CPU_LIMIT: "1"
-      MEMORY_REQUEST: "3Gi"
-      MEMORY_LIMIT: "3Gi"
+      MEMORY_REQUEST: "2Gi"
+      MEMORY_LIMIT: "2Gi"
       ELASTICSEARCH_HOST: "padaone-preprod.edf.fr:29443"
