@@ -23,9 +23,9 @@ pipeline {
    }
 
    parameters {
-      choice( description: 'Selectionner environnment à déployer', name: 'environment', choices: ['recette','prod'])      
+      choice( description: 'Selectionner environnment à déployer', name: 'environment', choices: ['recette','prod'])   
       booleanParam(name: 'promote_image', defaultValue: true, description: 'l\'image est copiee sur l\'environnement cible, ce qui peut entrainter un redemarrage et une mise à jour automatique')
-      booleanParam(name: 'deploy_k8s_conf', defaultValue: true, description: 'faire le deploy apres le build')      
+      booleanParam(name: 'deploy_k8s_conf', defaultValue: true, description: 'faire le deploy apres le build')
    }   
 
    stages {
@@ -169,7 +169,7 @@ pipeline {
                   error("[ERROR] - Entry with key ${normalizedNamespaceDeploy} not found in caas-subscriptions.json")
                }
 
-               println "deployCaasConfig : ${deployCaasConfig}"               
+               println "deployCaasConfig : ${deployCaasConfig}"
             }
          }
       }
