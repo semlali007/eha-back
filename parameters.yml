@@ -13,7 +13,7 @@ parameters:
     SOURCE_REGISTRY: "registry.apps.caas-int-hp.automation.edf.fr"
     TARGET_REGISTRY: "registry.apps.caas-ext-p.automation.edf.fr"
     recette:
-      EXTERNAL_HOST: "achatpedia-preprod.ext-ns-be-p.caas-ext-p.automation.edf.fr"
+      EXTERNAL_HOST: "achatpedia-preprod-back.ext-ns-be-p.caas-ext-p.automation.edf.fr"
       CPU_REQUEST: "500m"
       CPU_LIMIT: "1"
       MEMORY_REQUEST: "2Gi"
