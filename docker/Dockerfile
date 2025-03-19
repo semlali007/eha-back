@@ -10,7 +10,7 @@ ENV SIMPLESAMLPHP_VERSION=2.2.2
 
 COPY ./src /opt/app-root/
 
-RUN mkdir /opt/app-root/src && curl -fsSL --user "$NEXUS_USERNAME:$NEXUS_PASSWORD" https://si-devops-repository.edf.fr/repository/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -o /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz
+RUN curl -fsSL --user "$NEXUS_USERNAME:$NEXUS_PASSWORD" https://si-devops-repository.edf.fr/repository/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -o /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz
 
 
 RUN $DNF_CMD -y update --nobest && \
