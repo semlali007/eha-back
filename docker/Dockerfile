@@ -17,7 +17,7 @@ RUN $DNF_CMD -y update --nobest && \
     $DNF_CMD -y install zlib-devel bzip2 && \
     tar xzf /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -C /opt/app-root/src && \
     mv /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION} /opt/app-root/src/simplesamlphp && \
-    rm /opt/app-root/src/projects/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz && \
+    rm /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz && \
     chgrp -R 0 /opt/app-root/src && \
     chmod -R ug+rwX /opt/app-root/src
 
