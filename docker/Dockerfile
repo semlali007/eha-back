@@ -10,11 +10,9 @@ ENV SIMPLESAMLPHP_VERSION=2.2.2
 
 COPY ./src /opt/app-root/
 
-RUN curl -fsSL --user "$NEXUS_USERNAME:$NEXUS_PASSWORD" https://si-devops-repository.edf.fr/repository/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -o /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz
-
-
 RUN $DNF_CMD -y update --nobest && \
     $DNF_CMD -y install zlib-devel bzip2 && \
+    curl -fsSL --user "$NEXUS_USERNAME:$NEXUS_PASSWORD" https://si-devops-repository.edf.fr/repository/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -o /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz \    
     tar xzf /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -C /opt/app-root/src && \
     mv /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION} /opt/app-root/src/simplesamlphp && \
     rm /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz && \
