@@ -8,7 +8,7 @@ ENV SIMPLESAMLPHP_VERSION=2.2.2
 
 #RUN curl -fsSL --user "`cat /username`:`cat /password`" https://si-devops-repository.edf.fr/repository/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -o /appli/projects/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz
 
-COPY ./src /opt/app-root/
+COPY ./src /opt/app-root/src/
 
 RUN $DNF_CMD -y update --nobest && \
     $DNF_CMD -y install zlib-devel bzip2 && \
