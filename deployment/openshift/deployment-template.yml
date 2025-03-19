@@ -59,7 +59,7 @@ objects:
                   memory: 128Mi
               volumeMounts:
                 - name: appli-sharing
-                  mountPath: /opt/app-root/src/php-appli
+                  mountPath: /appli/projects/EHA/nginx_1.24/html
                 - name: test-app-nginx-volume-1
                   mountPath: /var/projects/instance/nginx_1.24/cache/
                 - name: test-app-nginx-volume-2
@@ -130,7 +130,7 @@ objects:
                 - mountPath: /var/projects/EHA/php-fpm_8.2/log/
                   name: log-dir
                 - name: appli-sharing
-                  mountPath: /opt/app-root/src/php-appli
+                  mountPath: /appli/projects/EHA/nginx_1.24/html
                 - name: simplesaml-public
                   mountPath: /opt/app-root/etc/simplesamlphp/src
                 - name: backend-config
