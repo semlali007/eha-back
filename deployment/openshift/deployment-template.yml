@@ -44,7 +44,7 @@ objects:
           containers:
             - name: nginx-rp
               image: >-
-                ${LOCAL_REGISTRY}/openshift/dck_nginx-ubi8:1.24
+                ${LOCAL_REGISTRY}/openshift/dck_nginx-ubi8:1.26
               ports:
                 - containerPort: 8080
                   protocol: TCP
@@ -59,11 +59,11 @@ objects:
                   memory: 128Mi
               volumeMounts:
                 - name: appli-sharing
-                  mountPath: /appli/projects/EHA/nginx_1.24/html
+                  mountPath: /appli/projects/EHA/nginx_1.26/html
                 - name: test-app-nginx-volume-1
-                  mountPath: /var/projects/instance/nginx_1.24/cache/
+                  mountPath: /var/projects/instance/nginx_1.26/cache/
                 - name: test-app-nginx-volume-2
-                  mountPath: /var/projects/instance/nginx_1.24/run/
+                  mountPath: /var/projects/instance/nginx_1.26/run/
                 - name: nginx-conf
                   mountPath: /appli/projects/instance/nginx/conf
                 - name: app-nginx-crt
@@ -73,15 +73,15 @@ objects:
                 - name: client-cache
                   mountPath: /var/lib/nginx/cache/proxy_cache
                 - name: proxy-temp
-                  mountPath: /opt/nginx/1.24.0/proxy_temp
+                  mountPath: /opt/nginx/1.26/proxy_temp
                 - name: fastcgi-temp
-                  mountPath: /opt/nginx/1.24.0/fastcgi_temp
+                  mountPath: /opt/nginx/1.26/fastcgi_temp
                 - name: uwsgi-temp
-                  mountPath: /opt/nginx/1.24.0/uwsgi_temp
+                  mountPath: /opt/nginx/1.26/uwsgi_temp
                 - name: scgi-temp
-                  mountPath: /opt/nginx/1.24.0/scgi_temp
+                  mountPath: /opt/nginx/1.26/scgi_temp
                 - name: pid-vol
-                  mountPath: /opt/nginx/1.24.0/logs/
+                  mountPath: /opt/nginx/1.26/logs/
                   subPath: nginx.pid
                 - name: simple-saml-config
                   mountPath: /opt/app-root/etc/simplesamlphp/config
@@ -130,7 +130,7 @@ objects:
                 - mountPath: /var/projects/EHA/php-fpm_8.2/log/
                   name: log-dir
                 - name: appli-sharing
-                  mountPath: /appli/projects/EHA/nginx_1.24/html
+                  mountPath: /appli/projects/EHA/nginx_1.26/html
                 - name: simplesaml-public
                   mountPath: /opt/app-root/etc/simplesamlphp/src
                 - name: backend-config
