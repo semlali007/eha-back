@@ -31,10 +31,6 @@ objects:
           protocol: TCP
           port: 8080
           targetPort: 8080
-        - name: 8181-tcp
-          protocol: TCP
-          port: 8181
-          targetPort: 8181
       selector:
         app: app-${APPLICATION_NAME}-${ENV}-${VERSION}
       sessionAffinity: None

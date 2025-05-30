@@ -30,7 +30,7 @@ objects:
     spec:
       host: ${EXTERNAL_HOST}
       port:
-        targetPort: 8181
+        targetPort: 8080
       tls:
         termination: passthrough
         insecureEdgeTerminationPolicy: Redirect
