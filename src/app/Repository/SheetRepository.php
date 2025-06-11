@@ -42,6 +42,15 @@ class SheetRepository extends AbstractRepository {
         $status = $sheet->groupedByStatus($options);
         $directions = $sheet->groupedByDirections($options);
         $contratGroupes = $sheet->groupedByContratGroupe($options);
+        
+        // Récupérer les données mise à jour donnée avec gestion d'erreur
+        $miseAJourDonnees = [];
+        try {
+            $miseAJourDonnees = $sheet->groupedByMiseAJourDonnee($options);
+        } catch (\Exception $e) {
+            // Si la colonne n'existe pas encore, on retourne un tableau vide
+            $miseAJourDonnees = [];
+        }
        
         return
                 [
@@ -62,6 +71,7 @@ class SheetRepository extends AbstractRepository {
                         'directions' => self::addTooltip($directions),
                         'committees' => $sheet->groupedByCommittees($options),
                         'contratGroupe' => self::addContratGroupeAttribute($contratGroupes),
+                        'miseAJourDonnee' => self::addMiseAJourDonneeAttribute($miseAJourDonnees),
                     ],
         ];
     }
@@ -96,6 +106,45 @@ class SheetRepository extends AbstractRepository {
         
         // Add missing options with count 0
         $allCodes = ['true', 'false'];
+        $existingCodes = array_column($result, 'code');
+        
+        foreach ($allCodes as $code) {
+            if (!in_array($code, $existingCodes)) {
+                $label = isset($mapping[$code]) ? $mapping[$code] : $code;
+                $result[] = [
+                    'code' => $code,
+                    'label' => $label,
+                    'count' => 0
+                ];
+            }
+        }
+        
+        return $result;
+    }
+
+    public static function addMiseAJourDonneeAttribute($items){
+        
+        // Map database values to display values
+        $mapping = [
+            'oui' => 'Oui',
+            'en_cours' => 'En cours',
+            'non' => 'Non'
+        ];
+        
+        // Transform existing items
+        $result = [];
+        foreach ($items as $item) {
+            $code = $item['code'];
+            $label = isset($mapping[$code]) ? $mapping[$code] : $code;
+            $result[] = [
+                'code' => $code,
+                'label' => $label,
+                'count' => $item['count']
+            ];
+        }
+        
+        // Add missing options with count 0
+        $allCodes = ['oui', 'en_cours', 'non'];
         $existingCodes = array_column($result, 'code');
         
         foreach ($allCodes as $code) {

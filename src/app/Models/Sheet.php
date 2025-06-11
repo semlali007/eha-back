@@ -289,6 +289,13 @@ class Sheet extends Model
         }
     }
 
+    if (!is_array($forFilter) || !array_key_exists('mise_a_jour_donnee', $forFilter)) {
+        $miseAJourDonnee = $options['miseAJourDonnee'] ?? '';
+        if ($miseAJourDonnee !== '') {
+            $this->addCondition($search, 's.mise_a_jour_donnee', [$miseAJourDonnee]);
+        }
+    }
+
         return $search;
     }
 
@@ -527,6 +534,20 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
+
+    public function groupedByMiseAJourDonnee($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.mise_a_jour_donnee as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['mise_a_jour_donnee'=>true])}" . " GROUP BY mise_a_jour_donnee";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Si la colonne n'existe pas encore, on retourne un tableau vide
+            // Cela permet à l'application de fonctionner avant la migration
+            return [];
+        }
+    }
     
     function addCondition(&$sql, $key, $value)
     {
@@ -632,8 +653,12 @@ class Sheet extends Model
     {
         $id = $data['id'];
         try {
+            // Assurer des valeurs par défaut pour éviter les NULL
+            $data['mise_a_jour_donnee'] = $data['mise_a_jour_donnee'] ?? 'non';
+            $data['contrat_groupe'] = $data['contrat_groupe'] ?? 'false';
+            
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words, contrat_groupe=:contrat_groupe WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words, contrat_groupe=:contrat_groupe, mise_a_jour_donnee=:mise_a_jour_donnee WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -655,6 +680,7 @@ class Sheet extends Model
             $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
             $sth->bindParam(':contrat_groupe', $data['contrat_groupe'], PDO::PARAM_STR);
+            $sth->bindParam(':mise_a_jour_donnee', $data['mise_a_jour_donnee'], PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
@@ -669,8 +695,9 @@ class Sheet extends Model
             $data['netachat_type'] = $data['netachat_type']?? '';
             $data['netachat_id'] = $data['netachat_id']?? 0;
             $data['contrat_groupe'] = $data['contrat_groupe']?? 'false';
+            $data['mise_a_jour_donnee'] = $data['mise_a_jour_donnee']?? 'non';
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -697,6 +724,7 @@ class Sheet extends Model
             $sth->bindParam(':netachat_id', $data['netachat_id'], PDO::PARAM_INT);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
             $sth->bindParam(':contrat_groupe', $data['contrat_groupe'], PDO::PARAM_STR);
+            $sth->bindParam(':mise_a_jour_donnee', $data['mise_a_jour_donnee'], PDO::PARAM_STR);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {

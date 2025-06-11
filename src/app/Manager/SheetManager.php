@@ -63,6 +63,7 @@ class SheetManager extends AbstractManager
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
             $data['contrat_groupe'] = $sheetData['contrat_groupe'] ?? 'false';
+            $data['mise_a_jour_donnee'] = $sheetData['mise_a_jour_donnee'] ?? 'non';
             $data['status'] = $sheetData['status'] ?? '0';
 
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
@@ -683,6 +684,7 @@ class SheetManager extends AbstractManager
             $data['committee'] = $sheetData['committee'] ?? 0;
             $data['category'] = $sheetData['category'] ?? 0;
             $data['contrat_groupe'] = $sheetData['contrat_groupe'] ?? 'false';
+            $data['mise_a_jour_donnee'] = $sheetData['mise_a_jour_donnee'] ?? 'non';
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];
