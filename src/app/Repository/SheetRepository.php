@@ -41,6 +41,7 @@ class SheetRepository extends AbstractRepository {
         $partnerships = $sheet->groupedByPartnership($options);
         $status = $sheet->groupedByStatus($options);
         $directions = $sheet->groupedByDirections($options);
+        $contratGroupes = $sheet->groupedByContratGroupe($options);
        
         return
                 [
@@ -60,6 +61,7 @@ class SheetRepository extends AbstractRepository {
                         'providers' =>$sheet->groupedByProvider($options),
                         'directions' => self::addTooltip($directions),
                         'committees' => $sheet->groupedByCommittees($options),
+                        'contratGroupe' => self::addContratGroupeAttribute($contratGroupes),
                     ],
         ];
     }
@@ -71,6 +73,43 @@ class SheetRepository extends AbstractRepository {
 
     public static function addStatus($items){
         return self::addElements($items, [-1,0,1]);
+    }
+
+    public static function addContratGroupeAttribute($items){
+        // Map database values to display values
+        $mapping = [
+            'true' => 'Oui',
+            'false' => 'Non'
+        ];
+        
+        // Transform existing items
+        $result = [];
+        foreach ($items as $item) {
+            $code = $item['code'];
+            $label = isset($mapping[$code]) ? $mapping[$code] : $code;
+            $result[] = [
+                'code' => $code,
+                'label' => $label,
+                'count' => $item['count']
+            ];
+        }
+        
+        // Add missing options with count 0
+        $allCodes = ['true', 'false'];
+        $existingCodes = array_column($result, 'code');
+        
+        foreach ($allCodes as $code) {
+            if (!in_array($code, $existingCodes)) {
+                $label = isset($mapping[$code]) ? $mapping[$code] : $code;
+                $result[] = [
+                    'code' => $code,
+                    'label' => $label,
+                    'count' => 0
+                ];
+            }
+        }
+        
+        return $result;
     }
 
     public static function addElements($firstElements, $allCodes){

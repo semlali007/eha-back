@@ -69,6 +69,7 @@ class SheetController extends Controller {
 
     public function update() {
         $sheetData = json_decode($_POST['model'], true);
+        
         $this->notificationsRepository->insertNotification($sheetData['id']);
         return $this->sheetManager->update($this->currentUser,$sheetData);
     }
@@ -82,6 +83,7 @@ class SheetController extends Controller {
 
     public function add() {
         $sheetData = json_decode($_POST['model'], true);
+        
         return $this->sheetManager->add($this->currentUser,$sheetData);
     }
 

@@ -53,7 +53,7 @@ class MigrateManager extends AbstractManager {
                         }
                     }
                     try {
-                        return (string) pg_escape_string($text);
+                        return (string) ($text);
                     } catch (\Exception $exception) {
                         return $text;
                     }

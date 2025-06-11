@@ -146,7 +146,7 @@ class Sheet extends Model
     
     {
         $search = '';
-        $schema = pg_escape_string(getenv("DB_SCHEMA"));
+        //$schema = pg_escape_string(getenv("DB_SCHEMA"));
         $options = $params['search'] ?? [];
         if (!is_array($forFilter) || !array_key_exists('beneficiary', $forFilter)) {
             $beneficiariesList = $options['beneficiaries'] ?? [];
@@ -205,7 +205,7 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->subscriptionTable} ss on ss.sheet_id = s.id and ss.user_nni = '$userNni' ";
         }
 
-        $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
+        $searchProvider = (strtolower($options['searchProvider'] ?? ""));
         if (($searchProvider != '')) {
             $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
@@ -218,7 +218,7 @@ class Sheet extends Model
             ) spa 
             on spa.sheet_id = s.id  ";
         }
-        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
+        $search_input = (strtolower($options['searchText'] ?? ""));
         $isCode = SheetService::isCodeContract($search_input);
         if ($isCode) {
             $search .= " LEFT JOIN {$this->sheetContract} sc ON  sc.sheet_id = s.ID ";
@@ -282,6 +282,12 @@ class Sheet extends Model
         }
     }
 
+    if (!is_array($forFilter) || !array_key_exists('contrat_groupe', $forFilter)) {
+        $contratGroupe = $options['contratGroupe'] ?? '';
+        if ($contratGroupe !== '') {
+            $this->addCondition($search, 's.contrat_groupe', [$contratGroupe]);
+        }
+    }
 
         return $search;
     }
@@ -509,6 +515,18 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
+
+    public function groupedByContratGroupe($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.contrat_groupe as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['contrat_groupe'=>true])}" . " GROUP BY contrat_groupe";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
     
     function addCondition(&$sql, $key, $value)
     {
@@ -516,7 +534,12 @@ class Sheet extends Model
             return $this;
         }
 
-        $valueStr = '(' . implode(', ', $value) . ')';
+        // Quote string values properly for SQL
+        $quotedValues = array_map(function($val) {
+            return "'" . addslashes($val) . "'";
+        }, $value);
+        
+        $valueStr = '(' . implode(', ', $quotedValues) . ')';
         $sql .= " AND ($key IN $valueStr) ";
 
         return $this;
@@ -610,7 +633,7 @@ class Sheet extends Model
         $id = $data['id'];
         try {
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words, contrat_groupe=:contrat_groupe WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -631,6 +654,7 @@ class Sheet extends Model
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
             $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
+            $sth->bindParam(':contrat_groupe', $data['contrat_groupe'], PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
@@ -644,8 +668,9 @@ class Sheet extends Model
             $data['content'] = $data['content']?? '';
             $data['netachat_type'] = $data['netachat_type']?? '';
             $data['netachat_id'] = $data['netachat_id']?? 0;
+            $data['contrat_groupe'] = $data['contrat_groupe']?? 'false';
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -671,6 +696,7 @@ class Sheet extends Model
             $sth->bindParam(':netachat_type', $data['netachat_type'], PDO::PARAM_STR);
             $sth->bindParam(':netachat_id', $data['netachat_id'], PDO::PARAM_INT);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
+            $sth->bindParam(':contrat_groupe', $data['contrat_groupe'], PDO::PARAM_STR);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {

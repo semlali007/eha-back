@@ -42,6 +42,10 @@ class SheetManager extends AbstractManager
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
         try {
             
+            // Ensure contrat_groupe has a default value
+            if (!isset($sheetData['contrat_groupe'])) {
+                $sheetData['contrat_groupe'] = 'false';
+            }
             
             $data['id'] = $sheetData['id'];
             $data['label'] = $sheetData['label'] ?? '';
@@ -58,6 +62,7 @@ class SheetManager extends AbstractManager
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
+            $data['contrat_groupe'] = $sheetData['contrat_groupe'] ?? 'false';
             $data['status'] = $sheetData['status'] ?? '0';
 
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
@@ -117,8 +122,8 @@ class SheetManager extends AbstractManager
                     'description'=>'Commentaires',
                     'search_words'=>'Mots clés',
                     'content'=>'Contenu',
-                    'category'=>'Catégorie Achats'
-
+                    'category'=>'Catégorie Achats',
+                    'contrat_groupe'=>'Contrat groupe'
                 ];
                 $diff = array_diff_assoc($previousSheet, $currentSheet);
                 $logs = new SheetLogs();
@@ -127,8 +132,8 @@ class SheetManager extends AbstractManager
                     $diffLogs = [];
                     $diffLogs['source'] = $id;
                    
-                    $diffLogs['old'] = $previousSheet[$k];
-                    $diffLogs['new'] = $currentSheet[$k];
+                    $diffLogs['old'] = $previousSheet[$k] ?? '';
+                    $diffLogs['new'] = $currentSheet[$k] ?? '';
                     $diffLogs['date'] = $date;
 
                     switch ($k) {
@@ -140,26 +145,30 @@ class SheetManager extends AbstractManager
                             continue 2;
                             break;
                         case 'status':
-                            $diffLogs['old'] = $status[$previousSheet[$k]];
-                            $diffLogs['new'] = $status[$currentSheet[$k]];
+                            $diffLogs['old'] = $status[$previousSheet[$k] ?? 0] ?? 'Inconnu';
+                            $diffLogs['new'] = $status[$currentSheet[$k] ?? 0] ?? 'Inconnu';
                             break;
                         case 'committee':
-                            if (is_numeric($previousSheet[$k]) &&  $previousSheet[$k] > 1) {
-                                $diffLogs['old'] = $commitee->getByCode($previousSheet[$k])['label'];
+                            $prevCommitteeCode = $previousSheet[$k] ?? 0;
+                            $currCommitteeCode = $currentSheet[$k] ?? 0;
+                            if (is_numeric($prevCommitteeCode) && $prevCommitteeCode > 1) {
+                                $diffLogs['old'] = $commitee->getByCode($prevCommitteeCode)['label'];
                             }
 
-                            if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] > 1) {
-                                $diffLogs['new'] = $commitee->getByCode($currentSheet[$k])['label'];
+                            if (is_numeric($currCommitteeCode) && $currCommitteeCode > 1) {
+                                $diffLogs['new'] = $commitee->getByCode($currCommitteeCode)['label'];
                             }
                             break;
 
                         case 'category':
-                            if (is_numeric($previousSheet[$k]) &&  $previousSheet[$k] >= 1) {
-                                $diffLogs['old'] = $category->getByCode($previousSheet[$k])['label'];
+                            $prevCategoryCode = $previousSheet[$k] ?? 0;
+                            $currCategoryCode = $currentSheet[$k] ?? 0;
+                            if (is_numeric($prevCategoryCode) && $prevCategoryCode >= 1) {
+                                $diffLogs['old'] = $category->getByCode($prevCategoryCode)['label'];
                             }
 
-                            if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] >= 1) {
-                                $diffLogs['new'] = $category->getByCode($currentSheet[$k])['label'];
+                            if (is_numeric($currCategoryCode) && $currCategoryCode >= 1) {
+                                $diffLogs['new'] = $category->getByCode($currCategoryCode)['label'];
                             }
                             break;
                         case 'dauphin':
@@ -167,12 +176,20 @@ class SheetManager extends AbstractManager
                         case 'stipulation_for_others':
                         case 'partnership':
                         case 'protected_sector':
-                            $diffLogs['old'] = ($previousSheet[$k] == 1) ? 'Oui' : 'Non';
-                            $diffLogs['new'] = ($currentSheet[$k] == 1) ? 'Oui' : 'Non';
+                        case 'contrat_groupe':
+                            $oldValue = $previousSheet[$k] ?? false;
+                            $newValue = $currentSheet[$k] ?? false;
+                            if ($k === 'contrat_groupe') {
+                                $diffLogs['old'] = ($oldValue === 'oui' || $oldValue === 'true' || $oldValue === true) ? 'Oui' : 'Non';
+                                $diffLogs['new'] = ($newValue === 'oui' || $newValue === 'true' || $newValue === true) ? 'Oui' : 'Non';
+                            } else {
+                                $diffLogs['old'] = ($oldValue == 1) ? 'Oui' : 'Non';
+                                $diffLogs['new'] = ($newValue == 1) ? 'Oui' : 'Non';
+                            }
                             break;
                     }
 
-                    $diffLogs['fields'] =  $labelsFields[$k];
+                    $diffLogs['fields'] = $labelsFields[$k] ?? $k;
                     $logs->add($diffLogs);
                 }
 
@@ -657,7 +674,6 @@ class SheetManager extends AbstractManager
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
 
         try {
-
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['words'] = $sheetData['words'] ?? '';
@@ -666,6 +682,7 @@ class SheetManager extends AbstractManager
             $data['dauphin'] = $sheetData['dauphin'];
             $data['committee'] = $sheetData['committee'] ?? 0;
             $data['category'] = $sheetData['category'] ?? 0;
+            $data['contrat_groupe'] = $sheetData['contrat_groupe'] ?? 'false';
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];
