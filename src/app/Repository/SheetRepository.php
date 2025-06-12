@@ -51,6 +51,15 @@ class SheetRepository extends AbstractRepository {
             // Si la colonne n'existe pas encore, on retourne un tableau vide
             $miseAJourDonnees = [];
         }
+        
+        // Récupérer les données supplier size avec gestion d'erreur
+        $supplierSizes = [];
+        try {
+            $supplierSizes = $sheet->groupedBySupplierSize($options);
+        } catch (\Exception $e) {
+            // Si la colonne n'existe pas encore, on retourne un tableau vide
+            $supplierSizes = [];
+        }
        
         return
                 [
@@ -72,6 +81,7 @@ class SheetRepository extends AbstractRepository {
                         'committees' => $sheet->groupedByCommittees($options),
                         'contratGroupe' => self::addContratGroupeAttribute($contratGroupes),
                         'miseAJourDonnee' => self::addMiseAJourDonneeAttribute($miseAJourDonnees),
+                        'supplierSize' => self::addSupplierSizeAttribute($supplierSizes),
                     ],
         ];
     }
@@ -145,6 +155,49 @@ class SheetRepository extends AbstractRepository {
         
         // Add missing options with count 0
         $allCodes = ['oui', 'en_cours', 'non'];
+        $existingCodes = array_column($result, 'code');
+        
+        foreach ($allCodes as $code) {
+            if (!in_array($code, $existingCodes)) {
+                $label = isset($mapping[$code]) ? $mapping[$code] : $code;
+                $result[] = [
+                    'code' => $code,
+                    'label' => $label,
+                    'count' => 0
+                ];
+            }
+        }
+        
+        return $result;
+    }
+
+    public static function addSupplierSizeAttribute($items){
+        
+        // Récupérer dynamiquement les tailles depuis la base de données
+        $supplierSizeModel = new \App\Models\SupplierSize();
+        $allSupplierSizes = $supplierSizeModel->getAll();
+        
+        // Créer le mapping dynamique
+        $mapping = [];
+        $allCodes = [];
+        foreach ($allSupplierSizes as $size) {
+            $mapping[$size['id']] = $size['name'];
+            $allCodes[] = (string)$size['id'];
+        }
+        
+        // Transform existing items (sans le compteur total)
+        $result = [];
+        foreach ($items as $item) {
+            $code = $item['code'];
+            $label = isset($mapping[$code]) ? $mapping[$code] : $code;
+            $result[] = [
+                'code' => $code,
+                'label' => $label,
+                'count' => $item['count']
+            ];
+        }
+        
+        // Add missing options with count 0
         $existingCodes = array_column($result, 'code');
         
         foreach ($allCodes as $code) {
@@ -236,6 +289,26 @@ class SheetRepository extends AbstractRepository {
         try {
             $details = (new Sheet())->get($id);
 
+            // Ajouter l'objet supplier_size dynamiquement depuis la base
+            if (isset($details['id_supplier_size']) && !empty($details['id_supplier_size'])) {
+                $supplierSizeModel = new \App\Models\SupplierSize();
+                $supplierSizeData = $supplierSizeModel->getById($details['id_supplier_size']);
+                
+                if ($supplierSizeData) {
+                    $details['supplier_size'] = [
+                        'id' => (int)$details['id_supplier_size'],
+                        'name' => $supplierSizeData['name']
+                    ];
+                } else {
+                    $details['supplier_size'] = null;
+                }
+                // Supprimer id_supplier_size de la réponse API (gardé seulement en interne)
+                unset($details['id_supplier_size']);
+            } else {
+                $details['supplier_size'] = null;
+                // Supprimer id_supplier_size de la réponse API
+                unset($details['id_supplier_size']);
+            }
 
             $category = new Category();
             $categorySheet = $category->getByCode($details['category']);

@@ -59,6 +59,7 @@ $router->post('/sheets/filter', 'App\Controllers\SheetController@filter', ["role
 
 
 $router->get('/committees', 'App\Controllers\CommitteeController@index', ["roles"=>['USER']]);
+$router->get('/supplier-sizes', 'App\Controllers\SupplierSizeController@index', ["roles"=>['USER']]);
 $router->get('/providers/autocomplete/:word', 'App\Controllers\ProviderController@autocomplete', ["roles"=>['USER']]);
 $router->post('/providers/search', 'App\Controllers\ProviderController@search', ["roles"=>['USER']]);
 
