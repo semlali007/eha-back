@@ -124,6 +124,7 @@ class HotlineManager extends AbstractManager
             'id' => ['required'],
             'sha' => ['required'],
             'email' => ['required'],
+            'commentaire' => [],
         ]);
 
         if ($errors) {
@@ -134,6 +135,7 @@ class HotlineManager extends AbstractManager
         $sha = $options['sha'];
         $email = $options['email'];
         $emailcc = $options['emailcc'];
+        $commentaire = $options['commentaire'];
         $infos = (new Hotline())->getInfos($id, $sha);
         $groupe = $infos['groupe'];
         $isHotline = $infos['status'];
@@ -144,12 +146,13 @@ class HotlineManager extends AbstractManager
 
         $hotlineFilTime = new HotlineFil();
         $miseencopie = (!empty($emailcc))?" \n Demande mise en copie avec ".$emailcc:"";   
+        $message = "\n Commentaire : " . $commentaire;  
         $lastId = $hotlineFilTime->insert([
             'discussion' => $id,
             'nature' => 'F',
             'is_hotline' => $isHotline ? true : false,
             'email' => $email,
-            'message' => ($isHotline) ? 'Question transférée à ' . $email : 'Demande partagée avec ' . $email.$miseencopie,
+            'message' => ($isHotline) ? 'Question transférée à ' . $email : 'Demande partagée avec ' . $email . '<br>' . $miseencopie . '<br>' . $message,
         ]);
 
         if (!is_numeric($lastId) || $lastId <= 0) {
@@ -162,11 +165,15 @@ class HotlineManager extends AbstractManager
             if ($isHotline) {
                 $subject = 'Achatpédia - Q' . $id . ' - Message';
                 $subject .= (empty($groupe) ? '' : ' pour ' . $groupe);
+                $message = ($isHotline) ? 'Question transférée à ' . $email : 'Demande partagée avec ' . $email . $miseencopie;
+                $message .= "\nCommentaire : " . $commentaire;
                 $this->sendMail($email, $subject, "mail/hotline_question_forword_to_hotliner.html.twig", [
                     'id' => $id,
                     'sha' => $sha,
                 ], "Message");
             } else {
+                $message = 'Demande partagée avec ' . $email . $miseencopie;
+                $message .= "\nCommentaire : " . $commentaire;
                 $this->sendMail($email, "Achatpédia - Q$id - Pour info", "mail/hotline_question_forword_to_user.html.twig", [
                     'id' => $id,
                     'sha' => $sha,

@@ -13,12 +13,14 @@ class SubDomain extends Model
     public function add($options)
     {
         try {
+        
+            $type = $options['type'] ?? 'datp';
             $query = '
         INSERT INTO ' . $this->table . ' (name, type) VALUES (:name, :type) ON CONFLICT DO NOTHING;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
-            $sth->bindParam(':type', $options['type'], PDO::PARAM_STR);
+            $sth->bindParam(':type',$type, PDO::PARAM_STR);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
