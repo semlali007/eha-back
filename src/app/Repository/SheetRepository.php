@@ -394,27 +394,33 @@ class SheetRepository extends AbstractRepository {
         $result = $sheet->searchWithoutPagination($options, $userNni);
         $header = [
             'Titre',
+            'Contrat groupe',
+            'Mise à jour de la donnée',
             'Date de début part ferme',
             'Date de fin part ferme',
             'Options',
-            'Commentaires',
             'Approvisionnement sous dauphin',
             'Marché ouvert au personnel EDF',
             'Stipulationautrui',
             'Partenariat de productivité',
             'Secteur protégé',
+            'Numéro de contrat',
             'Fournisseurs',
+            'Fournisseur numéro TVA intracommunautaire',
+            'Fournisseur taille',
             'Bénéficiaires',
             'Stipulation pour autrui',
-            'Zone géographique d’application des marchés',
+            'Zone géographique d\'application des marchés',
             'Directions opérationnelles (DOA)',
             'Comité de Gestion de la Demande',
             'Segments',
             'Sous-ensemble',
             'Statut',
             'Kit de déploiement',
-            'Numéro de contrat',
-            'Mots clés'
+            'Mots clés',
+            'Contract manager / Acheteur',
+            'Lien PCM',
+            'Commentaires'
         ];
         $csv = [
             'header' => $header,
@@ -481,7 +487,7 @@ class SheetRepository extends AbstractRepository {
 
            
             $options = $sheetOption->getBySheet($sheet['id']);
-            $details['options'] = '';
+            $sheet['options'] = '';
 
             foreach ($options as $key => $option) {
 
@@ -496,7 +502,7 @@ class SheetRepository extends AbstractRepository {
 
             $domains = $sheetDomain->getBySheet($sheet['id']);
 
-            $details['domain'] = '';
+            $sheet['domains'] = '';
             foreach ($domains as $key => $domain) {
                 if ($key !== 0) {
                     $sheet['domains'] .= '|';
@@ -506,7 +512,7 @@ class SheetRepository extends AbstractRepository {
 
             $subdomains = $sheetSubDomain->getBySheet($sheet['id']);
 
-            $details['subdomains'] = '';
+            $sheet['subdomains'] = '';
             foreach ($subdomains as $key => $subdomain) {
                 if ($key !== 0) {
                     $sheet['subdomains'] .= '|';
@@ -521,31 +527,108 @@ class SheetRepository extends AbstractRepository {
             $sheet['protected_sector'] = ($sheet['protected_sector'] == 1) ? 'Oui' : 'Non';
             $sheet['partnership'] = ($sheet['partnership'] == 1) ? 'Oui' : 'Non';
             $sheet['status'] = $status[$sheet['status']];
+            
+            // Ajouter les nouveaux champs
+            if (isset($sheet['contrat_groupe'])) {
+                if ($sheet['contrat_groupe'] === 'true') {
+                    $sheet['contrat_groupe'] = 'Oui';
+                } elseif ($sheet['contrat_groupe'] === 'false') {
+                    $sheet['contrat_groupe'] = 'Non';
+                } else {
+                    $sheet['contrat_groupe'] = 'Non renseigné';
+                }
+            } else {
+                $sheet['contrat_groupe'] = 'Non renseigné';
+            }
+            
+            if (isset($sheet['mise_a_jour_donnee'])) {
+                if ($sheet['mise_a_jour_donnee'] === 'oui') {
+                    $sheet['mise_a_jour_donnee'] = 'Oui';
+                } elseif ($sheet['mise_a_jour_donnee'] === 'en_cours') {
+                    $sheet['mise_a_jour_donnee'] = 'En cours';
+                } elseif ($sheet['mise_a_jour_donnee'] === 'non') {
+                    $sheet['mise_a_jour_donnee'] = 'Non';
+                } else {
+                    $sheet['mise_a_jour_donnee'] = 'Non renseigné';
+                }
+            } else {
+                $sheet['mise_a_jour_donnee'] = 'Non renseigné';
+            }
+            
+            $sheet['supplier_vat_number'] = isset($sheet['supplier_vat_number']) ? $sheet['supplier_vat_number'] : '';
+            
+            // Traitement de la taille du fournisseur
+            $sheet['supplier_size_name'] = '';
+            if (isset($sheet['id_supplier_size']) && !empty($sheet['id_supplier_size'])) {
+                $supplierSizeModel = new \App\Models\SupplierSize();
+                $supplierSizeData = $supplierSizeModel->getById($sheet['id_supplier_size']);
+                if ($supplierSizeData) {
+                    $sheet['supplier_size_name'] = $supplierSizeData['name'];
+                }
+            }
+            
+            $sheet['contract_manager'] = isset($sheet['contract_manager']) ? $sheet['contract_manager'] : '';
+            $sheet['pcm_link'] = isset($sheet['pcm_link']) ? $sheet['pcm_link'] : '';
+            
             $sheet['description'] = $this->toPlainText($sheet['description']);
             $sheet['contracts'] = '';
             $contracts = $sheetContract->getBySheet($sheet['id']);
             preg_match_all('#app/contrat/details/(.*?)\"#', $sheet['content'], $match);
             $contractCodes = [];
+            
+            // Préparer la ligne de données dans l'ordre du header
+            $rowData = [
+                $sheet['label'], // Titre
+                $sheet['contrat_groupe'], // Contrat groupe
+                $sheet['mise_a_jour_donnee'], // Mise à jour de la donnée
+                isset($sheet['start_date']) ? $sheet['start_date'] : '', // Date de début part ferme
+                isset($sheet['end_date']) ? $sheet['end_date'] : '', // Date de fin part ferme
+                $sheet['options'], // Options
+                $sheet['dauphin'], // Approvisionnement sous dauphin
+                $sheet['edf_open'], // Marché ouvert au personnel EDF
+                isset($sheet['stipulationautrui']) ? $sheet['stipulationautrui'] : '', // Stipulationautrui
+                $sheet['partnership'], // Partenariat de productivité
+                $sheet['protected_sector'], // Secteur protégé
+                '', // Numéro de contrat (sera rempli plus bas)
+                $sheet['providers'], // Fournisseurs
+                $sheet['supplier_vat_number'], // Fournisseur numéro TVA intracommunautaire
+                $sheet['supplier_size_name'], // Fournisseur taille
+                $sheet['filiales'], // Bénéficiaires
+                $sheet['filiales0'], // Stipulation pour autrui
+                $sheet['zones'], // Zone géographique d\'application des marchés
+                $sheet['groups'], // Directions opérationnelles (DOA)
+                isset($sheet['committee']) ? $sheet['committee'] : '', // Comité de Gestion de la Demande
+                isset($sheet['domains']) ? $sheet['domains'] : '', // Segments
+                isset($sheet['subdomains']) ? $sheet['subdomains'] : '', // Sous-ensemble
+                $sheet['status'], // Statut
+                isset($sheet['deployment_kit']) ? $sheet['deployment_kit'] : '', // Kit de déploiement
+                isset($sheet['keywords']) ? $sheet['keywords'] : '', // Mots clés
+                $sheet['contract_manager'], // Contract manager / Acheteur
+                $sheet['pcm_link'], // Lien PCM
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // Commentaires
+            ];
+            
             unset($sheet['id']);
             unset($sheet['content']);
+            
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
-                    $sheet['contracts'] = $m;
-                    $csv['data'][] = $sheet;
+                    $rowData[11] = $m; // Numéro de contrat
+                    $csv['data'][] = $rowData;
                 }
             }
            
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
-                    $sheet['contracts'] = $contract['contract_code'];
-                    $csv['data'][] = $sheet;
+                    $rowData[11] = $contract['contract_code']; // Numéro de contrat
+                    $csv['data'][] = $rowData;
                 }
             }
 
             if(count($contracts) == 0 && count($contractCodes) == 0){
-                $csv['data'][] = $sheet;
+                $csv['data'][] = $rowData;
             }
         }
 
@@ -590,9 +673,9 @@ class SheetRepository extends AbstractRepository {
             'Statut',
             'Kit de déploiement',
             'Mots clés',
-            'contrat',
-            'fournisseur',
-            'contact'
+            'Contract manager / Acheteur',
+            'Lien PCM',
+            'Commentaires'
         ];
         $csv = [
             'header' => $header,
