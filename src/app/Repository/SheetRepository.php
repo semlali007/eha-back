@@ -393,7 +393,7 @@ class SheetRepository extends AbstractRepository {
         $sheetContract = new SheetContract();
         $result = $sheet->searchWithoutPagination($options, $userNni);
         $header = [
-            'Titre',
+            'Nom fiche',
             'Contrat groupe',
             'Mise à jour de la donnée',
             'Date de début part ferme',
@@ -404,22 +404,18 @@ class SheetRepository extends AbstractRepository {
             'Stipulationautrui',
             'Partenariat de productivité',
             'Secteur protégé',
-            'Numéro de contrat',
+            'Numéro(s) du contrat',
             'Fournisseurs',
             'Fournisseur numéro TVA intracommunautaire',
             'Fournisseur taille',
             'Bénéficiaires',
             'Stipulation pour autrui',
             'Zone géographique d\'application des marchés',
-            'Directions opérationnelles (DOA)',
             'Comité de Gestion de la Demande',
-            'Segments',
-            'Sous-ensemble',
             'Statut',
-            'Kit de déploiement',
+            'Kit de portage',
             'Mots clés',
             'Contract manager / Acheteur',
-            'Lien PCM',
             'Commentaires'
         ];
         $csv = [
@@ -578,7 +574,7 @@ class SheetRepository extends AbstractRepository {
             
             // Préparer la ligne de données dans l'ordre du header
             $rowData = [
-                $sheet['label'], // Titre
+                $sheet['label'], // Nom fiche
                 $sheet['contrat_groupe'], // Contrat groupe
                 $sheet['mise_a_jour_donnee'], // Mise à jour de la donnée
                 isset($sheet['start_date']) ? $sheet['start_date'] : '', // Date de début part ferme
@@ -596,15 +592,11 @@ class SheetRepository extends AbstractRepository {
                 $sheet['filiales'], // Bénéficiaires
                 $sheet['filiales0'], // Stipulation pour autrui
                 $sheet['zones'], // Zone géographique d\'application des marchés
-                $sheet['groups'], // Directions opérationnelles (DOA)
                 isset($sheet['committee']) ? $sheet['committee'] : '', // Comité de Gestion de la Demande
-                isset($sheet['domains']) ? $sheet['domains'] : '', // Segments
-                isset($sheet['subdomains']) ? $sheet['subdomains'] : '', // Sous-ensemble
                 $sheet['status'], // Statut
-                isset($sheet['deployment_kit']) ? $sheet['deployment_kit'] : '', // Kit de déploiement
+                isset($sheet['deployment_kit']) ? $sheet['deployment_kit'] : '', // Kit de portage
                 isset($sheet['keywords']) ? $sheet['keywords'] : '', // Mots clés
                 $sheet['contract_manager'], // Contract manager / Acheteur
-                $sheet['pcm_link'], // Lien PCM
                 isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // Commentaires
             ];
             
@@ -652,7 +644,7 @@ class SheetRepository extends AbstractRepository {
         $result = $sheet->searchWithoutPagination($options, $userNni);
         
         $header = [
-            'Titre',
+            'Nom fiche',
             'Date de début part ferme',
             'Date de fin part ferme',
             'Options',
@@ -666,15 +658,11 @@ class SheetRepository extends AbstractRepository {
             'Bénéficiaires',
             'Stipulation pour autrui',
             'Zone géographique d’application des marchés',
-            'Directions opérationnelles (DOA)',
             'Comité de Gestion de la Demande',
-            'Segments',
-            'Sous-ensemble',
             'Statut',
-            'Kit de déploiement',
+            'Kit de portage',
             'Mots clés',
             'Contract manager / Acheteur',
-            'Lien PCM',
             'Commentaires'
         ];
         $csv = [
