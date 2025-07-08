@@ -68,6 +68,7 @@ class SheetManager extends AbstractManager
             $data['supplier_vat_number'] = $sheetData['supplier_vat_number'] ?? null;
             $data['contract_manager'] = $sheetData['contract_manager'] ?? null;
             $data['pcm_link'] = $sheetData['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
             $data['status'] = $sheetData['status'] ?? '0';
 
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
@@ -693,6 +694,7 @@ class SheetManager extends AbstractManager
             $data['supplier_vat_number'] = $sheetData['supplier_vat_number'] ?? null;
             $data['contract_manager'] = $sheetData['contract_manager'] ?? null;
             $data['pcm_link'] = $sheetData['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];

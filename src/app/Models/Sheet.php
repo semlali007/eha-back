@@ -67,12 +67,12 @@ class Sheet extends Model
             $direction = $options['direction'] ?? 'desc';
 
             $data = [];
-            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as filiales0, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words, sss.contrat_groupe, sss.mise_a_jour_donnee, sss.id_supplier_size, sss.supplier_vat_number, sss.contract_manager, sss.pcm_link 
+            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as filiales0, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words, sss.contrat_groupe, sss.mise_a_jour_donnee, sss.id_supplier_size, sss.supplier_vat_number, sss.entites_beneficiaires_edf_enedis, sss.contract_manager, sss.pcm_link 
             from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
 
             QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
-            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.contract_manager, s.pcm_link
+            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                       {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction} , RANK desc, RANK1 desc
                       )
@@ -105,7 +105,7 @@ class Sheet extends Model
 
             QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
-            QUERY) AS RANK1, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.contract_manager, s.pcm_link 
+            QUERY) AS RANK1, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link 
                      
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                        
@@ -681,9 +681,10 @@ class Sheet extends Model
             $data['supplier_vat_number'] = $data['supplier_vat_number'] ?? null;
             $data['contract_manager'] = $data['contract_manager'] ?? null;
             $data['pcm_link'] = $data['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $data['entites_beneficiaires_edf_enedis'] ?? null;
             
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words, contrat_groupe=:contrat_groupe, mise_a_jour_donnee=:mise_a_jour_donnee, id_supplier_size=:id_supplier_size, supplier_vat_number=:supplier_vat_number, contract_manager=:contract_manager, pcm_link=:pcm_link WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words, contrat_groupe=:contrat_groupe, mise_a_jour_donnee=:mise_a_jour_donnee, id_supplier_size=:id_supplier_size, supplier_vat_number=:supplier_vat_number, contract_manager=:contract_manager, pcm_link=:pcm_link, entites_beneficiaires_edf_enedis=:entites_beneficiaires_edf_enedis WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -710,6 +711,7 @@ class Sheet extends Model
             $sth->bindParam(':supplier_vat_number', $data['supplier_vat_number'], PDO::PARAM_STR);
             $sth->bindParam(':contract_manager', $data['contract_manager'], PDO::PARAM_STR);
             $sth->bindParam(':pcm_link', $data['pcm_link'], PDO::PARAM_STR);
+            $sth->bindParam(':entites_beneficiaires_edf_enedis', $data['entites_beneficiaires_edf_enedis'], PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
@@ -729,8 +731,9 @@ class Sheet extends Model
             $data['supplier_vat_number'] = $data['supplier_vat_number'] ?? null;
             $data['contract_manager'] = $data['contract_manager'] ?? null;
             $data['pcm_link'] = $data['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $data['entites_beneficiaires_edf_enedis'] ?? null;
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -762,6 +765,7 @@ class Sheet extends Model
             $sth->bindParam(':supplier_vat_number', $data['supplier_vat_number'], PDO::PARAM_STR);
             $sth->bindParam(':contract_manager', $data['contract_manager'], PDO::PARAM_STR);
             $sth->bindParam(':pcm_link', $data['pcm_link'], PDO::PARAM_STR);
+            $sth->bindParam(':entites_beneficiaires_edf_enedis', $data['entites_beneficiaires_edf_enedis'], PDO::PARAM_STR);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {

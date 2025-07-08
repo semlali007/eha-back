@@ -409,6 +409,7 @@ class SheetRepository extends AbstractRepository {
             'Fournisseur numéro TVA intracommunautaire',
             'Fournisseur taille',
             'Bénéficiaires',
+            'Entités bénéficiaires d\'EDF SA / ENEDIS',
             'Stipulation pour autrui',
             'Zone géographique d\'application des marchés',
             'Comité de Gestion de la Demande',
@@ -590,6 +591,7 @@ class SheetRepository extends AbstractRepository {
                 $sheet['supplier_vat_number'], // Fournisseur numéro TVA intracommunautaire
                 $sheet['supplier_size_name'], // Fournisseur taille
                 $sheet['filiales'], // Bénéficiaires
+                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // Entités bénéficiaires d'EDF SA / ENEDIS
                 $sheet['filiales0'], // Stipulation pour autrui
                 $sheet['zones'], // Zone géographique d\'application des marchés
                 isset($sheet['committee']) ? $sheet['committee'] : '', // Comité de Gestion de la Demande
@@ -656,6 +658,7 @@ class SheetRepository extends AbstractRepository {
             'Secteur protégé',
             'Fournisseurs',
             'Bénéficiaires',
+            'Entités bénéficiaires d\'EDF SA / ENEDIS',
             'Stipulation pour autrui',
             'Zone géographique d’application des marchés',
             'Comité de Gestion de la Demande',
