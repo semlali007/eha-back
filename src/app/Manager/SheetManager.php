@@ -69,6 +69,8 @@ class SheetManager extends AbstractManager
             $data['contract_manager'] = $sheetData['contract_manager'] ?? null;
             $data['pcm_link'] = $sheetData['pcm_link'] ?? null;
             $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
+            $data['geographic_detail'] = $sheetData['geographic_detail'] ?? null;
+            $data['acheteur'] = $sheetData['acheteur'] ?? null;
             $data['status'] = $sheetData['status'] ?? '0';
 
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
@@ -695,6 +697,8 @@ class SheetManager extends AbstractManager
             $data['contract_manager'] = $sheetData['contract_manager'] ?? null;
             $data['pcm_link'] = $sheetData['pcm_link'] ?? null;
             $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
+            $data['geographic_detail'] = $sheetData['geographic_detail'] ?? null;
+            $data['acheteur'] = $sheetData['acheteur'] ?? null;
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];

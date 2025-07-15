@@ -395,28 +395,26 @@ class SheetRepository extends AbstractRepository {
         $header = [
             'Nom fiche',
             'Contrat groupe',
-            'Mise à jour de la donnée',
-            'Date de début part ferme',
-            'Date de fin part ferme',
+            'Mots clés',
+            'Date de début de validité',
+            'Date de fin de validité',
             'Options',
-            'Approvisionnement sous dauphin',
-            'Marché ouvert au personnel EDF',
-            'Stipulationautrui',
-            'Partenariat de productivité',
-            'Secteur protégé',
-            'Numéro(s) du contrat',
             'Fournisseurs',
             'Fournisseur numéro TVA intracommunautaire',
-            'Fournisseur taille',
             'Bénéficiaires',
-            'Entités bénéficiaires d\'EDF SA / ENEDIS',
             'Stipulation pour autrui',
-            'Zone géographique d\'application des marchés',
-            'Comité de Gestion de la Demande',
-            'Statut',
+            'Entités bénéficiaires d\'EDF SA / ENEDIS',
+            'Numéros de contrats',
             'Kit de portage',
-            'Mots clés',
-            'Contract manager / Acheteur',
+            'Comité de Gestion de la Demande',
+            'Zone géographique d\'application des marchés',
+            'Zone géographique détail si région',
+            'Approvisionnement sous dauphin',
+            'Marché ouvert au personnel EDF',
+            'Acheteur',
+            'Contract manager',
+            'Mise à jour de la donnée',
+            'Statut',
             'Commentaires'
         ];
         $csv = [
@@ -575,31 +573,29 @@ class SheetRepository extends AbstractRepository {
             
             // Préparer la ligne de données dans l'ordre du header
             $rowData = [
-                $sheet['label'], // Nom fiche
-                $sheet['contrat_groupe'], // Contrat groupe
-                $sheet['mise_a_jour_donnee'], // Mise à jour de la donnée
-                isset($sheet['start_date']) ? $sheet['start_date'] : '', // Date de début part ferme
-                isset($sheet['end_date']) ? $sheet['end_date'] : '', // Date de fin part ferme
-                $sheet['options'], // Options
-                $sheet['dauphin'], // Approvisionnement sous dauphin
-                $sheet['edf_open'], // Marché ouvert au personnel EDF
-                isset($sheet['stipulationautrui']) ? $sheet['stipulationautrui'] : '', // Stipulationautrui
-                $sheet['partnership'], // Partenariat de productivité
-                $sheet['protected_sector'], // Secteur protégé
-                '', // Numéro de contrat (sera rempli plus bas)
-                $sheet['providers'], // Fournisseurs
-                $sheet['supplier_vat_number'], // Fournisseur numéro TVA intracommunautaire
-                $sheet['supplier_size_name'], // Fournisseur taille
-                $sheet['filiales'], // Bénéficiaires
-                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // Entités bénéficiaires d'EDF SA / ENEDIS
-                $sheet['filiales0'], // Stipulation pour autrui
-                $sheet['zones'], // Zone géographique d\'application des marchés
-                isset($sheet['committee']) ? $sheet['committee'] : '', // Comité de Gestion de la Demande
-                $sheet['status'], // Statut
-                isset($sheet['deployment_kit']) ? $sheet['deployment_kit'] : '', // Kit de portage
-                isset($sheet['keywords']) ? $sheet['keywords'] : '', // Mots clés
-                $sheet['contract_manager'], // Contract manager / Acheteur
-                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // Commentaires
+                $sheet['label'], // 1. Nom fiche
+                $sheet['contrat_groupe'], // 2. Contrat groupe
+                isset($sheet['keywords']) ? $sheet['keywords'] : '', // 3. Mots clés
+                isset($sheet['start_date']) ? $sheet['start_date'] : '', // 4. Date de début de validité
+                isset($sheet['end_date']) ? $sheet['end_date'] : '', // 5. Date de fin de validité
+                $sheet['options'], // 6. Options
+                $sheet['providers'], // 7. Fournisseurs
+                $sheet['supplier_vat_number'], // 8. Fournisseur numéro TVA intracommunautaire
+                $sheet['filiales'], // 9. Bénéficiaires
+                $sheet['filiales0'], // 10. Stipulation pour autrui
+                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 11. Entités bénéficiaires d'EDF SA / ENEDIS
+                '', // 12. Numéros de contrats (sera rempli plus bas)
+                isset($sheet['deployment_kit']) ? $sheet['deployment_kit'] : '', // 13. Kit de portage
+                isset($sheet['committee']) ? $sheet['committee'] : '', // 14. Comité de Gestion de la Demande
+                $sheet['zones'], // 15. Zone géographique d'application des marchés
+                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 16. Zone géographique détail si région
+                $sheet['dauphin'], // 17. Approvisionnement sous dauphin
+                $sheet['edf_open'], // 18. Marché ouvert au personnel EDF
+                isset($sheet['acheteur']) ? $sheet['acheteur'] : '', // 19. Acheteur
+                $sheet['contract_manager'], // 20. Contract manager
+                $sheet['mise_a_jour_donnee'], // 21. Mise à jour de la donnée
+                $sheet['status'], // 22. Statut
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 23. Commentaires
             ];
             
             unset($sheet['id']);
@@ -608,7 +604,7 @@ class SheetRepository extends AbstractRepository {
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
-                    $rowData[11] = $m; // Numéro de contrat
+                    $rowData[11] = $m; // Numéros de contrats (position 12, index 11)
                     $csv['data'][] = $rowData;
                 }
             }
@@ -616,7 +612,7 @@ class SheetRepository extends AbstractRepository {
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
-                    $rowData[11] = $contract['contract_code']; // Numéro de contrat
+                    $rowData[11] = $contract['contract_code']; // Numéros de contrats (position 12, index 11)
                     $csv['data'][] = $rowData;
                 }
             }
