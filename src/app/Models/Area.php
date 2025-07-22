@@ -34,10 +34,19 @@ class Area extends Model
                 $search .= " AND  lower(name) LIKE '%$search_input%'  ";
             }
 
-            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ' . $search;
+            $query = 'SELECT DISTINCT id, name FROM ' . $this->table . ' ' . $search;
             $sth = $this->db->getPDO()->prepare($query);
             $sth->execute();
-            return  $sth->fetchall(PDO::FETCH_ASSOC);
+            
+            $rawData = $sth->fetchall(PDO::FETCH_ASSOC);
+            
+            // Mapper vers le format frontend {code, label}
+            return array_map(function($item) {
+                return [
+                    'code' => (string)$item['id'],
+                    'label' => $item['name']
+                ];
+            }, $rawData);
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
@@ -50,17 +59,48 @@ class Area extends Model
             $page = $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
 
-            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
+            $query = 'SELECT DISTINCT id, name FROM ' . $this->table . ' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
             $sth = $this->db->getPDO()->prepare($query);
 
             $sth->execute();
 
-            $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
+            $rawData = $sth->fetchall(PDO::FETCH_ASSOC);
+            
+            // Mapper vers le format frontend {code, label}
+            $mappedData = array_map(function($item) {
+                return [
+                    'code' => (string)$item['id'],
+                    'label' => $item['name']
+                ];
+            }, $rawData);
+
+            $data['data'] = $mappedData;
 
             $count_sql = "SELECT COUNT(*) FROM " . $this->table;
             $res = $this->db->getPDO()->query($count_sql);
             $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
             return $data;
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function getAllSimple()
+    {
+        try {
+            $query = 'SELECT DISTINCT id, name FROM ' . $this->table . ' ORDER BY name';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->execute();
+            
+            $rawData = $sth->fetchall(PDO::FETCH_ASSOC);
+            
+            // Retourner directement le format {code, label}
+            return array_map(function($item) {
+                return [
+                    'code' => (string)$item['id'], // Cohérent avec les autres méthodes
+                    'label' => $item['name']
+                ];
+            }, $rawData);
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

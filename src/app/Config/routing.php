@@ -73,6 +73,7 @@ $router->post('/stipulationAutrui/search', 'App\Controllers\StipulationControlle
 $router->post('/stipulationAutrui/add', 'App\Controllers\StipulationController@add', ["roles"=>['USER']]);
 $router->get('/stipulationAutrui/remove/:id', 'App\Controllers\StipulationController@remove', ["roles"=>['USER']]);
 
+$router->get('/areas', 'App\Controllers\AreaController@getList', ["roles"=>['USER']]);
 $router->get('/areas/autocomplete/:word', 'App\Controllers\AreaController@autocomplete', ["roles"=>['USER']]);
 $router->post('/areas/search', 'App\Controllers\AreaController@search', ["roles"=>['USER']]);
 $router->post('/areas/add', 'App\Controllers\AreaController@add', ["roles"=>['USER']]);
