@@ -36,6 +36,7 @@ class Sheet extends Model
     protected $sheetGroupTable;
     protected $searchCondition;
     protected $committeeTable;
+    protected $categoryTable;
     protected $sheetContract ;
     protected $subscriptionTable ;
 
@@ -53,6 +54,7 @@ class Sheet extends Model
         $this->sheetProviderTable = (new SheetProvider())->table;
         $this->sheetGroupTable = (new SheetGroup())->table;
         $this->committeeTable = (new Committee())->table;
+        $this->categoryTable = (new Category())->table;
         $this->subscriptionTable = (new Subscription())->table;
         $this->searchCondition = null;
         $this->sheetContract = (new SheetContract())->table ;
@@ -273,6 +275,12 @@ class Sheet extends Model
         $showcase = $options['showcase'] ?? '';
         if ($showcase !== '') {
             $this->addCondition($search, 's.showcase', [($showcase == true) ? 'true' : 'false']);
+        }
+    }
+    if (!is_array($forFilter) || !array_key_exists('categories', $forFilter)) {
+        $categories = $options['categories'] ?? [];
+        if (!empty($categories)) {
+            $this->addCondition($search, 's.category', $categories);
         }
     }
     if (!is_array($forFilter) || !array_key_exists('committees', $forFilter)) {
@@ -516,6 +524,18 @@ class Sheet extends Model
         }
     }
 
+    public function groupedByCategories($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, c.code as code, c.label as name FROM   " . $this->categoryTable . "  c " . " LEFT join {$this->table} s
+             ON c.code = s.category {$this->getSearchCondition($options,['categories'=>true])} GROUP BY c.code, c.label order by COUNT desc, c.label";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return $sth->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new \Exception("Error in groupedByCategories: " . $e->getMessage());
+        }
+    }
 
     public function groupedByCommittees($options)
     {

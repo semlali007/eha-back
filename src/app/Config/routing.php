@@ -208,6 +208,13 @@ $router->get('/categories', 'App\Controllers\CategoryController@index', ["roles"
 $router->post('/satisfaction/create', 'App\Controllers\SatisfactionController@create', ["roles"=>['USER']]);
 $router->get('/satisfaction/get/:nni/:cockpit_id', 'App\Controllers\SatisfactionController@get', ["roles"=>['USER']]);
 $router->get('/satisfaction/list', 'App\Controllers\SatisfactionController@list', ["roles"=>['USER']]);
+
+// ============================================
+// Mappings Organisation → Rôles
+// ============================================
+$router->get('/org-role-mappings', 'App\Controllers\OrgRoleMappingController@index', ["roles" => ['USER']]);
+$router->get('/org-role-mappings/:orgCode', 'App\Controllers\OrgRoleMappingController@getByOrganization', ["roles" => ['USER']]);
+
 //
 $router->post('/auth', 'App\Controllers\AuthController@authenticate', ["roles"=>['USER']]);
 

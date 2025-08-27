@@ -42,6 +42,7 @@ class SheetRepository extends AbstractRepository {
         $status = $sheet->groupedByStatus($options);
         $directions = $sheet->groupedByDirections($options);
         $contratGroupes = $sheet->groupedByContratGroupe($options);
+        $categories = $sheet->groupedByCategories($options);
         
         // Récupérer les données mise à jour donnée avec gestion d'erreur
         $miseAJourDonnees = [];
@@ -78,6 +79,7 @@ class SheetRepository extends AbstractRepository {
                         'areas' => $sheet->groupedByZone($options),
                         'providers' =>$sheet->groupedByProvider($options),
                         'directions' => self::addTooltip($directions),
+                        'categories' => $categories,
                         'committees' => $sheet->groupedByCommittees($options),
                         'contratGroupe' => self::addContratGroupeAttribute($contratGroupes),
                         'miseAJourDonnee' => self::addMiseAJourDonneeAttribute($miseAJourDonnees),
