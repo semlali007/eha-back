@@ -311,6 +311,25 @@ class Sheet extends Model
         }
     }
 
+    // Date range filtering
+    if (!is_array($forFilter) || !array_key_exists('date_range', $forFilter)) {
+        $dateStart = $options['dateStart'] ?? '';
+        $dateEnd = $options['dateEnd'] ?? '';
+        
+        if ($dateStart !== '' || $dateEnd !== '') {
+            if ($dateStart !== '' && $dateEnd !== '') {
+                // Both dates provided - filter sheets with start_date >= dateStart AND end_date <= dateEnd
+                $search .= " AND (s.start_date >= '" . addslashes($dateStart) . "' AND s.end_date <= '" . addslashes($dateEnd) . "')";
+            } elseif ($dateStart !== '') {
+                // Only start date - filter sheets with start_date >= dateStart
+                $search .= " AND s.start_date >= '" . addslashes($dateStart) . "'";
+            } elseif ($dateEnd !== '') {
+                // Only end date - filter sheets with end_date <= dateEnd
+                $search .= " AND s.end_date <= '" . addslashes($dateEnd) . "'";
+            }
+        }
+    }
+
         return $search;
     }
 
