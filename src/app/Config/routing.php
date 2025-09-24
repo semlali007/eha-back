@@ -218,6 +218,18 @@ $router->get('/org-role-mappings/:orgCode', 'App\Controllers\OrgRoleMappingContr
 //
 $router->post('/auth', 'App\Controllers\AuthController@authenticate', ["roles"=>['USER']]);
 
+// API Référentiels - Endpoints pour récupérer les listes de référence
+$router->get('/cockpit/categories', 'App\Controllers\ApiReferentialController@getCategories');
+$router->get('/cockpit/committees', 'App\Controllers\ApiReferentialController@getCommittees');
+$router->get('/cockpit/providers', 'App\Controllers\ApiReferentialController@getProviders');
+$router->get('/cockpit/beneficiaries', 'App\Controllers\ApiReferentialController@getBeneficiaries');
+$router->get('/cockpit/stipulations', 'App\Controllers\ApiReferentialController@getStipulations');
+$router->get('/cockpit/areas', 'App\Controllers\ApiReferentialController@getAreas');
+$router->get('/cockpit/referentials', 'App\Controllers\ApiReferentialController@getAllReferentials');
+
+// API Cockpit - Création directe de fiches sans token
+$router->post('/cockpit/sheets/add', 'App\Controllers\SheetController@addViaCockpit');
+
 
 //try {
 $data = $router->run();

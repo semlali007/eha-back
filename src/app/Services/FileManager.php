@@ -58,9 +58,17 @@ class FileManager
                 $this->setMessage("Destination is not writable !");
             else
             {
+                // Essayer d'abord move_uploaded_file (pour les vrais uploads HTTP)
                 if(move_uploaded_file($fileBrowse["tmp_name"],$this->destinationPath.'/'.$this->uploadName))
                 {
                     $result =   true;
+                }
+                // Si échec, essayer copy() pour les fichiers temporaires créés manuellement (API)
+                else if(file_exists($fileBrowse["tmp_name"]) && copy($fileBrowse["tmp_name"], $this->destinationPath.'/'.$this->uploadName))
+                {
+                    $result = true;
+                    // Nettoyer le fichier temporaire après copie
+                    unlink($fileBrowse["tmp_name"]);
                 }
                 else
                 {

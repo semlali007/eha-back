@@ -31,8 +31,11 @@ class AuthController extends Controller
 
         // Retourne le token
         echo json_encode(['access_token' => $accessToken]);
-    }
-
+    }  
+     
+    /**
+     * Génère un token JWT pour l'utilisateur
+     */
     public function generateAccessTokenForUser($nni)
     {
         $secretKey = 'eB?7csn7Wo?+';
