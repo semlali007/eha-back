@@ -727,8 +727,8 @@ class SheetManager extends AbstractManager
             // Vérifier si c'est un appel API externe avec override utilisateur
             $isExternalApiCall = isset($sheetData['external_api_call']) && $sheetData['external_api_call'] === true;
             
-            if ($isExternalApiCall && isset($sheetData['user_nni'])) {
-                // Override des champs utilisateur pour les appels API externes
+            if ($isExternalApiCall) {
+                // Override des champs utilisateur pour les appels API externes (depuis le token JWT)
                 $this->overrideUserFieldsFromJson($data, $sheetData);
             } else {
                 // Comportement normal : utiliser l'utilisateur authentifié
@@ -771,23 +771,31 @@ class SheetManager extends AbstractManager
     }
 
     /**
-     * Override des champs utilisateur depuis les données JSON pour les appels API externes
+     * Override des champs utilisateur pour les appels API externes
+     * Les informations utilisateur (user_nni, user_full_name) proviennent du token JWT 
+     * et sont ajoutées par le contrôleur avant d'arriver ici
      * Gère aussi la création des fichiers physiques à partir du base64
      */
     private function overrideUserFieldsFromJson(&$data, $sheetData)
     {
-        // Validation du NNI fourni
-        if (!$this->validateUserOverride($sheetData['user_nni'])) {
-            throw new Exception("NNI utilisateur non autorisé ou invalide: " . $sheetData['user_nni']);
+        // Vérification que les données utilisateur du JWT sont présentes
+        if (!isset($sheetData['user_nni']) || empty($sheetData['user_nni'])) {
+            throw new Exception("Données utilisateur manquantes dans les données JWT (user_nni requis)");
         }
-
-        $userNni = $sheetData['user_nni'];
         
-        // Override des champs utilisateur
+        $userNni = $sheetData['user_nni'];
+        $userFullName = $sheetData['user_full_name'] ?? $userNni;
+        
+        // Validation du NNI (provenant du token JWT décodé)
+        if (!$this->validateUserOverride($userNni)) {
+            throw new Exception("NNI utilisateur non autorisé ou invalide: " . $userNni);
+        }
+        
+        // Override des champs utilisateur avec les données du token JWT
         $data['created_by'] = $userNni;
         $data['updated_by'] = $userNni;
-        $data['created_by_full_name'] = $sheetData['user_full_name'] ?? $userNni;
-        $data['updated_by_full_name'] = $sheetData['user_full_name'] ?? $userNni;
+        $data['created_by_full_name'] = $userFullName;
+        $data['updated_by_full_name'] = $userFullName;
         
         // Gestion des fichiers kits - création physique pour simuler un upload normal
         if (isset($sheetData['kits']) && is_array($sheetData['kits'])) {
@@ -800,11 +808,6 @@ class SheetManager extends AbstractManager
      */
     private function validateUserOverride($nni)
     {
-        // Validation 1: Format NNI (6 caractères alphanumériques)
-        if (!preg_match('/^[A-Z0-9]{6}$/', $nni)) {
-            return false;
-        }
-        
         // Validation 2: Liste d'utilisateurs autorisés depuis les variables d'environnement
         $authorizedOverrideUsersEnv = getenv('COCKPIT_API_AUTHORIZED_USERS');
         $authorizedOverrideUsers = [];

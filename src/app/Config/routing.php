@@ -229,6 +229,7 @@ $router->get('/cockpit/referentials', 'App\Controllers\ApiReferentialController@
 
 // API Cockpit - Création directe de fiches sans token
 $router->post('/cockpit/sheets/add', 'App\Controllers\SheetController@addViaCockpit');
+$router->post('/cockpit/auth/login', 'App\Controllers\SheetController@login');
 
 
 //try {

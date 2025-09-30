@@ -8,6 +8,8 @@ use App\Models\SearchLogItem;
 use App\Repository\SheetRepository;
 use App\Services\FileService;
 use App\Services\ApiSheetValidator;
+use App\Services\CockpitJwtService;
+use App\Services\AuthService;
 use App\Repository\NotificationsRepository ;
 use App\Security\User;
 use Core\Http\Request;
@@ -84,6 +86,74 @@ class SheetController extends Controller {
         return $this->sheetManager->update($this->currentUser,$sheetData);
     }
 
+    /**
+     * Authentification pour obtenir un JWT token
+     * Route: POST /cockpit/auth/login
+     */
+    public function login()
+    {
+        try {
+            // Récupération et validation du JSON
+            $jsonInput = file_get_contents('php://input');
+            $data = json_decode($jsonInput, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode(['error' => 'JSON invalide: ' . json_last_error_msg()]);
+                return;
+            }
+
+            // Validation des champs requis
+            if (!isset($data['username']) || !isset($data['password'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Username et password requis']);
+                return;
+            }
+
+            // Authentification
+            $authService = new AuthService();
+            if (!$authService->authenticate($data['username'], $data['password'])) {
+                http_response_code(401);
+                echo json_encode(['error' => 'Identifiants incorrects']);
+                return;
+            }
+
+            // Récupération des infos utilisateur
+            $userInfo = $authService->getUserInfo($data['username']);
+            if (!$userInfo) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Erreur lors de la récupération des informations utilisateur']);
+                return;
+            }
+
+            // Génération du token JWT
+            $jwtService = new CockpitJwtService();
+            $token = $jwtService->generateToken(
+                $userInfo['user_id'],
+                $userInfo['user_nni'],
+                $userInfo['user_full_name']
+            );
+
+            // Réponse avec le token
+            echo json_encode([
+                'success' => true,
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_in' => 3600, // 1 heure
+                'user_info' => [
+                    'username' => $userInfo['username'],
+                    'user_nni' => $userInfo['user_nni'],
+                    'user_full_name' => $userInfo['user_full_name']
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Erreur login: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Erreur interne du serveur']);
+        }
+    }
+
     public function addViaCockpit()
     {
         try {
@@ -97,17 +167,30 @@ class SheetController extends Controller {
                 return;
             }
 
-            // Validation du mot de passe Cockpit
-            $expectedPassword = getenv('COCKPIT_API_PASS');
-            if (!isset($data['cockpit_password']) || $data['cockpit_password'] !== $expectedPassword) {
+            // Validation du token JWT
+            $jwtService = new CockpitJwtService();
+            $token = $jwtService->extractTokenFromHeader();
+            
+            if (!$token) {
                 http_response_code(401);
-                echo json_encode(['error' => 'Mot de passe Cockpit incorrect']);
+                echo json_encode(['error' => 'Token manquant. Utilisez Authorization: Bearer <token>']);
                 return;
             }
 
-            // Validation des données avec ApiSheetValidator
+            $tokenPayload = $jwtService->validateToken($token);
+            if (!$tokenPayload) {
+                http_response_code(401);
+                echo json_encode(['error' => 'Token invalide ou expiré']);
+                return;
+            }
+
+            // Récupérer les informations utilisateur depuis le token
+            $userNni = $tokenPayload['user_nni'] ?? null;
+            $userFullName = $tokenPayload['user_full_name'] ?? null;
+
+            // Validation et transformation des données avec ApiSheetValidator
             $validator = new ApiSheetValidator();
-            $validationResult = $validator->validate($data);
+            $validationResult = $validator->transformAndValidate($data);
             if (!$validationResult['valid']) {
                 http_response_code(400);
                 echo json_encode([
@@ -125,15 +208,20 @@ class SheetController extends Controller {
                 return;
             }
 
-            // Transformation du JSON pour compatibilité avec la fonction add()
-            $transformedData = $this->transformJsonForAdd($data);
+            // Utiliser les données transformées (booléens normalisés)
+            $transformedData = $this->transformJsonForAdd($validationResult['data']);
 
             // Création de la fiche via SheetManager
             $sheetManager = new SheetManager();
             
-            // Pour les appels API externes, on crée un utilisateur fictif
+            // Pour les appels API externes, on crée un utilisateur depuis le token
             $user = new User();
-            $user->setNni($data['user_nni'] ?? 'COCKPIT_API_USER');
+            $user->setNni($userNni ?? 'COCKPIT_API_USER');
+            
+            // Ajouter les informations utilisateur aux données transformées (depuis le token JWT)
+            $transformedData['user_nni'] = $userNni;
+            $transformedData['user_full_name'] = $userFullName;
+            $transformedData['external_api_call'] = true;
             
             $result = $sheetManager->add($user, $transformedData);
             
@@ -169,7 +257,7 @@ class SheetController extends Controller {
     {
         $transformedData = [];
 
-        // Champs directs
+        // Champs directs (user_nni et user_full_name viennent maintenant du token JWT)
         $directFields = [
             'label', 'description', 'words', 'start_date', 'end_date', 
             'status', 'dauphin', 'edf_open', 'showcase', 'committee', 
@@ -177,8 +265,7 @@ class SheetController extends Controller {
             'protected_sector', 'contrat_groupe', 'mise_a_jour_donnee',
             'supplier_vat_number', 'contract_manager',
             'entites_beneficiaires_edf_enedis', 
-            'geographic_detail', 'acheteur', 'external_api_call',
-            'user_nni', 'user_full_name'
+            'geographic_detail', 'acheteur', 'external_api_call'
         ];
 
         foreach ($directFields as $field) {
@@ -209,6 +296,23 @@ class SheetController extends Controller {
                 $value = strtolower($apiData['mise_a_jour_donnee']);
                 $transformedData['mise_a_jour_donnee'] = in_array($value, $validValues) ? $value : 'non';
             }
+        }
+
+        // Conversion des booléens vers le format attendu par la base de données
+        $booleanToStringFields = [
+            'dauphin', 'edf_open', 'stipulation_for_others', 
+            'partnership', 'protected_sector', 'showcase'
+        ];
+        
+        foreach ($booleanToStringFields as $field) {
+            if (isset($transformedData[$field]) && is_bool($transformedData[$field])) {
+                $transformedData[$field] = $transformedData[$field] ? 1 : 0;
+            }
+        }
+        
+        // Traitement spécial pour contrat_groupe (attend 'true'/'false' comme chaînes)
+        if (isset($transformedData['contrat_groupe']) && is_bool($transformedData['contrat_groupe'])) {
+            $transformedData['contrat_groupe'] = $transformedData['contrat_groupe'] ? 'true' : 'false';
         }
 
         // Passer les fichiers kits tels quels - ils seront traités dans overrideUserFieldsFromJson

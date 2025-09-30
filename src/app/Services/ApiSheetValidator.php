@@ -18,6 +18,24 @@ class ApiSheetValidator
     private $errors = [];
     
     /**
+     * Transforme et normalise les données JSON pour la création d'une fiche via API
+     */
+    public function transformAndValidate($data)
+    {
+        // Transformation des booléens
+        $data = $this->transformBooleans($data);
+        
+        // Validation classique
+        $result = $this->validate($data);
+        
+        return [
+            'valid' => $result['valid'],
+            'errors' => $result['errors'],
+            'data' => $data // Données transformées
+        ];
+    }
+    
+    /**
      * Valide les données JSON pour la création d'une fiche via API
      */
     public function validate($data)
@@ -48,9 +66,7 @@ class ApiSheetValidator
     private function validateRequired($data)
     {
         $requiredFields = [
-            'cockpit_password' => 'Mot de passe API obligatoire',
-            'external_api_call' => 'Flag external_api_call obligatoire',
-            'user_nni' => 'NNI utilisateur obligatoire',
+            // Note: authentification maintenant gérée par JWT token
             'providers' => 'Le champ providers est obligatoire',
             'zones' => 'Le champ zones est obligatoire',
             'category' => 'Le champ category est obligatoire',
@@ -78,12 +94,12 @@ class ApiSheetValidator
      */
     private function validateTypes($data)
     {
-        // Champs booléens
+        // Champs booléens - après transformation, on accepte uniquement true/false
         $booleanFields = ['external_api_call', 'draft', 'dauphin', 'edf_open', 'showcase', 
                          'stipulation_for_others', 'partnership', 'protected_sector', 'contrat_groupe'];
         
         foreach ($booleanFields as $field) {
-            if (isset($data[$field]) && !is_bool($data[$field]) && !in_array($data[$field], [0, 1, '0', '1', 'true', 'false'])) {
+            if (isset($data[$field]) && !is_bool($data[$field])) {
                 $this->errors[] = "Le champ '$field' doit être un booléen (true/false)";
             }
         }
@@ -424,6 +440,51 @@ class ApiSheetValidator
         
         $d = \DateTime::createFromFormat('Y-m-d', $date);
         return $d && $d->format('Y-m-d') === $date;
+    }
+    
+    /**
+     * Transforme les valeurs booléennes diverses en booléens stricts (true/false)
+     * Convertit 0, '0', 'false' vers false et 1, '1', 'true' vers true
+     */
+    private function transformBooleans($data)
+    {
+        $booleanFields = [
+            'external_api_call', 'draft', 'dauphin', 'edf_open', 'showcase',
+            'stipulation_for_others', 'partnership', 'protected_sector', 'contrat_groupe'
+        ];
+        
+        foreach ($booleanFields as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = $this->normalizeBooleanValue($data[$field]);
+            }
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Normalise une valeur vers un booléen strict
+     */
+    private function normalizeBooleanValue($value)
+    {
+        // Si c'est déjà un booléen, on le retourne tel quel
+        if (is_bool($value)) {
+            return $value;
+        }
+        
+        // Conversion des valeurs "falsy" vers false
+        if (in_array($value, [0, '0', 'false', false], true)) {
+            return false;
+        }
+        
+        // Conversion des valeurs "truthy" vers true
+        if (in_array($value, [1, '1', 'true', true], true)) {
+            return true;
+        }
+        
+        // Si la valeur n'est pas reconnue, on la retourne telle quelle
+        // (elle sera rejetée lors de la validation)
+        return $value;
     }
     
     /**
