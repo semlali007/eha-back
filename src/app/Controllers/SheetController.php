@@ -59,7 +59,18 @@ class SheetController extends Controller {
 
     public function show(int $id) {
         $this->currentNni = $this->getCurrentUser()->getNni();
-        return $this->response(['sheet' => $this->sheetRepository->getDetails($id, $this->currentNni)]);
+        $sheet = $this->sheetRepository->getDetails($id, $this->currentNni);
+        
+        // Vérifier les droits d'accès selon le statut de la fiche
+        $user = $this->getCurrentUser();
+        if (isset($sheet['status']) && ($sheet['status'] == 0 || $sheet['status'] == -1)) {
+            // Les fiches en brouillon (0) ou archivées (-1) ne sont visibles que par ADMIN et GESTIONNAIRE
+            if (!$user->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])) {
+                return $this->response(['error' => 'Accès non autorisé à cette fiche'], 403);
+            }
+        }
+        
+        return $this->response(['sheet' => $sheet]);
     }
 
     public function history() {
