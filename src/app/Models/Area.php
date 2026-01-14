@@ -29,13 +29,20 @@ class Area extends Model
     {
         try {
             $search = ' WHERE 1 = 1 ';
+            $params = [];
+            
             if (isset($options) && isset($options['name']) && strlen($options['name']) > 0) {
-                $search_input = strtolower($options['name']);
-                $search .= " AND  lower(name) LIKE '%$search_input%'  ";
+                $search .= " AND lower(name) LIKE :search_name ";
+                $params[':search_name'] = '%' . strtolower($options['name']) . '%';
             }
 
             $query = 'SELECT DISTINCT id, name FROM ' . $this->table . ' ' . $search;
             $sth = $this->db->getPDO()->prepare($query);
+            
+            foreach ($params as $key => $value) {
+                $sth->bindValue($key, $value, PDO::PARAM_STR);
+            }
+            
             $sth->execute();
             
             $rawData = $sth->fetchall(PDO::FETCH_ASSOC);
@@ -55,31 +62,17 @@ class Area extends Model
     public function getPaginatedList($options)
     {
         try {
-            $perpage = $options['perpage'] ?? 5;
-            $page = $options['page'] ?? 1;
-            $page = ($page - 1) * $perpage;
-
-            $query = 'SELECT DISTINCT id, name FROM ' . $this->table . ' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
-            $sth = $this->db->getPDO()->prepare($query);
-
-            $sth->execute();
-
-            $rawData = $sth->fetchall(PDO::FETCH_ASSOC);
-            
-            // Mapper vers le format frontend {code, label}
-            $mappedData = array_map(function($item) {
-                return [
-                    'code' => (string)$item['id'],
-                    'label' => $item['name']
-                ];
-            }, $rawData);
-
-            $data['data'] = $mappedData;
-
-            $count_sql = "SELECT COUNT(*) FROM " . $this->table;
-            $res = $this->db->getPDO()->query($count_sql);
-            $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
-            return $data;
+            return $this->getSecurePaginatedList(
+                $options,
+                'name',
+                ['id', 'name'],
+                function($item) {
+                    return [
+                        'code' => (string)$item['id'],
+                        'label' => $item['name']
+                    ];
+                }
+            );
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

@@ -59,15 +59,22 @@ class SheetProvider extends Model
                 $query = '
                 DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId 
                 ";
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             } else {
-                $providers = "('" . implode("','", $providerCodes) . "')";
+                // Échapper chaque code provider
+                $escapedCodes = array_map(function($code) {
+                    return str_replace("'", "''", $code);
+                }, $providerCodes);
+                $providers = "('" . implode("','", $escapedCodes) . "')";
+                
                 $query = '
                 DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId AND provider_code NOT IN  $providers
                 ";
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             }
 
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             $res =  $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();

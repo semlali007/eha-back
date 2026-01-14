@@ -14,13 +14,20 @@ class Provider extends Model
     {
         try {
             $search = ' WHERE 1 = 1 ';
+            $params = [];
+            
             if (isset($options) && isset($options['name']) && strlen($options['name']) > 0) {
-                $search_input = strtolower($options['name']);
-                $search .= " AND  lower(provider_label) LIKE '%$search_input%'  ";
+                $search .= " AND lower(provider_label) LIKE :search_name ";
+                $params[':search_name'] = '%' . strtolower($options['name']) . '%';
             }
 
             $query = 'SELECT DISTINCT provider_code as id, provider_label as name FROM ' . $this->table . ' ' . $search;
             $sth = $this->db->getPDO()->prepare($query);
+            
+            foreach ($params as $key => $value) {
+                $sth->bindValue($key, $value, PDO::PARAM_STR);
+            }
+            
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -31,17 +38,11 @@ class Provider extends Model
     public function getPaginatedList($options)
     {
         try {
-            $perpage = $options['perpage'] ?? 5;
-            $page = $options['page'] ?? 1;
-            $page = ($page - 1) * $perpage;
-            $query = 'SELECT DISTINCT provider_code as id, provider_label as name FROM ' . $this->table . ' ORDER BY provider_label ' . ' LIMIT ' . $perpage . ' offset ' . $page;
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->execute();
-            $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
-            $count_sql = "SELECT COUNT(*) FROM " . $this->table;
-            $res = $this->db->getPDO()->query($count_sql);
-            $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
-            return $data;
+            return $this->getSecurePaginatedList(
+                $options,
+                'provider_label',
+                ['provider_code as id', 'provider_label as name']
+            );
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

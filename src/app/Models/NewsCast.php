@@ -45,13 +45,20 @@ class NewsCast extends Model
     {
         try {
             $search = ' WHERE 1 = 1 ';
+            $params = [];
+            
             if (isset($options) && isset($options['name']) && strlen($options['name']) > 0) {
-                $search_input = strtolower($options['name']);
-                $search .= " AND  lower(name) LIKE '%$search_input%'  ";
+                $search .= " AND lower(name) LIKE :search_name ";
+                $params[':search_name'] = '%' . strtolower($options['name']) . '%';
             }
 
             $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ' . $search;
             $sth = $this->db->getPDO()->prepare($query);
+            
+            foreach ($params as $key => $value) {
+                $sth->bindValue($key, $value, PDO::PARAM_STR);
+            }
+            
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {

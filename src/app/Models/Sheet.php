@@ -955,8 +955,9 @@ class Sheet extends Model
     {
         $contractLink = 'app/contrat/details/' . $contractCode;
         try {
-            $query = "SELECT s.id,s.label  FROM  {$this->table}  s  WHERE s.content LIKE '%$contractLink%'" ;
+            $query = "SELECT s.id,s.label FROM {$this->table} s WHERE s.content LIKE :contractLink";
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindValue(':contractLink', '%' . $contractLink . '%', PDO::PARAM_STR);
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
