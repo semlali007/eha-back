@@ -13,7 +13,7 @@ class HotlineThemeController extends Controller
     private  $hotlineThemeManager;
     public function __construct($roles = [])
     {
-        parent::__construct( $roles);
+        parent::__construct($roles);
         $this->hotlineThemeRepository = new HotlineThemeRepository();
         $this->hotlineThemeManager = new HotlineThemeManager();
     }
