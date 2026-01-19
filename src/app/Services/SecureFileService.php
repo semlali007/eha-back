@@ -245,7 +245,7 @@ class SecureFileService
         );
         
         // Logger dans un fichier de sécurité
-        $logFile = getenv("LOG_PATH") . DIRECTORY_SEPARATOR . 'security-' . date('Y-m-d') . '.log';
+        $logFile = getenv("DEFAULT_LOGS_PATH") . DIRECTORY_SEPARATOR . 'security-' . date('Y-m-d') . '.log';
         error_log($logMessage, 3, $logFile);
         
         // Optionnel: envoyer une alerte email pour les tentatives suspectes
