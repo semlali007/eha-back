@@ -173,7 +173,7 @@ abstract class Controller
     /**
      * Extrait le code organisation depuis le department SAML
      * 
-     * Exemple: "/EDF/9651/9803/9708/9708-3/6217M/621727/62172702" → "621727"
+     * Exemple: "/EDF/9651/9803/9708/9708-3/6217M/621727/62172702/62172702B" → "621727"
      * 
      * @param string $department Chemin complet du department
      * @return string|null Code organisation (avant-dernier segment)
@@ -187,13 +187,13 @@ abstract class Controller
         // Supprimer les slashs de début/fin et découper
         $parts = explode('/', trim($department, '/'));
         
-        // Vérifier qu'il y a au moins 2 segments
-        if (count($parts) < 2) {
+        // Prendre le segment à la position 6 (7ème élément)
+        // Ex: /EDF/9651/9803/9708/9708-3/6217M/621727/62172702/62172702B → 621727
+        if (count($parts) < 7) {
             return null;
         }
         
-        // Prendre l'avant-dernier segment
-        $orgSegment = $parts[count($parts) - 2];
+        $orgSegment = $parts[6];
         
         // Vérifier que c'est un code valide (chiffres uniquement ou alphanumériques)
         if (preg_match('/^[0-9A-Z]+$/i', $orgSegment)) {

@@ -615,6 +615,11 @@ class Sheet extends Model
             return $this;
         }
 
+        // Ensure $value is always an array
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
         // Quote string values properly for SQL
         $quotedValues = array_map(function($val) {
             return "'" . addslashes($val) . "'";
