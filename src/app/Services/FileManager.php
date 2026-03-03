@@ -38,9 +38,15 @@ class FileManager
     public function uploadFile($fileBrowse){
         $result =   false;
         $size   =   $fileBrowse["size"];
-        $name   =   $fileBrowse["name"];
-        $ext    =   pathinfo($name,PATHINFO_EXTENSION);
+        $name   =   basename($fileBrowse["name"]);
+        $ext    =   strtolower(pathinfo($name,PATHINFO_EXTENSION));
         
+        // Valider que l'extension ne contient que des caractères alphanumériques
+        if (!preg_match('/^[a-zA-Z0-9]+$/', $ext)) {
+            $this->setMessage("Invalid file extension !");
+            return false;
+        }
+
         $this->uploadName = bin2hex(random_bytes(10)) . "." . $ext;
 
         if(empty($name))
@@ -50,21 +56,33 @@ class FileManager
         else if(in_array($ext,$this->extensions))
         {
             if(!is_dir($this->destinationPath))
-                mkdir($this->destinationPath);
+                mkdir($this->destinationPath, 0755, true);
         
-            if(file_exists($this->destinationPath.'/'.$this->uploadName))
+            // Vérifier que le chemin destination résolu reste dans le répertoire prévu
+            $realDestination = realpath($this->destinationPath);
+            if ($realDestination === false) {
+                $this->setMessage("Invalid destination path !");
+                return false;
+            }
+
+            $targetFile = $realDestination . DIRECTORY_SEPARATOR . $this->uploadName;
+
+            if(file_exists($targetFile))
                 $this->setMessage("File already exists. !");
-            else if(!is_writable($this->destinationPath))
+            else if(!is_writable($realDestination))
                 $this->setMessage("Destination is not writable !");
             else
             {
                 // Essayer d'abord move_uploaded_file (pour les vrais uploads HTTP)
-                if(move_uploaded_file($fileBrowse["tmp_name"],$this->destinationPath.'/'.$this->uploadName))
+                if(move_uploaded_file($fileBrowse["tmp_name"], $targetFile))
                 {
                     $result =   true;
                 }
                 // Si échec, essayer copy() pour les fichiers temporaires créés manuellement (API)
-                else if(file_exists($fileBrowse["tmp_name"]) && copy($fileBrowse["tmp_name"], $this->destinationPath.'/'.$this->uploadName))
+                // Vérifier que tmp_name est dans le répertoire temporaire système
+                else if(file_exists($fileBrowse["tmp_name"])
+                    && $this->isInTempDirectory($fileBrowse["tmp_name"])
+                    && copy($fileBrowse["tmp_name"], $targetFile))
                 {
                     $result = true;
                     // Nettoyer le fichier temporaire après copie
@@ -81,6 +99,23 @@ class FileManager
             $this->setMessage("Invalid file format !");
         }
         return $result;
+    }
+
+    /**
+     * Vérifie que le fichier se trouve dans le répertoire temporaire système.
+     * Protection contre la lecture de fichiers arbitraires via le fallback copy().
+     *
+     * @param string $filePath
+     * @return bool
+     */
+    private function isInTempDirectory($filePath)
+    {
+        $tempDir = realpath(sys_get_temp_dir());
+        $realFilePath = realpath($filePath);
+        if ($tempDir === false || $realFilePath === false) {
+            return false;
+        }
+        return strpos($realFilePath, $tempDir) === 0;
     }
 
     public function deleteUploaded($uploadName)

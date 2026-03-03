@@ -39,7 +39,7 @@ class FileUpload
                 $data = $media['value'];
                 foreach ($data['tmp_name'] as $key => $value) {
                     $file['tmp_name'] = $data['tmp_name'][$key];
-                    $file['name'] = $data['name'][$key];
+                    $file['name'] = basename($data['name'][$key]);
                     $file['size'] = $data['size'][$key];
 
                     if ($fileManager->uploadFile($file)) {
