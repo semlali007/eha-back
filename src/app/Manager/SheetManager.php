@@ -672,7 +672,7 @@ class SheetManager extends AbstractManager
             return json_encode([
                 'status' => 500,
                 'error' => $ex->getMessage(),
-                'warning' => (new FileUpload())->deleteFilesFromFolder($dirPath, $data['files'])
+                'warning' => (new FileUpload())->deleteFilesFromFolder($dirPath, $data['files'] ?? [])
             ]);
         }
     }
@@ -846,19 +846,40 @@ class SheetManager extends AbstractManager
                     continue;
                 }
 
-                $fileName = $fileData['name'];
+                // Sécurisation du nom de fichier : supprimer toute séquence de traversée
+                $fileName = basename($fileData['name']);
                 $decodedContent = null;
                 $mimeType = null;
 
                 // Méthode 1: Chemin local (recommandé)
                 if (isset($fileData['path']) && !empty($fileData['path'])) {
                     $localPath = $fileData['path'];
-                    
+
+                    // Bloquer les wrappers PHP (php://, data://, expect://, http://, ftp://, etc.)
+                    if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.\-]*://#', $localPath)) {
+                        continue;
+                    }
+
+                    // Vérifier que le chemin ne contient pas de séquences de traversée
+                    if (strpos($localPath, '..') !== false) {
+                        continue;
+                    }
+
                     if (!file_exists($localPath)) {
                         continue;
                     }
 
+                    // Vérifier que c'est un fichier régulier (pas un lien symbolique, un répertoire, etc.)
+                    if (!is_file($localPath) || is_link($localPath)) {
+                        continue;
+                    }
+
                     if (!is_readable($localPath)) {
+                        continue;
+                    }
+
+                    // Valider que le chemin résolu est dans un répertoire autorisé
+                    if (!$this->isAllowedSourcePath($localPath)) {
                         continue;
                     }
 
@@ -1589,6 +1610,48 @@ class SheetManager extends AbstractManager
         
         return $content;
 
+    }
+
+    /**
+     * Vérifie que le chemin source est dans un répertoire autorisé.
+     * Protection contre l'Absolute Path Traversal et la lecture de fichiers arbitraires.
+     *
+     * @param string $filePath
+     * @return bool
+     */
+    private function isAllowedSourcePath($filePath)
+    {
+        $realPath = realpath($filePath);
+        if ($realPath === false) {
+            return false;
+        }
+
+        // Liste des répertoires autorisés pour la lecture de fichiers source
+        $allowedDirs = [];
+
+        // Répertoire d'upload configuré
+        $uploadPath = getenv('CONFIG_UPLOAD_PATH');
+        if ($uploadPath) {
+            $realUploadPath = realpath($uploadPath);
+            if ($realUploadPath !== false) {
+                $allowedDirs[] = $realUploadPath;
+            }
+        }
+
+        // Répertoire temporaire système
+        $tempDir = realpath(sys_get_temp_dir());
+        if ($tempDir !== false) {
+            $allowedDirs[] = $tempDir;
+        }
+
+        // Vérifier que le chemin résolu est dans un des répertoires autorisés
+        foreach ($allowedDirs as $allowedDir) {
+            if (strpos($realPath, $allowedDir . DIRECTORY_SEPARATOR) === 0 || $realPath === $allowedDir) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
