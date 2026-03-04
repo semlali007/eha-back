@@ -328,12 +328,12 @@ class SheetController extends Controller {
 
         // Passer les fichiers kits tels quels - ils seront traités dans overrideUserFieldsFromJson
         if (isset($apiData['kits']) && is_array($apiData['kits'])) {
-            $transformedData['kits'] = $apiData['kits'];
+            $transformedData['kits'] = $this->sanitizeKitsData($apiData['kits']);
         }
         
         // Compatibilité avec l'ancien format 'files' (si encore utilisé)
         if (isset($apiData['files']) && is_array($apiData['files'])) {
-            $transformedData['kits'] = $apiData['files'];
+            $transformedData['kits'] = $this->sanitizeKitsData($apiData['files']);
         }
 
         // Gestion du champ draft (optionnel - le status est maintenant obligatoire)
@@ -343,6 +343,47 @@ class SheetController extends Controller {
         }
 
         return $transformedData;
+    }
+
+    /**
+     * Assainit les données kits pour bloquer les tentatives de SSRF et Path Traversal.
+     * Défense en profondeur au niveau du contrôleur (point d'entrée).
+     *
+     * @param array $kitsData
+     * @return array
+     */
+    private function sanitizeKitsData(array $kitsData): array
+    {
+        $sanitized = [];
+        foreach ($kitsData as $kit) {
+            if (!is_array($kit)) {
+                continue;
+            }
+
+            // Assainir le nom du fichier
+            if (isset($kit['name'])) {
+                $kit['name'] = basename($kit['name']);
+            }
+
+            // Valider le champ path s'il existe
+            if (isset($kit['path']) && !empty($kit['path'])) {
+                $path = $kit['path'];
+
+                // Bloquer les URL / wrappers PHP (SSRF)
+                if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.\-]*://#', $path)) {
+                    // Supprimer le path dangereux, le fichier sera ignoré en aval
+                    unset($kit['path']);
+                }
+
+                // Bloquer les séquences de traversée
+                if (isset($kit['path']) && strpos($kit['path'], '..') !== false) {
+                    unset($kit['path']);
+                }
+            }
+
+            $sanitized[] = $kit;
+        }
+        return $sanitized;
     }
 
     public function add() {

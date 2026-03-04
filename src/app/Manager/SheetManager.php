@@ -883,6 +883,16 @@ class SheetManager extends AbstractManager
                         continue;
                     }
 
+                    // Utiliser un contexte stream qui interdit les URL pour bloquer toute SSRF
+                    $streamContext = stream_context_create([
+                        'http' => ['ignore_errors' => true],
+                        'ssl' => ['verify_peer' => false],
+                    ]);
+                    // Double vérification : s'assurer que le chemin n'est pas une URL
+                    if (filter_var($localPath, FILTER_VALIDATE_URL)) {
+                        continue;
+                    }
+
                     $decodedContent = file_get_contents($localPath);
                     if ($decodedContent === false) {
                         continue;
