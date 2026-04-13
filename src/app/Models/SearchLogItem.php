@@ -10,6 +10,7 @@ use App\Models\SearchAssociated;
 class SearchLogItem extends Model
 {
     protected $tableName = 'search_logs_items';
+    protected $associatedTable;
 
 
     public function __construct()

@@ -32,7 +32,11 @@ class SheetRepository extends AbstractRepository {
 
     public function search($options, $userNni = null) {
 
-        $options['words'] = $this->getFormattedWords($options['search']['searchText']);
+        try {
+            $options['words'] = $this->getFormattedWords($options['search']['searchText']);
+        } catch (\Exception $e) {
+            $options['words'] = '';
+        }
         $sheet = new Sheet();
         $options['userNni'] = $userNni;
         $sectors = $sheet->groupedBySector($options);

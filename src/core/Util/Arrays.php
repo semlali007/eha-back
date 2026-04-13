@@ -62,7 +62,7 @@ class Arrays {
         $worldsList = str_replace($articles, "", $worldsList);
         $list = [];
         foreach ($worldsList as $w) {
-            if (strlen($w) > 2) {
+            if (strlen($w) >= 2) {
                 if (!str_ends_with($w, 's')) {
                     $list[] = $w . 's';
                 } else {
