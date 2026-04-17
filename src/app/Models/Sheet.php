@@ -207,17 +207,18 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->subscriptionTable} ss on ss.sheet_id = s.id and ss.user_nni = '$userNni' ";
         }
 
-        $searchProvider = (strtolower($options['searchProvider'] ?? ""));
-        if (($searchProvider != '')) {
-            $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
+        $searchProviderRaw = strtolower(trim($options['searchProvider'] ?? ""));
+        if ($searchProviderRaw != '') {
+            $searchProvider = Arrays::getFormattedWords($searchProviderRaw);
+            $searchProviderEscaped = addslashes($searchProviderRaw);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
-            $search .= " INNER JOIN 
+            $search .= " LEFT JOIN
             (
-                select sheet_id 
-                from {$this->sheetProviderTable}  
+                select sheet_id
+                from {$this->sheetProviderTable}
                 where $condition
-            ) spa 
+            ) spa
             on spa.sheet_id = s.id  ";
         }
         $search_input = (strtolower($options['searchText'] ?? ""));
@@ -236,6 +237,11 @@ class Sheet extends Model
             $search .= " WHERE   1=1 ";
         }
 
+        // Filtre searchProvider : par nom fournisseur OU par numéro TVA
+        if ($searchProviderRaw != '') {
+            $searchProviderEscaped = addslashes($searchProviderRaw);
+            $search .= " AND (spa.sheet_id IS NOT NULL OR lower(s.supplier_vat_number) LIKE '%{$searchProviderEscaped}%') ";
+        }
 
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
