@@ -457,6 +457,7 @@ class SheetRepository extends AbstractRepository {
             'Contract manager',
             'Mise à jour de la donnée',
             'Statut',
+            'Dernière modification',
             'Commentaires'
         ];
         $csv = [
@@ -657,7 +658,8 @@ class SheetRepository extends AbstractRepository {
                 $sheet['contract_manager'], // 22. Contract manager
                 $sheet['mise_a_jour_donnee'], // 23. Mise à jour de la donnée
                 $sheet['status'], // 24. Statut
-                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 25. Commentaires
+                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 25. Dernière modification
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 26. Commentaires
             ];
             
             unset($sheet['id']);
