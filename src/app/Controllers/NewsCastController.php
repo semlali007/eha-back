@@ -79,4 +79,13 @@ class NewsCastController extends Controller
         return  $this->response($this->newsRepository->frontList($options));
     }
 
+    public function frontGetNews($id){
+        return  $this->response($this->newsRepository->getPublishedNews($id));
+    }
+
+    public function frontGetCategories()
+    {
+        return  $this->response($this->newsRepository->getCategories());
+    }
+
 }

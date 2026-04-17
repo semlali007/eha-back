@@ -190,6 +190,8 @@ $router->post('/admin/news-cast/sort', 'App\Controllers\NewsCastController@sort'
 $router->post('/admin/news-cast/delete', 'App\Controllers\NewsCastController@delete', ["roles"=>['ADMIN']]);
 
 $router->post('/news-cast/list', 'App\Controllers\NewsCastController@frontList', ["roles" => ['USER']]);
+$router->get('/news-cast/get/:id', 'App\Controllers\NewsCastController@frontGetNews', ["roles" => ['USER']]);
+$router->get('/news-cast/categories', 'App\Controllers\NewsCastController@frontGetCategories', ["roles" => ['USER']]);
 
 $router->post('/purchases-situation/list', 'App\Controllers\PurchaseController@listV2',["roles"=>['USER']]);
 
