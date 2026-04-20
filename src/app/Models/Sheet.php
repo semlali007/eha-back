@@ -69,12 +69,12 @@ class Sheet extends Model
             $direction = $options['direction'] ?? 'desc';
 
             $data = [];
-            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as filiales0, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words, sss.contrat_groupe, sss.mise_a_jour_donnee, sss.id_supplier_size, sss.supplier_vat_number, sss.entites_beneficiaires_edf_enedis, sss.contract_manager, sss.pcm_link, sss.geographic_detail, sss.acheteur 
+            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as filiales0, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words, sss.contrat_groupe, sss.mise_a_jour_donnee, sss.id_supplier_size, sss.supplier_vat_number, sss.entites_beneficiaires_edf_enedis, sss.contract_manager, sss.pcm_link, sss.geographic_detail, sss.acheteur, sss.formated_updated_date, sss.updated_by_full_name
             from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
 
             QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
-            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link, s.geographic_detail, s.acheteur
+            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.updated_by_full_name, s.content, s.search_words, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link, s.geographic_detail, s.acheteur
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                       {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction} , RANK desc, RANK1 desc
                       )
@@ -207,17 +207,18 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->subscriptionTable} ss on ss.sheet_id = s.id and ss.user_nni = '$userNni' ";
         }
 
-        $searchProvider = (strtolower($options['searchProvider'] ?? ""));
-        if (($searchProvider != '')) {
-            $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
+        $searchProviderRaw = strtolower(trim($options['searchProvider'] ?? ""));
+        if ($searchProviderRaw != '') {
+            $searchProvider = Arrays::getFormattedWords($searchProviderRaw);
+            $searchProviderEscaped = addslashes($searchProviderRaw);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
-            $search .= " INNER JOIN 
+            $search .= " LEFT JOIN
             (
-                select sheet_id 
-                from {$this->sheetProviderTable}  
+                select sheet_id
+                from {$this->sheetProviderTable}
                 where $condition
-            ) spa 
+            ) spa
             on spa.sheet_id = s.id  ";
         }
         $search_input = (strtolower($options['searchText'] ?? ""));
@@ -236,6 +237,11 @@ class Sheet extends Model
             $search .= " WHERE   1=1 ";
         }
 
+        // Filtre searchProvider : par nom fournisseur OU par numéro TVA
+        if ($searchProviderRaw != '') {
+            $searchProviderEscaped = addslashes($searchProviderRaw);
+            $search .= " AND (spa.sheet_id IS NOT NULL OR lower(s.supplier_vat_number) LIKE '%{$searchProviderEscaped}%') ";
+        }
 
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];

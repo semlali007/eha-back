@@ -119,8 +119,22 @@ class NewsCast extends Model
     public function get($id)
     {
         try {
-            $query = 'SELECT n.*, nc.label as categ, nc.code as categ_code  FROM ' . $this->table . ' n LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc 
+            $query = 'SELECT n.*, nc.label as categ, nc.code as categ_code  FROM ' . $this->table . ' n LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc
 			ON nc.id = n.category WHERE n.id=:id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function getPublished($id)
+    {
+        try {
+            $query = 'SELECT n.*, nc.label as categ, nc.code as categ_code  FROM ' . $this->table . ' n LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc
+			ON nc.id = n.category WHERE n.id=:id AND n.status = 1';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
