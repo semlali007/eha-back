@@ -388,12 +388,21 @@ class SheetController extends Controller {
 
     public function add() {
         $sheetData = json_decode($_POST['model'], true);
-        
+
+        if (is_array($sheetData) && isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $sheetData['kits'] = $this->sanitizeKitsData($sheetData['kits']);
+        }
+
         return $this->sheetManager->add($this->currentUser, $sheetData);
     }
 
     public function addDraft() {
         $sheetData = json_decode($_POST['model'], true);
+
+        if (is_array($sheetData) && isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $sheetData['kits'] = $this->sanitizeKitsData($sheetData['kits']);
+        }
+
         $sheetData['draft'] = true;
         return $this->sheetManager->add($this->currentUser,$sheetData);
     }
