@@ -1426,8 +1426,8 @@ class SheetManager extends AbstractManager
         }
 
         foreach ($foldersList as $kit) {
-            $kitFolderName = str_replace(" ", "_", $kit['lookupValue']);
-            if (!empty($kitFolderName)) {
+            $kitFolderName = str_replace(" ", "_", basename($kit['lookupValue']));
+            if (!empty($kitFolderName) && strpos($kitFolderName, '..') === false) {
                 if (is_dir($sourceDepDoc . $kitFolderName)) {
                     $docDep = scandir($sourceDepDoc . $kitFolderName);
                     if ($docDep !== false) {
