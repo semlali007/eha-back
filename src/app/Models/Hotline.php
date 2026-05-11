@@ -309,8 +309,8 @@ class Hotline extends Model {
                 $sth->execute();
                 return $sth->fetchAll(PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
-                var_dump($e->getMessage()) ;
-                
+                error_log("Hotline::getHotlines error: " . $e->getMessage());
+
                 throw new InternalServerException();
             }
 

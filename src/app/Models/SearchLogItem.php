@@ -37,7 +37,7 @@ class SearchLogItem extends Model
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+            error_log("SearchLogItem::getList error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }

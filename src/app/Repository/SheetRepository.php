@@ -407,7 +407,7 @@ class SheetRepository extends AbstractRepository {
 
             return $details;
         } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+            error_log("SheetRepository::getDetails error: " . $e->getMessage());
             throw new Exception($e->getMessage());
         }
     }

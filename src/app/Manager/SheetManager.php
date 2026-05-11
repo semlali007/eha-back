@@ -1585,7 +1585,7 @@ class SheetManager extends AbstractManager
         foreach ($matches1[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" class="link">' . $c . '</a><', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" rel="noopener noreferrer" class="link">' . $c . '</a><', $content);
             }
         }
 
@@ -1594,7 +1594,7 @@ class SheetManager extends AbstractManager
         foreach ($matches[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" class="link">' . $c . '</a> ', $content);
+                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" rel="noopener noreferrer" class="link">' . $c . '</a> ', $content);
             }
         }
 
@@ -1604,7 +1604,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -18);
                 $i = substr($code, 17, -9);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" rel="noopener noreferrer" class="link">' . $code . '</a>', $content);
             }
         }
 
@@ -1614,7 +1614,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, 9);
                 $i = substr($code, -8, -7);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" rel="noopener noreferrer" class="link">' . $code . '</a>', $content);
             }
         }
         

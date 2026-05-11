@@ -38,7 +38,7 @@ class AuthController extends Controller
      */
     public function generateAccessTokenForUser($nni)
     {
-        $secretKey = 'eB?7csn7Wo?+';
+        $secretKey = getenv('CLIENT_SECRET');
 
         // En-tête du token JWT
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);

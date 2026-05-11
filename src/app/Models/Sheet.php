@@ -384,7 +384,7 @@ class Sheet extends Model
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+            error_log("Sheet::groupedBySector error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
