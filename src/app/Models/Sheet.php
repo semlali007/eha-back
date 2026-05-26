@@ -98,8 +98,15 @@ class Sheet extends Model
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
+
+            // Texte saisi par l'utilisateur, normalisé pour un boost "match littéral"
+            // qui place en tête les fiches dont le label contient la chaîne exacte.
+            // unaccent et lower sont appliqués en SQL (cohérent avec le reste de la requête).
+            $rawSearch = strtolower(trim($options['search']['searchText'] ?? ''));
+            $escapedSearch = addslashes($rawSearch);
+
             $query = "select distinct *,
-            CASE 
+            CASE
             WHEN sub.sheet_id is not NULL THEN true
             ELSE false
             END subscribed
@@ -107,17 +114,19 @@ class Sheet extends Model
 
             QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
-            QUERY) AS RANK1, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link, s.geographic_detail, s.acheteur 
-                     
-                      FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
-                       
-                      
-                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}, RANK desc, RANK1  desc  LIMIT {$perpage} offset {$page} 
+            QUERY) AS RANK1,
+            (CASE WHEN unaccent(lower(s.label)) LIKE unaccent('%{$escapedSearch}%') THEN 1 ELSE 0 END) AS exact_label_match,
+            s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link, s.geographic_detail, s.acheteur
+
+                      FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s
+
+
+                      {$this->getSearchCondition($options)}  ORDER BY exact_label_match DESC, {$orderBy} {$direction}, RANK desc, RANK1  desc  LIMIT {$perpage} offset {$page}
                       )
-                      
+
                       as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
-                      
-                      ORDER BY  $orderBy $direction
+
+                      ORDER BY exact_label_match DESC, $orderBy $direction
                       ";
                       
                       $sth = $this->db->getPDO()->prepare($query);

@@ -1245,6 +1245,18 @@ class SheetRepository extends AbstractRepository {
         $list = array_merge($wordListSynonyme, $wordListSource, $wordList);
         $list = Arrays::getWithOrWithoutPlural($list) ;
         $list = $this->removeIgnored($list);
+
+        // PostgreSQL parser quirk : un libellé comme "PIAT-514" est tokenisé en
+        // lexèmes 'piat' + '-514' (entier signé), JAMAIS '514' tout seul. Pour
+        // qu'une recherche "514" matche bien "PIAT-514", on ajoute la variante
+        // "-N" pour chaque token purement numérique (≥ 2 chiffres).
+        foreach ($list as $w) {
+            if (strlen($w) >= 2 && ctype_digit($w)) {
+                $list[] = '-' . $w;
+            }
+        }
+        $list = array_values(array_unique($list));
+
         return implode("|", $list);
     }
 
