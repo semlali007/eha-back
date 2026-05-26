@@ -85,8 +85,8 @@ class SheetManager extends AbstractManager
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['updated_at'] = $date;
-            $data['updated_by'] = 'nni';
-            $data['updated_by_full_name'] = 'full_name';
+            $data['updated_by'] = $user->getNni();
+            $data['updated_by_full_name'] = $user->getFullname() ?: $user->getNni();
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $fileUpload = new FileUpload();
 
@@ -732,10 +732,11 @@ class SheetManager extends AbstractManager
                 $this->overrideUserFieldsFromJson($data, $sheetData);
             } else {
                 // Comportement normal : utiliser l'utilisateur authentifié
+                $fullName = $user->getFullname() ?: $user->getNni();
                 $data['created_by'] = $user->getNni();
                 $data['updated_by'] = $user->getNni();
-                $data['created_by_full_name'] = $user->getNni() ?? '';
-                $data['updated_by_full_name'] = $user->getNni() ?? '';
+                $data['created_by_full_name'] = $fullName;
+                $data['updated_by_full_name'] = $fullName;
             }
             
             $data['contracts'] = $sheetData['contracts'] ?? [];
