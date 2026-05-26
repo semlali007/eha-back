@@ -420,7 +420,11 @@ class SheetRepository extends AbstractRepository {
 
     public function export($options, $userNni = null) {
         $options['userNni'] = $userNni;
-        $options['words'] = Arrays::getFormattedWords($options['search']['searchText']);
+        try {
+            $options['words'] = $this->getFormattedWords($options['search']['searchText']);
+        } catch (\Exception $e) {
+            $options['words'] = '';
+        }
         $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
         $sheet = new Sheet();
         $answer = [];
@@ -462,7 +466,10 @@ class SheetRepository extends AbstractRepository {
         ];
         $csv = [
             'header' => $header,
-            'data' => []
+            'data' => [],
+            // meta[i] décrit la i-ème ligne de data : utilisé par le frontend pour appliquer
+            // un style (ex: strikethrough) quand il génère le .xlsx.
+            'meta' => []
         ];
         $sheetOption = new SheetOption();
         $sheetDomain = new SheetDomain();
@@ -630,6 +637,11 @@ class SheetRepository extends AbstractRepository {
             $sheet['contracts'] = '';
             $contracts = $sheetContract->getBySheet($sheet['id']);
             preg_match_all('#app/contrat/details/(.*?)\"#', $sheet['content'], $match);
+            // Parsing du HTML de description pour extraire, par code contrat :
+            // - le contenu de la cellule "Fournisseur"
+            // - le contenu de la cellule "Contact" (pour usage futur)
+            // - si la ligne est barrée (text-decoration: line-through)
+            $htmlContractsMap = $this->parseContractsFromHtml($sheet['content']);
             $contractCodes = [];
             
             // Préparer la ligne de données dans l'ordre du header
@@ -664,31 +676,205 @@ class SheetRepository extends AbstractRepository {
             
             unset($sheet['id']);
             unset($sheet['content']);
-            
+
+            // Fallback : fournisseurs globaux de la fiche (utilisé pour les codes contrat
+            // extraits du HTML qui n'ont pas de correspondance dans sheet_contracts,
+            // et pour les fiches sans aucun contrat)
+            $sheetProvidersFallback = $sheet['providers'];
+
+            // Map contract_code → provider construite à partir des contrats en BDD
+            $contractProviderMap = [];
+            foreach ($contracts as $c) {
+                $contractProviderMap[$c['contract_code']] = $c['provider'] ?? '';
+            }
+
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
                     $rowData[12] = $m; // Numéros de contrats (position 13, index 12)
+                    $htmlInfo = $htmlContractsMap[$m] ?? null;
+                    // Priorité : fournisseur extrait du HTML > fournisseur en BDD > fournisseurs de la fiche
+                    if ($htmlInfo !== null && !empty($htmlInfo['provider'])) {
+                        $rowData[7] = $htmlInfo['provider'];
+                    } elseif (!empty($contractProviderMap[$m] ?? '')) {
+                        $rowData[7] = $contractProviderMap[$m];
+                    } else {
+                        $rowData[7] = $sheetProvidersFallback;
+                    }
                     $csv['data'][] = $rowData;
+                    $csv['meta'][] = ['strikethrough' => $htmlInfo['strikethrough'] ?? false];
                 }
             }
-           
+
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
                     $rowData[12] = $contract['contract_code']; // Numéros de contrats (position 13, index 12)
+                    $rowData[7]  = !empty($contract['provider']) ? $contract['provider'] : $sheetProvidersFallback;
                     $csv['data'][] = $rowData;
+                    $csv['meta'][] = ['strikethrough' => false];
                 }
             }
 
             if(count($contracts) == 0 && count($contractCodes) == 0){
+                // Aucun contrat → on garde la liste complète des fournisseurs de la fiche
+                $rowData[7] = $sheetProvidersFallback;
                 $csv['data'][] = $rowData;
+                $csv['meta'][] = ['strikethrough' => false];
             }
             
             $compteur++; // Incrémenter le compteur pour la fiche suivante
         }
 
         return $csv;
+    }
+
+    /**
+     * Parse le HTML d'une fiche pour extraire, par code contrat trouvé dans le tableau de contrats :
+     *   - 'provider'      : contenu textuel de la cellule "Fournisseur" (avec sauts de ligne)
+     *   - 'contact'       : contenu textuel de la cellule "Contact"     (avec sauts de ligne)
+     *   - 'strikethrough' : true si la ligne est barrée (text-decoration: line-through)
+     *
+     * Si le HTML est vide / invalide / ne contient pas de lien contrat, retourne un tableau vide.
+     *
+     * @return array<string, array{provider:string, contact:string, strikethrough:bool}>
+     */
+    private function parseContractsFromHtml(?string $html): array
+    {
+        $map = [];
+        if ($html === null || $html === '' || strpos($html, 'app/contrat/details/') === false) {
+            return $map;
+        }
+
+        $previousUseErrors = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        // Le préfixe XML force l'interprétation UTF-8 par libxml.
+        $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousUseErrors);
+
+        $xpath = new \DOMXPath($dom);
+        $links = $xpath->query("//a[starts-with(@href, 'app/contrat/details/')]");
+        if ($links === false) {
+            return $map;
+        }
+
+        foreach ($links as $link) {
+            if (!$link instanceof \DOMElement) {
+                continue;
+            }
+
+            $href = $link->getAttribute('href');
+            $code = substr($href, strlen('app/contrat/details/'));
+            // Nettoyer un éventuel paramètre d'URL (?x=y) ou ancre (#z)
+            $code = preg_replace('/[?#].*$/', '', $code);
+            if ($code === '' || $code === null) {
+                continue;
+            }
+
+            // Remonter jusqu'au <tr> contenant le lien
+            $tr = $link->parentNode;
+            while ($tr !== null && $tr->nodeName !== 'tr') {
+                $tr = $tr->parentNode;
+            }
+            if ($tr === null) {
+                continue;
+            }
+
+            // Récupérer les <td> directs (cellules) de la ligne
+            $cells = [];
+            foreach ($tr->childNodes as $cell) {
+                if ($cell->nodeName === 'td') {
+                    $cells[] = $cell;
+                }
+            }
+
+            // Pour la colonne Fournisseur, on ne garde que la 1ère ligne non vide (= le nom),
+            // on jette l'adresse pour rester aligné avec le format des autres lignes du CSV.
+            $providerText = isset($cells[1]) ? $this->extractCellFirstLine($cells[1]) : '';
+            // Pour le contact, on garde tout (multi-lignes) en vue d'une future colonne.
+            $contactText  = isset($cells[2]) ? $this->extractCellText($cells[2]) : '';
+
+            // Strikethrough : on cherche text-decoration: line-through
+            //  (a) sur un ancêtre du lien jusqu'au <tr>, ou
+            //  (b) sur la cellule fournisseur ou un de ses descendants.
+            $strikethrough = false;
+            $node = $link;
+            while ($node !== null && $node !== $tr) {
+                if ($node instanceof \DOMElement && $this->hasLineThroughStyle($node)) {
+                    $strikethrough = true;
+                    break;
+                }
+                $node = $node->parentNode;
+            }
+            if (!$strikethrough && isset($cells[1])) {
+                if ($this->hasLineThroughStyle($cells[1])) {
+                    $strikethrough = true;
+                } else {
+                    $descMatches = $xpath->query(".//*[contains(@style, 'line-through')]", $cells[1]);
+                    if ($descMatches !== false && $descMatches->length > 0) {
+                        $strikethrough = true;
+                    }
+                }
+            }
+
+            $map[$code] = [
+                'provider'      => $providerText,
+                'contact'       => $contactText,
+                'strikethrough' => $strikethrough,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Extrait le contenu textuel d'une cellule <td> en préservant les sauts de ligne
+     * entre paragraphes (un \n entre chaque enfant non vide).
+     */
+    private function extractCellText(\DOMElement $cell): string
+    {
+        $lines = [];
+        foreach ($cell->childNodes as $child) {
+            $text = $child->textContent;
+            // Remplacer les espaces insécables (&nbsp;) par des espaces normaux pour pouvoir trim
+            $text = str_replace("\xc2\xa0", ' ', $text);
+            // Normaliser les whitespaces internes
+            $text = trim(preg_replace('/\s+/', ' ', $text));
+            if ($text !== '') {
+                $lines[] = $text;
+            }
+        }
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Retourne uniquement la première ligne non vide d'une cellule <td>.
+     * Utile pour extraire le nom du fournisseur sans l'adresse qui suit.
+     */
+    private function extractCellFirstLine(\DOMElement $cell): string
+    {
+        foreach ($cell->childNodes as $child) {
+            $text = $child->textContent;
+            $text = str_replace("\xc2\xa0", ' ', $text);
+            $text = trim(preg_replace('/\s+/', ' ', $text));
+            if ($text !== '') {
+                return $text;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Indique si l'élément possède un style inline contenant text-decoration: line-through.
+     */
+    private function hasLineThroughStyle(\DOMElement $el): bool
+    {
+        $style = $el->getAttribute('style');
+        if ($style === '') {
+            return false;
+        }
+        return preg_match('/text-decoration\s*:[^;]*line-through/i', $style) === 1;
     }
 
 
