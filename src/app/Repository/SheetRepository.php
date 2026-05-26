@@ -446,6 +446,7 @@ class SheetRepository extends AbstractRepository {
             'Options',
             'Fournisseurs',
             'Fournisseur numéro TVA intracommunautaire',
+            'Contacts fournisseur',
             'Bénéficiaires',
             'Stipulation pour autrui',
             'Entités bénéficiaires d\'EDF SA / ENEDIS',
@@ -655,23 +656,24 @@ class SheetRepository extends AbstractRepository {
                 $sheet['options'], // 7. Options
                 $sheet['providers'], // 8. Fournisseurs
                 $sheet['supplier_vat_number'], // 9. Fournisseur numéro TVA intracommunautaire
-                $sheet['filiales'], // 10. Bénéficiaires
-                $sheet['filiales0'], // 11. Stipulation pour autrui
-                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 12. Entités bénéficiaires d'EDF SA / ENEDIS
-                '', // 13. Numéros de contrats (sera rempli plus bas)
-                $kitPortageJoint, // 14. Kit de portage joint
-                $piecesJointes, // 15. Pièces jointes
-                isset($sheet['committee']) ? $sheet['committee'] : '', // 16. Comité de Gestion de la Demande
-                $sheet['zones'], // 17. Zone géographique d'application des marchés
-                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 18. Zone géographique détail si région
-                $sheet['dauphin'], // 19. Approvisionnement sous dauphin
-                $sheet['edf_open'], // 20. Marché ouvert au personnel EDF
-                isset($sheet['acheteur']) ? $sheet['acheteur'] : '', // 21. Acheteur
-                $sheet['contract_manager'], // 22. Contract manager
-                $sheet['mise_a_jour_donnee'], // 23. Mise à jour de la donnée
-                $sheet['status'], // 24. Statut
-                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 25. Dernière modification
-                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 26. Commentaires
+                '', // 10. Contacts fournisseur (rempli plus bas, dépend du contrat)
+                $sheet['filiales'], // 11. Bénéficiaires
+                $sheet['filiales0'], // 12. Stipulation pour autrui
+                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 13. Entités bénéficiaires d'EDF SA / ENEDIS
+                '', // 14. Numéros de contrats (sera rempli plus bas)
+                $kitPortageJoint, // 15. Kit de portage joint
+                $piecesJointes, // 16. Pièces jointes
+                isset($sheet['committee']) ? $sheet['committee'] : '', // 17. Comité de Gestion de la Demande
+                $sheet['zones'], // 18. Zone géographique d'application des marchés
+                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 19. Zone géographique détail si région
+                $sheet['dauphin'], // 20. Approvisionnement sous dauphin
+                $sheet['edf_open'], // 21. Marché ouvert au personnel EDF
+                isset($sheet['acheteur']) ? $sheet['acheteur'] : '', // 22. Acheteur
+                $sheet['contract_manager'], // 23. Contract manager
+                $sheet['mise_a_jour_donnee'], // 24. Mise à jour de la donnée
+                $sheet['status'], // 25. Statut
+                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 26. Dernière modification
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 27. Commentaires
             ];
             
             unset($sheet['id']);
@@ -688,18 +690,31 @@ class SheetRepository extends AbstractRepository {
                 $contractProviderMap[$c['contract_code']] = $c['provider'] ?? '';
             }
 
+            // Map contract_code → contacts BDD (sheet_contracts.contacts), pour le fallback
+            // quand on a un contrat BDD mais qu'on n'a pas l'info HTML
+            $contractContactsMap = [];
+            foreach ($contracts as $c) {
+                $contractContactsMap[$c['contract_code']] = $c['contacts'] ?? '';
+            }
+
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
-                    $rowData[12] = $m; // Numéros de contrats (position 13, index 12)
+                    $rowData[13] = $m; // Numéros de contrats (position 14, index 13)
                     $htmlInfo = $htmlContractsMap[$m] ?? null;
-                    // Priorité : fournisseur extrait du HTML > fournisseur en BDD > fournisseurs de la fiche
+                    // Priorité fournisseur : HTML > BDD > liste de la fiche
                     if ($htmlInfo !== null && !empty($htmlInfo['provider'])) {
                         $rowData[7] = $htmlInfo['provider'];
                     } elseif (!empty($contractProviderMap[$m] ?? '')) {
                         $rowData[7] = $contractProviderMap[$m];
                     } else {
                         $rowData[7] = $sheetProvidersFallback;
+                    }
+                    // Priorité contacts : HTML > BDD > vide
+                    if ($htmlInfo !== null && !empty($htmlInfo['contact'])) {
+                        $rowData[9] = $htmlInfo['contact'];
+                    } else {
+                        $rowData[9] = $this->cleanContactText($contractContactsMap[$m] ?? '');
                     }
                     $csv['data'][] = $rowData;
                     $csv['meta'][] = ['strikethrough' => $htmlInfo['strikethrough'] ?? false];
@@ -709,16 +724,19 @@ class SheetRepository extends AbstractRepository {
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
-                    $rowData[12] = $contract['contract_code']; // Numéros de contrats (position 13, index 12)
+                    $rowData[13] = $contract['contract_code']; // Numéros de contrats (position 14, index 13)
                     $rowData[7]  = !empty($contract['provider']) ? $contract['provider'] : $sheetProvidersFallback;
+                    $rowData[9]  = $this->cleanContactText($contract['contacts'] ?? '');
                     $csv['data'][] = $rowData;
                     $csv['meta'][] = ['strikethrough' => false];
                 }
             }
 
             if(count($contracts) == 0 && count($contractCodes) == 0){
-                // Aucun contrat → on garde la liste complète des fournisseurs de la fiche
+                // Aucun contrat → on garde la liste complète des fournisseurs de la fiche,
+                // pas de contacts
                 $rowData[7] = $sheetProvidersFallback;
+                $rowData[9] = '';
                 $csv['data'][] = $rowData;
                 $csv['meta'][] = ['strikethrough' => false];
             }
@@ -875,6 +893,40 @@ class SheetRepository extends AbstractRepository {
             return false;
         }
         return preg_match('/text-decoration\s*:[^;]*line-through/i', $style) === 1;
+    }
+
+    /**
+     * Nettoie un texte de contact qui peut être soit du texte brut, soit du HTML
+     * (cas de sheet_contracts.contacts en BDD). Convertit les balises de bloc/saut
+     * de ligne en \n avant de retirer les tags, pour préserver la lisibilité.
+     */
+    private function cleanContactText(?string $raw): string
+    {
+        if ($raw === null || $raw === '') {
+            return '';
+        }
+
+        // Si le contenu ressemble à du HTML, préserver les sauts de ligne avant strip_tags
+        if (strpos($raw, '<') !== false) {
+            $raw = preg_replace('/<br\s*\/?>/i', "\n", $raw);
+            $raw = preg_replace('/<\/p\s*>/i',   "\n", $raw);
+            $raw = preg_replace('/<\/div\s*>/i', "\n", $raw);
+            $raw = preg_replace('/<\/li\s*>/i',  "\n", $raw);
+            $raw = strip_tags($raw);
+            $raw = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        // Espaces insécables → espaces normaux
+        $raw = str_replace("\xc2\xa0", ' ', $raw);
+        // Normaliser les espaces/tabulations sur chaque ligne sans détruire les \n
+        $raw = preg_replace('/[ \t]+/', ' ', $raw);
+        $raw = preg_replace('/[ \t]*\n[ \t]*/', "\n", $raw);
+        // Compresser les sauts de ligne multiples
+        $raw = preg_replace('/\n{2,}/', "\n", $raw);
+        // Retirer la ponctuation orpheline en fin de chaque ligne (";", ",", ".", espaces)
+        $raw = preg_replace('/[\s,;.]+$/m', '', $raw);
+        // Trim final, incluant la ponctuation résiduelle en bout de cellule
+        return trim($raw, " \t\n,;.");
     }
 
 
