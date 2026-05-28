@@ -24,7 +24,7 @@ class SubDomain extends Model
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
-            var_dump($e);exit;
+            error_log("SubDomain::add error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }

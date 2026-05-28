@@ -407,7 +407,7 @@ class SheetRepository extends AbstractRepository {
 
             return $details;
         } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+            error_log("SheetRepository::getDetails error: " . $e->getMessage());
             throw new Exception($e->getMessage());
         }
     }
@@ -420,7 +420,11 @@ class SheetRepository extends AbstractRepository {
 
     public function export($options, $userNni = null) {
         $options['userNni'] = $userNni;
-        $options['words'] = Arrays::getFormattedWords($options['search']['searchText']);
+        try {
+            $options['words'] = $this->getFormattedWords($options['search']['searchText']);
+        } catch (\Exception $e) {
+            $options['words'] = '';
+        }
         $status = [0 => 'En attente', 1 => 'Publiée', '-1' => 'Archivée'];
         $sheet = new Sheet();
         $answer = [];
@@ -442,6 +446,7 @@ class SheetRepository extends AbstractRepository {
             'Options',
             'Fournisseurs',
             'Fournisseur numéro TVA intracommunautaire',
+            'Contacts fournisseur',
             'Bénéficiaires',
             'Stipulation pour autrui',
             'Entités bénéficiaires d\'EDF SA / ENEDIS',
@@ -462,7 +467,10 @@ class SheetRepository extends AbstractRepository {
         ];
         $csv = [
             'header' => $header,
-            'data' => []
+            'data' => [],
+            // meta[i] décrit la i-ème ligne de data : utilisé par le frontend pour appliquer
+            // un style (ex: strikethrough) quand il génère le .xlsx.
+            'meta' => []
         ];
         $sheetOption = new SheetOption();
         $sheetDomain = new SheetDomain();
@@ -630,6 +638,11 @@ class SheetRepository extends AbstractRepository {
             $sheet['contracts'] = '';
             $contracts = $sheetContract->getBySheet($sheet['id']);
             preg_match_all('#app/contrat/details/(.*?)\"#', $sheet['content'], $match);
+            // Parsing du HTML de description pour extraire, par code contrat :
+            // - le contenu de la cellule "Fournisseur"
+            // - le contenu de la cellule "Contact" (pour usage futur)
+            // - si la ligne est barrée (text-decoration: line-through)
+            $htmlContractsMap = $this->parseContractsFromHtml($sheet['content']);
             $contractCodes = [];
             
             // Préparer la ligne de données dans l'ordre du header
@@ -643,52 +656,277 @@ class SheetRepository extends AbstractRepository {
                 $sheet['options'], // 7. Options
                 $sheet['providers'], // 8. Fournisseurs
                 $sheet['supplier_vat_number'], // 9. Fournisseur numéro TVA intracommunautaire
-                $sheet['filiales'], // 10. Bénéficiaires
-                $sheet['filiales0'], // 11. Stipulation pour autrui
-                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 12. Entités bénéficiaires d'EDF SA / ENEDIS
-                '', // 13. Numéros de contrats (sera rempli plus bas)
-                $kitPortageJoint, // 14. Kit de portage joint
-                $piecesJointes, // 15. Pièces jointes
-                isset($sheet['committee']) ? $sheet['committee'] : '', // 16. Comité de Gestion de la Demande
-                $sheet['zones'], // 17. Zone géographique d'application des marchés
-                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 18. Zone géographique détail si région
-                $sheet['dauphin'], // 19. Approvisionnement sous dauphin
-                $sheet['edf_open'], // 20. Marché ouvert au personnel EDF
-                isset($sheet['acheteur']) ? $sheet['acheteur'] : '', // 21. Acheteur
-                $sheet['contract_manager'], // 22. Contract manager
-                $sheet['mise_a_jour_donnee'], // 23. Mise à jour de la donnée
-                $sheet['status'], // 24. Statut
-                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 25. Dernière modification
-                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 26. Commentaires
+                '', // 10. Contacts fournisseur (rempli plus bas, dépend du contrat)
+                $sheet['filiales'], // 11. Bénéficiaires
+                $sheet['filiales0'], // 12. Stipulation pour autrui
+                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 13. Entités bénéficiaires d'EDF SA / ENEDIS
+                '', // 14. Numéros de contrats (sera rempli plus bas)
+                $kitPortageJoint, // 15. Kit de portage joint
+                $piecesJointes, // 16. Pièces jointes
+                isset($sheet['committee']) ? $sheet['committee'] : '', // 17. Comité de Gestion de la Demande
+                $sheet['zones'], // 18. Zone géographique d'application des marchés
+                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 19. Zone géographique détail si région
+                $sheet['dauphin'], // 20. Approvisionnement sous dauphin
+                $sheet['edf_open'], // 21. Marché ouvert au personnel EDF
+                isset($sheet['acheteur']) ? $sheet['acheteur'] : '', // 22. Acheteur
+                $sheet['contract_manager'], // 23. Contract manager
+                $sheet['mise_a_jour_donnee'], // 24. Mise à jour de la donnée
+                $sheet['status'], // 25. Statut
+                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 26. Dernière modification
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 27. Commentaires
             ];
             
             unset($sheet['id']);
             unset($sheet['content']);
-            
+
+            // Fallback : fournisseurs globaux de la fiche (utilisé pour les codes contrat
+            // extraits du HTML qui n'ont pas de correspondance dans sheet_contracts,
+            // et pour les fiches sans aucun contrat)
+            $sheetProvidersFallback = $sheet['providers'];
+
+            // Map contract_code → provider construite à partir des contrats en BDD
+            $contractProviderMap = [];
+            foreach ($contracts as $c) {
+                $contractProviderMap[$c['contract_code']] = $c['provider'] ?? '';
+            }
+
+            // Map contract_code → contacts BDD (sheet_contracts.contacts), pour le fallback
+            // quand on a un contrat BDD mais qu'on n'a pas l'info HTML
+            $contractContactsMap = [];
+            foreach ($contracts as $c) {
+                $contractContactsMap[$c['contract_code']] = $c['contacts'] ?? '';
+            }
+
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
-                    $rowData[12] = $m; // Numéros de contrats (position 13, index 12)
+                    $rowData[13] = $m; // Numéros de contrats (position 14, index 13)
+                    $htmlInfo = $htmlContractsMap[$m] ?? null;
+                    // Priorité fournisseur : HTML > BDD > liste de la fiche
+                    if ($htmlInfo !== null && !empty($htmlInfo['provider'])) {
+                        $rowData[7] = $htmlInfo['provider'];
+                    } elseif (!empty($contractProviderMap[$m] ?? '')) {
+                        $rowData[7] = $contractProviderMap[$m];
+                    } else {
+                        $rowData[7] = $sheetProvidersFallback;
+                    }
+                    // Priorité contacts : HTML > BDD > vide
+                    if ($htmlInfo !== null && !empty($htmlInfo['contact'])) {
+                        $rowData[9] = $htmlInfo['contact'];
+                    } else {
+                        $rowData[9] = $this->cleanContactText($contractContactsMap[$m] ?? '');
+                    }
                     $csv['data'][] = $rowData;
+                    $csv['meta'][] = ['strikethrough' => $htmlInfo['strikethrough'] ?? false];
                 }
             }
-           
+
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
-                    $rowData[12] = $contract['contract_code']; // Numéros de contrats (position 13, index 12)
+                    $rowData[13] = $contract['contract_code']; // Numéros de contrats (position 14, index 13)
+                    $rowData[7]  = !empty($contract['provider']) ? $contract['provider'] : $sheetProvidersFallback;
+                    $rowData[9]  = $this->cleanContactText($contract['contacts'] ?? '');
                     $csv['data'][] = $rowData;
+                    $csv['meta'][] = ['strikethrough' => false];
                 }
             }
 
             if(count($contracts) == 0 && count($contractCodes) == 0){
+                // Aucun contrat → on garde la liste complète des fournisseurs de la fiche,
+                // pas de contacts
+                $rowData[7] = $sheetProvidersFallback;
+                $rowData[9] = '';
                 $csv['data'][] = $rowData;
+                $csv['meta'][] = ['strikethrough' => false];
             }
             
             $compteur++; // Incrémenter le compteur pour la fiche suivante
         }
 
         return $csv;
+    }
+
+    /**
+     * Parse le HTML d'une fiche pour extraire, par code contrat trouvé dans le tableau de contrats :
+     *   - 'provider'      : contenu textuel de la cellule "Fournisseur" (avec sauts de ligne)
+     *   - 'contact'       : contenu textuel de la cellule "Contact"     (avec sauts de ligne)
+     *   - 'strikethrough' : true si la ligne est barrée (text-decoration: line-through)
+     *
+     * Si le HTML est vide / invalide / ne contient pas de lien contrat, retourne un tableau vide.
+     *
+     * @return array<string, array{provider:string, contact:string, strikethrough:bool}>
+     */
+    private function parseContractsFromHtml(?string $html): array
+    {
+        $map = [];
+        if ($html === null || $html === '' || strpos($html, 'app/contrat/details/') === false) {
+            return $map;
+        }
+
+        $previousUseErrors = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        // Le préfixe XML force l'interprétation UTF-8 par libxml.
+        $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousUseErrors);
+
+        $xpath = new \DOMXPath($dom);
+        $links = $xpath->query("//a[starts-with(@href, 'app/contrat/details/')]");
+        if ($links === false) {
+            return $map;
+        }
+
+        foreach ($links as $link) {
+            if (!$link instanceof \DOMElement) {
+                continue;
+            }
+
+            $href = $link->getAttribute('href');
+            $code = substr($href, strlen('app/contrat/details/'));
+            // Nettoyer un éventuel paramètre d'URL (?x=y) ou ancre (#z)
+            $code = preg_replace('/[?#].*$/', '', $code);
+            if ($code === '' || $code === null) {
+                continue;
+            }
+
+            // Remonter jusqu'au <tr> contenant le lien
+            $tr = $link->parentNode;
+            while ($tr !== null && $tr->nodeName !== 'tr') {
+                $tr = $tr->parentNode;
+            }
+            if ($tr === null) {
+                continue;
+            }
+
+            // Récupérer les <td> directs (cellules) de la ligne
+            $cells = [];
+            foreach ($tr->childNodes as $cell) {
+                if ($cell->nodeName === 'td') {
+                    $cells[] = $cell;
+                }
+            }
+
+            // Pour la colonne Fournisseur, on ne garde que la 1ère ligne non vide (= le nom),
+            // on jette l'adresse pour rester aligné avec le format des autres lignes du CSV.
+            $providerText = isset($cells[1]) ? $this->extractCellFirstLine($cells[1]) : '';
+            // Pour le contact, on garde tout (multi-lignes) en vue d'une future colonne.
+            $contactText  = isset($cells[2]) ? $this->extractCellText($cells[2]) : '';
+
+            // Strikethrough : on cherche text-decoration: line-through
+            //  (a) sur un ancêtre du lien jusqu'au <tr>, ou
+            //  (b) sur la cellule fournisseur ou un de ses descendants.
+            $strikethrough = false;
+            $node = $link;
+            while ($node !== null && $node !== $tr) {
+                if ($node instanceof \DOMElement && $this->hasLineThroughStyle($node)) {
+                    $strikethrough = true;
+                    break;
+                }
+                $node = $node->parentNode;
+            }
+            if (!$strikethrough && isset($cells[1])) {
+                if ($this->hasLineThroughStyle($cells[1])) {
+                    $strikethrough = true;
+                } else {
+                    $descMatches = $xpath->query(".//*[contains(@style, 'line-through')]", $cells[1]);
+                    if ($descMatches !== false && $descMatches->length > 0) {
+                        $strikethrough = true;
+                    }
+                }
+            }
+
+            $map[$code] = [
+                'provider'      => $providerText,
+                'contact'       => $contactText,
+                'strikethrough' => $strikethrough,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Extrait le contenu textuel d'une cellule <td> en préservant les sauts de ligne
+     * entre paragraphes (un \n entre chaque enfant non vide).
+     */
+    private function extractCellText(\DOMElement $cell): string
+    {
+        $lines = [];
+        foreach ($cell->childNodes as $child) {
+            $text = $child->textContent;
+            // Remplacer les espaces insécables (&nbsp;) par des espaces normaux pour pouvoir trim
+            $text = str_replace("\xc2\xa0", ' ', $text);
+            // Normaliser les whitespaces internes
+            $text = trim(preg_replace('/\s+/', ' ', $text));
+            if ($text !== '') {
+                $lines[] = $text;
+            }
+        }
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Retourne uniquement la première ligne non vide d'une cellule <td>.
+     * Utile pour extraire le nom du fournisseur sans l'adresse qui suit.
+     */
+    private function extractCellFirstLine(\DOMElement $cell): string
+    {
+        foreach ($cell->childNodes as $child) {
+            $text = $child->textContent;
+            $text = str_replace("\xc2\xa0", ' ', $text);
+            $text = trim(preg_replace('/\s+/', ' ', $text));
+            if ($text !== '') {
+                return $text;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Indique si l'élément possède un style inline contenant text-decoration: line-through.
+     */
+    private function hasLineThroughStyle(\DOMElement $el): bool
+    {
+        $style = $el->getAttribute('style');
+        if ($style === '') {
+            return false;
+        }
+        return preg_match('/text-decoration\s*:[^;]*line-through/i', $style) === 1;
+    }
+
+    /**
+     * Nettoie un texte de contact qui peut être soit du texte brut, soit du HTML
+     * (cas de sheet_contracts.contacts en BDD). Convertit les balises de bloc/saut
+     * de ligne en \n avant de retirer les tags, pour préserver la lisibilité.
+     */
+    private function cleanContactText(?string $raw): string
+    {
+        if ($raw === null || $raw === '') {
+            return '';
+        }
+
+        // Si le contenu ressemble à du HTML, préserver les sauts de ligne avant strip_tags
+        if (strpos($raw, '<') !== false) {
+            $raw = preg_replace('/<br\s*\/?>/i', "\n", $raw);
+            $raw = preg_replace('/<\/p\s*>/i',   "\n", $raw);
+            $raw = preg_replace('/<\/div\s*>/i', "\n", $raw);
+            $raw = preg_replace('/<\/li\s*>/i',  "\n", $raw);
+            $raw = strip_tags($raw);
+            $raw = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        // Espaces insécables → espaces normaux
+        $raw = str_replace("\xc2\xa0", ' ', $raw);
+        // Normaliser les espaces/tabulations sur chaque ligne sans détruire les \n
+        $raw = preg_replace('/[ \t]+/', ' ', $raw);
+        $raw = preg_replace('/[ \t]*\n[ \t]*/', "\n", $raw);
+        // Compresser les sauts de ligne multiples
+        $raw = preg_replace('/\n{2,}/', "\n", $raw);
+        // Retirer la ponctuation orpheline en fin de chaque ligne (";", ",", ".", espaces)
+        $raw = preg_replace('/[\s,;.]+$/m', '', $raw);
+        // Trim final, incluant la ponctuation résiduelle en bout de cellule
+        return trim($raw, " \t\n,;.");
     }
 
 
@@ -1007,6 +1245,18 @@ class SheetRepository extends AbstractRepository {
         $list = array_merge($wordListSynonyme, $wordListSource, $wordList);
         $list = Arrays::getWithOrWithoutPlural($list) ;
         $list = $this->removeIgnored($list);
+
+        // PostgreSQL parser quirk : un libellé comme "PIAT-514" est tokenisé en
+        // lexèmes 'piat' + '-514' (entier signé), JAMAIS '514' tout seul. Pour
+        // qu'une recherche "514" matche bien "PIAT-514", on ajoute la variante
+        // "-N" pour chaque token purement numérique (≥ 2 chiffres).
+        foreach ($list as $w) {
+            if (strlen($w) >= 2 && ctype_digit($w)) {
+                $list[] = '-' . $w;
+            }
+        }
+        $list = array_values(array_unique($list));
+
         return implode("|", $list);
     }
 

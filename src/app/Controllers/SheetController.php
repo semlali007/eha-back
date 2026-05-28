@@ -80,18 +80,33 @@ class SheetController extends Controller {
 
     public function export() {
         $options = json_decode(file_get_contents("php://input"), true) ?? [];
-        return $this->response(['sheets' => $this->sheetRepository->export($options)], $this->currentUser->getNni());
+
+        $user = $this->getCurrentUser();
+        if (!$user->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE'])) {
+            $options['search']['status'] = ['1'];
+        }
+
+        return $this->response(['sheets' => $this->sheetRepository->export($options, $user->getNni())]);
     }
 
     public function update() {
         $sheetData = json_decode($_POST['model'], true);
-        
+
+        if (is_array($sheetData) && isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $sheetData['kits'] = $this->sanitizeKitsData($sheetData['kits']);
+        }
+
         $this->notificationsRepository->insertNotification($sheetData['id']);
         return $this->sheetManager->update($this->currentUser,$sheetData);
     }
 
     public function updateDraft() {
         $sheetData = json_decode($_POST['model'], true);
+
+        if (is_array($sheetData) && isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $sheetData['kits'] = $this->sanitizeKitsData($sheetData['kits']);
+        }
+
         $this->notificationsRepository->insertNotification($sheetData['id']);
         $sheetData['draft'] = true;
         return $this->sheetManager->update($this->currentUser,$sheetData);
@@ -109,8 +124,9 @@ class SheetController extends Controller {
             $data = json_decode($jsonInput, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log("SheetController::login JSON decode error: " . json_last_error_msg());
                 http_response_code(400);
-                echo json_encode(['error' => 'JSON invalide: ' . json_last_error_msg()]);
+                echo json_encode(['error' => 'JSON invalide']);
                 return;
             }
 
@@ -173,8 +189,9 @@ class SheetController extends Controller {
             $data = json_decode($jsonInput, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log("SheetController::addViaCockpit JSON decode error: " . json_last_error_msg());
                 http_response_code(400);
-                echo json_encode(['error' => 'JSON invalide: ' . json_last_error_msg()]);
+                echo json_encode(['error' => 'JSON invalide']);
                 return;
             }
 
@@ -252,10 +269,10 @@ class SheetController extends Controller {
         } catch (Exception $e) {
             error_log("Erreur addViaCockpit: " . $e->getMessage());
             http_response_code(500);
-            
+
             echo json_encode([
                 'status' => 500,
-                'error' => $e->getMessage(),
+                'error' => 'Erreur interne du serveur',
                 'warning' => []
             ]);
         }
@@ -388,12 +405,21 @@ class SheetController extends Controller {
 
     public function add() {
         $sheetData = json_decode($_POST['model'], true);
-        
+
+        if (is_array($sheetData) && isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $sheetData['kits'] = $this->sanitizeKitsData($sheetData['kits']);
+        }
+
         return $this->sheetManager->add($this->currentUser, $sheetData);
     }
 
     public function addDraft() {
         $sheetData = json_decode($_POST['model'], true);
+
+        if (is_array($sheetData) && isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $sheetData['kits'] = $this->sanitizeKitsData($sheetData['kits']);
+        }
+
         $sheetData['draft'] = true;
         return $this->sheetManager->add($this->currentUser,$sheetData);
     }

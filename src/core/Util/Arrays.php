@@ -114,29 +114,40 @@ class Arrays {
             'ö' => 'o', 'ø' => 'o', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ý' => 'y', 'þ' => 'b', 'ÿ' => 'y'
         );
         $searchText = strtr($searchText, $unwanted_array);
-        $searchText = preg_replace('/[^A-Za-z0-9]/', ' ', $searchText);
-        $worldsList =  explode(" ", $searchText);
-        $worldsList = str_replace(' ', "", $worldsList);
-        $list = [];
-        foreach ($worldsList as $w) {
-            if (strlen($w) > 0) {
-                $list[] = $w;
-            }
-        }
-        return $list;
+
+        // 1) Tokens "composites" : on split uniquement sur les espaces.
+        //    Préserve les références à séparateur (ex. "22-009", "ref-001", "l'achat").
+        $compositeList = preg_split('/\s+/', $searchText, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        // 2) Tokens "atomiques" : comportement historique — tout caractère non
+        //    alphanumérique devient un espace, puis on split. Décompose les composites
+        //    pour permettre les matches partiels (ex. "22-009" → "22" + "009").
+        $stripped = preg_replace('/[^A-Za-z0-9]/', ' ', $searchText);
+        $atomicList = preg_split('/\s+/', $stripped, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        // Union : on garde les deux versions pour maximiser les matches côté TS_QUERY.
+        // array_values pour ré-indexer proprement (TS_QUERY n'aime pas les clés string).
+        return array_values(array_unique(array_merge($compositeList, $atomicList)));
     }
 
     public static function getWithOrWithoutPlural($worldsList)
     {
         $list = [];
         foreach ($worldsList as $w) {
+            if ($w === '' || $w === null) {
+                continue;
+            }
+            // On garde toujours le mot original — il ne doit jamais être perdu
+            // (ex: codes courts type "22", "IT", "RH", "5G"...)
+            $list[] = $w;
+            // La variante singulier/pluriel n'est générée que pour les mots > 2 chars
+            // (sur 1-2 chars ça produit du bruit : "22s", "is" pour "i", etc.)
             if (strlen($w) > 2) {
                 if (!str_ends_with($w, 's')) {
                     $list[] = $w . 's';
                 } else {
                     $list[] = substr($w, 0, -1);
                 }
-                $list[] = $w;
             }
         }
         return $list;

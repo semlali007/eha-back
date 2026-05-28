@@ -35,8 +35,7 @@ class NewsCast extends Model
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
-            var_dump($e);
-            exit;
+            error_log("NewsCast error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
@@ -110,8 +109,7 @@ class NewsCast extends Model
             $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
             return $data;
         } catch (\Exception $e) {
-            var_dump($e);
-            exit;
+            error_log("NewsCast error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
@@ -249,8 +247,7 @@ class NewsCast extends Model
             $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
             return $data;
         } catch (\Exception $e) {
-            var_dump($e);
-            exit;
+            error_log("NewsCast error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }

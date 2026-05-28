@@ -179,14 +179,21 @@ class SecureFileService
                 $files = scandir($uploadDir);
                 foreach ($files as $file) {
                     if ($file === '.' || $file === '..') continue;
-                    
+
+                    // Défense en profondeur : forcer basename() pour éviter
+                    // tout chemin relatif/absolu venant du système de fichiers
+                    $safeFile = basename($file);
+                    if ($safeFile !== $file || strpos($safeFile, '..') !== false) {
+                        continue;
+                    }
+
                     // Nettoyer le nom du fichier sur le disque de la même manière
-                    $cleanedFileOnDisk = str_replace(["\r\n", "\r", "\n", "\t"], ' ', $file);
+                    $cleanedFileOnDisk = str_replace(["\r\n", "\r", "\n", "\t"], ' ', $safeFile);
                     $cleanedFileOnDisk = preg_replace('/\s+/', ' ', trim($cleanedFileOnDisk));
-                    
+
                     // Comparer avec le nom demandé nettoyé
                     if ($cleanedFileOnDisk === $filename) {
-                        $filepath = $uploadDir . DIRECTORY_SEPARATOR . $file;
+                        $filepath = $uploadDir . DIRECTORY_SEPARATOR . $safeFile;
                         $found = true;
                         break;
                     }
@@ -236,12 +243,14 @@ class SecureFileService
      */
     public static function logSuspiciousAccess(string $filename, string $userNni = 'unknown', string $reason = ''): void
     {
+        $sanitize = static fn(string $v): string => str_replace(["\r\n", "\r", "\n"], ' ', $v);
+
         $logMessage = sprintf(
             "[%s] SECURITY WARNING - Path Traversal attempt: User=%s, File=%s, Reason=%s\n",
             date('Y-m-d H:i:s'),
-            $userNni,
-            $filename,
-            $reason
+            $sanitize($userNni),
+            $sanitize($filename),
+            $sanitize($reason)
         );
         
         // Logger dans un fichier de sécurité

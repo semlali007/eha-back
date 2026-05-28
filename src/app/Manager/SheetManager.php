@@ -85,8 +85,8 @@ class SheetManager extends AbstractManager
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['updated_at'] = $date;
-            $data['updated_by'] = 'nni';
-            $data['updated_by_full_name'] = 'full_name';
+            $data['updated_by'] = $user->getNni();
+            $data['updated_by_full_name'] = $user->getFullname() ?: $user->getNni();
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $fileUpload = new FileUpload();
 
@@ -732,10 +732,11 @@ class SheetManager extends AbstractManager
                 $this->overrideUserFieldsFromJson($data, $sheetData);
             } else {
                 // Comportement normal : utiliser l'utilisateur authentifié
+                $fullName = $user->getFullname() ?: $user->getNni();
                 $data['created_by'] = $user->getNni();
                 $data['updated_by'] = $user->getNni();
-                $data['created_by_full_name'] = $user->getNni() ?? '';
-                $data['updated_by_full_name'] = $user->getNni() ?? '';
+                $data['created_by_full_name'] = $fullName;
+                $data['updated_by_full_name'] = $fullName;
             }
             
             $data['contracts'] = $sheetData['contracts'] ?? [];
@@ -1426,8 +1427,8 @@ class SheetManager extends AbstractManager
         }
 
         foreach ($foldersList as $kit) {
-            $kitFolderName = str_replace(" ", "_", $kit['lookupValue']);
-            if (!empty($kitFolderName)) {
+            $kitFolderName = str_replace(" ", "_", basename($kit['lookupValue']));
+            if (!empty($kitFolderName) && strpos($kitFolderName, '..') === false) {
                 if (is_dir($sourceDepDoc . $kitFolderName)) {
                     $docDep = scandir($sourceDepDoc . $kitFolderName);
                     if ($docDep !== false) {
@@ -1585,7 +1586,7 @@ class SheetManager extends AbstractManager
         foreach ($matches1[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" class="link">' . $c . '</a><', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" rel="noopener noreferrer" class="link">' . $c . '</a><', $content);
             }
         }
 
@@ -1594,7 +1595,7 @@ class SheetManager extends AbstractManager
         foreach ($matches[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" class="link">' . $c . '</a> ', $content);
+                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" rel="noopener noreferrer" class="link">' . $c . '</a> ', $content);
             }
         }
 
@@ -1604,7 +1605,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -18);
                 $i = substr($code, 17, -9);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" rel="noopener noreferrer" class="link">' . $code . '</a>', $content);
             }
         }
 
@@ -1614,7 +1615,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, 9);
                 $i = substr($code, -8, -7);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" rel="noopener noreferrer" class="link">' . $code . '</a>', $content);
             }
         }
         

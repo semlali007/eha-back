@@ -92,7 +92,7 @@ class Provider extends Model
             $sth->bindParam(':code', $code, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+            error_log("Provider::delete error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
