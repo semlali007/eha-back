@@ -103,7 +103,12 @@ class Sheet extends Model
             // qui place en tête les fiches dont le label contient la chaîne exacte.
             // unaccent et lower sont appliqués en SQL (cohérent avec le reste de la requête).
             $rawSearch = strtolower(trim($options['search']['searchText'] ?? ''));
-            $escapedSearch = addslashes($rawSearch);
+            // Strip des wildcards LIKE pour éviter qu'une saisie type "%test%" devienne
+            // une recherche "matches tout". Backslash retiré pour neutraliser les escapes.
+            $rawSearch = str_replace(['%', '_', '\\'], '', $rawSearch);
+            // Échappement PostgreSQL : on double les apostrophes pour qu'elles soient
+            // interprétées comme un caractère littéral dans la string SQL.
+            $escapedSearch = str_replace("'", "''", $rawSearch);
 
             $query = "select distinct *,
             CASE
@@ -217,9 +222,11 @@ class Sheet extends Model
         }
 
         $searchProviderRaw = strtolower(trim($options['searchProvider'] ?? ""));
+        // Strip wildcards LIKE et backslash, puis échappement PG (apostrophes doublées)
+        $searchProviderRaw = str_replace(['%', '_', '\\'], '', $searchProviderRaw);
         if ($searchProviderRaw != '') {
             $searchProvider = Arrays::getFormattedWords($searchProviderRaw);
-            $searchProviderEscaped = addslashes($searchProviderRaw);
+            $searchProviderEscaped = str_replace("'", "''", $searchProviderRaw);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " LEFT JOIN
@@ -248,7 +255,7 @@ class Sheet extends Model
 
         // Filtre searchProvider : par nom fournisseur OU par numéro TVA
         if ($searchProviderRaw != '') {
-            $searchProviderEscaped = addslashes($searchProviderRaw);
+            $searchProviderEscaped = str_replace("'", "''", $searchProviderRaw);
             $search .= " AND (spa.sheet_id IS NOT NULL OR lower(s.supplier_vat_number) LIKE '%{$searchProviderEscaped}%') ";
         }
 
@@ -334,13 +341,13 @@ class Sheet extends Model
         if ($dateStart !== '' || $dateEnd !== '') {
             if ($dateStart !== '' && $dateEnd !== '') {
                 // Both dates provided - filter sheets with start_date >= dateStart AND end_date <= dateEnd
-                $search .= " AND (s.start_date >= '" . addslashes($dateStart) . "' AND s.end_date <= '" . addslashes($dateEnd) . "')";
+                $search .= " AND (s.start_date >= '" . str_replace("'", "''", $dateStart) . "' AND s.end_date <= '" . str_replace("'", "''", $dateEnd) . "')";
             } elseif ($dateStart !== '') {
                 // Only start date - filter sheets with start_date >= dateStart
-                $search .= " AND s.start_date >= '" . addslashes($dateStart) . "'";
+                $search .= " AND s.start_date >= '" . str_replace("'", "''", $dateStart) . "'";
             } elseif ($dateEnd !== '') {
                 // Only end date - filter sheets with end_date <= dateEnd
-                $search .= " AND s.end_date <= '" . addslashes($dateEnd) . "'";
+                $search .= " AND s.end_date <= '" . str_replace("'", "''", $dateEnd) . "'";
             }
         }
     }
@@ -624,7 +631,7 @@ class Sheet extends Model
 
         // Quote string values properly for SQL
         $quotedValues = array_map(function($val) {
-            return "'" . addslashes($val) . "'";
+            return "'" . str_replace("'", "''", (string) $val) . "'";
         }, $value);
         
         $valueStr = '(' . implode(', ', $quotedValues) . ')';

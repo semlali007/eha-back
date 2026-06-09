@@ -1257,6 +1257,15 @@ class SheetRepository extends AbstractRepository {
         }
         $list = array_values(array_unique($list));
 
+        // Sanitisation finale : on ne laisse passer que des tokens composés
+        // d'alphanumériques et de tirets. Tout autre caractère (apostrophe,
+        // opérateurs tsquery |&!:(), wildcards LIKE %_, etc.) est filtré pour
+        // éviter une injection / un crash SQL en aval.
+        $list = array_filter($list, function ($w) {
+            return is_string($w) && preg_match('/^[a-zA-Z0-9\-]+$/', $w) === 1;
+        });
+        $list = array_values($list);
+
         return implode("|", $list);
     }
 
