@@ -16,7 +16,10 @@ class ProviderRepository extends AbstractRepository {
      */
     public function autocomplete(?string $word):mixed {
         $provider = new Provider();
-        return $provider->getList(['name' => $word]);
+        // LIMIT 100 : évite de charger l'ensemble du référentiel en mémoire si
+        // l'utilisateur tape un terme générique. Largement suffisant pour une UI
+        // d'autocomplétion.
+        return $provider->getList(['name' => $word, 'limit' => 100]);
     }
 
     public function search(?array $options):mixed {

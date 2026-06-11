@@ -15,19 +15,27 @@ class Provider extends Model
         try {
             $search = ' WHERE 1 = 1 ';
             $params = [];
-            
+
             if (isset($options) && isset($options['name']) && strlen($options['name']) > 0) {
                 $search .= " AND lower(provider_label) LIKE :search_name ";
                 $params[':search_name'] = '%' . strtolower($options['name']) . '%';
             }
 
-            $query = 'SELECT DISTINCT provider_code as id, provider_label as name FROM ' . $this->table . ' ' . $search;
+            // LIMIT optionnel : utile pour l'autocomplete (typiquement 100) afin
+            // d'éviter de charger des milliers de lignes en mémoire. Si null, pas de limite.
+            $limitClause = '';
+            if (isset($options['limit']) && is_int($options['limit']) && $options['limit'] > 0) {
+                $limitClause = ' LIMIT ' . $options['limit'];
+            }
+
+            $query = 'SELECT DISTINCT provider_code as id, provider_label as name FROM '
+                . $this->table . ' ' . $search . ' ORDER BY provider_label' . $limitClause;
             $sth = $this->db->getPDO()->prepare($query);
-            
+
             foreach ($params as $key => $value) {
                 $sth->bindValue($key, $value, PDO::PARAM_STR);
             }
-            
+
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {

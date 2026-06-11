@@ -489,15 +489,14 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT p.provider_label as name , p.provider_code as code , CASE WHEN PROVIDERS.COUNT IS NULL 
-       THEN 0 
-       ELSE PROVIDERS.COUNT 
-       END AS COUNT  from {$this->providerTable} p LEFT join 
-         
+       SELECT p.provider_label as name , p.provider_code as code , providers.count AS COUNT
+       from {$this->providerTable} p INNER JOIN
+
         (SELECT  count(sp.*) as count, sp.provider_code as code FROM   {$this->sheetProviderTable} sp WHERE sp.sheet_id  in
          ( SELECT s.id  FROM  " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
-         
-         order by COUNT desc, p.provider_label 
+
+         order by COUNT desc, p.provider_label
+         LIMIT 50
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
