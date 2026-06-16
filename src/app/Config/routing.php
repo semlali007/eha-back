@@ -44,6 +44,7 @@ $router->get('/products/search/:code', 'App\Controllers\ProductController@search
 $router->get('/providers/show/:code', 'App\Controllers\ProviderController@show', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->get('/providers/search/:code', 'App\Controllers\ProviderController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->post('/providers/add', 'App\Controllers\ProviderController@add', ["roles"=>['USER']]);
+$router->post('/providers/update', 'App\Controllers\ProviderController@update', ["roles"=>['USER']]);
 $router->post('/providers/remove', 'App\Controllers\ProviderController@remove', ["roles"=>['USER']]);
 
 
