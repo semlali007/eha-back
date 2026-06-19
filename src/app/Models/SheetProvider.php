@@ -20,7 +20,16 @@ class SheetProvider extends Model
     public function getBySheet($sheetId)
     {
         try {
-            $query = 'SELECT DISTINCT  p.provider_code as id, p.provider_label as name FROM ' . $this->providerTable . ' p INNER JOIN ' . $this->table . ' sp ON sp.provider_code = p.provider_code WHERE sp.sheet_id = :sheet_id order by p.provider_label ';
+            $query = 'SELECT DISTINCT
+                        p.provider_code       as id,
+                        p.provider_label      as name,
+                        p.provider_siren      as siren,
+                        p.provider_numero_tva as numero_tva,
+                        p.provider_code_naf   as code_naf
+                      FROM ' . $this->providerTable . ' p
+                      INNER JOIN ' . $this->table . ' sp ON sp.provider_code = p.provider_code
+                      WHERE sp.sheet_id = :sheet_id
+                      ORDER BY p.provider_label';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();
