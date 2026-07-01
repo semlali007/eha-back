@@ -9,10 +9,13 @@ use App\Exceptions\HttpException ;
 
 class HttpClientService {
 
-    
-    
+    /** Hosts qui n'acceptent que TLS 1.3. */
+    private const TLS13_ONLY_HOSTS = [
+        'hlk-etl-api-preprod.edf.fr',
+    ];
+
     /**
-     * 
+     *
      * @param string $url
      * @param array $query
      * @param array $headers
@@ -74,6 +77,12 @@ class HttpClientService {
       * @return mixed
       */
     static function post (string $url, array $query, array $headers = Json::DEFAULT_HEADER):mixed {
+        // Bypass libcurl pour les hosts en TLS 1.3 only si la libcurl locale
+        // ne sait pas faire TLS 1.3 mais que PHP ext-openssl, oui.
+        if (self::needsTlsStreamFallback($url)) {
+            return self::postViaStream($url, $query, $headers);
+        }
+
         $curl = self::init($url, $headers, $query);
         $responses = curl_exec($curl);
         $json = json_decode($responses, true);
@@ -106,7 +115,117 @@ class HttpClientService {
         curl_setopt($curl, CURLOPT_VERBOSE, true);
 
         return $curl ;
-        
+
+    }
+
+    /**
+     * True si l'URL cible un host TLS 1.3 only ET que la libcurl locale ne sait pas
+     * négocier TLS 1.3 ET que ext-openssl côté PHP le peut. Dans ce cas on route
+     * l'appel via stream_context au lieu de libcurl.
+     */
+    private static function needsTlsStreamFallback(string $url): bool {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host)) return false;
+        if (!in_array($host, self::TLS13_ONLY_HOSTS, true)) return false;
+        if (defined('CURL_SSLVERSION_TLSv1_3')) return false; // libcurl OK, on l'utilise
+        return defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT');
+    }
+
+    /**
+     * POST HTTPS via stream_socket_client (ext-openssl) — fallback pour libcurl trop vieille
+     * pour TLS 1.3. Ne dépend PAS de allow_url_fopen.
+     */
+    private static function postViaStream(string $url, array $query, array $headers): mixed {
+        $parts = parse_url($url);
+        $host = $parts['host'] ?? '';
+        $port = $parts['port'] ?? 443;
+        $path = ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
+        $body = json_encode($query);
+
+        // Nettoie les headers user pour éviter les doublons.
+        $cleanHeaders = [];
+        foreach ($headers as $h) {
+            if (!is_string($h)) continue;
+            $lower = strtolower(ltrim($h));
+            if (str_starts_with($lower, 'content-length:')) continue;
+            if (str_starts_with($lower, 'host:')) continue;
+            if (str_starts_with($lower, 'connection:')) continue;
+            $cleanHeaders[] = $h;
+        }
+
+        $requestLines = ["POST $path HTTP/1.1"];
+        $requestLines[] = "Host: $host";
+        $requestLines[] = 'Content-Length: ' . strlen($body);
+        $requestLines[] = 'Connection: close';
+        foreach ($cleanHeaders as $h) $requestLines[] = $h;
+        $rawRequest = implode("\r\n", $requestLines) . "\r\n\r\n" . $body;
+
+        $ctx = stream_context_create([
+            'ssl' => [
+                'verify_peer'      => false,
+                'verify_peer_name' => false,
+                'SNI_enabled'      => true,
+                'peer_name'        => $host,
+                'crypto_method'    => STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT,
+            ],
+        ]);
+
+        $errno = 0;
+        $errstr = '';
+        $stream = @stream_socket_client(
+            "ssl://$host:$port",
+            $errno,
+            $errstr,
+            30,
+            STREAM_CLIENT_CONNECT,
+            $ctx
+        );
+
+        if ($stream === false) return null;
+
+        stream_set_timeout($stream, 30);
+        fwrite($stream, $rawRequest);
+        $rawResponse = '';
+        while (!feof($stream)) {
+            $chunk = fread($stream, 8192);
+            if ($chunk === false) break;
+            $rawResponse .= $chunk;
+        }
+        fclose($stream);
+
+        if ($rawResponse === '') return null;
+
+        $split = explode("\r\n\r\n", $rawResponse, 2);
+        $rawHeaders = $split[0] ?? '';
+        $responseBody = $split[1] ?? '';
+
+        // Décodage transfer-encoding: chunked si présent
+        foreach (explode("\r\n", $rawHeaders) as $line) {
+            if (stripos($line, 'transfer-encoding:') === 0 && stripos($line, 'chunked') !== false) {
+                $responseBody = self::decodeChunked($responseBody);
+                break;
+            }
+        }
+
+        return $responseBody !== '' ? json_decode($responseBody, true) : null;
+    }
+
+    /** Décode un body HTTP en Transfer-Encoding: chunked. */
+    private static function decodeChunked(string $body): string {
+        $decoded = '';
+        $pos = 0;
+        $len = strlen($body);
+        while ($pos < $len) {
+            $lineEnd = strpos($body, "\r\n", $pos);
+            if ($lineEnd === false) break;
+            $sizeHex = trim(substr($body, $pos, $lineEnd - $pos));
+            $size = hexdec($sizeHex);
+            if ($size === 0) break;
+            $pos = $lineEnd + 2;
+            $decoded .= substr($body, $pos, $size);
+            $pos += $size + 2;
+        }
+        return $decoded;
     }
 
     public static function exec_get(string $url, array $query, array $headers = Json::DEFAULT_HEADER) {
