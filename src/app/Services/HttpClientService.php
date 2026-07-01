@@ -23,6 +23,12 @@ class HttpClientService {
      * @throws Exception
      */
     public static function exec_post(string $url, array $query, array $headers = Json::DEFAULT_HEADER) {
+        if (self::needsTlsStreamFallback($url)) {
+            $result = self::sendViaStream('POST', $url, $query, $headers);
+            if ($result === null) throw new HttpException('stream fallback failed');
+            return $result;
+        }
+
         $curl = self::init($url, $headers, $query);
         $responses = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -31,11 +37,11 @@ class HttpClientService {
             $error = curl_error($curl);
             curl_close($curl);
             throw new HttpException($error);
-        } 
-        
+        }
+
         $json = json_decode($responses, true);
         curl_close($curl);
-       
+
         if (json_last_error() != JSON_ERROR_NONE) {
             throw new HttpException('json non valide', $httpCode);
         }
@@ -80,7 +86,7 @@ class HttpClientService {
         // Bypass libcurl pour les hosts en TLS 1.3 only si la libcurl locale
         // ne sait pas faire TLS 1.3 mais que PHP ext-openssl, oui.
         if (self::needsTlsStreamFallback($url)) {
-            return self::postViaStream($url, $query, $headers);
+            return self::sendViaStream('POST', $url, $query, $headers);
         }
 
         $curl = self::init($url, $headers, $query);
@@ -132,15 +138,26 @@ class HttpClientService {
     }
 
     /**
-     * POST HTTPS via stream_socket_client (ext-openssl) — fallback pour libcurl trop vieille
-     * pour TLS 1.3. Ne dépend PAS de allow_url_fopen.
+     * HTTPS via stream_socket_client (ext-openssl) — fallback pour libcurl trop vieille
+     * pour TLS 1.3. Supporte POST (JSON body) et GET (query en QS). Ne dépend PAS
+     * de allow_url_fopen.
      */
-    private static function postViaStream(string $url, array $query, array $headers): mixed {
+    private static function sendViaStream(string $method, string $url, array $query, array $headers): mixed {
         $parts = parse_url($url);
         $host = $parts['host'] ?? '';
         $port = $parts['port'] ?? 443;
-        $path = ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
-        $body = json_encode($query);
+        $path = $parts['path'] ?? '/';
+        $existingQs = $parts['query'] ?? '';
+
+        $body = '';
+        if ($method === 'POST') {
+            $body = json_encode($query);
+            if ($existingQs !== '') $path .= '?' . $existingQs;
+        } else { // GET
+            $newQs = http_build_query($query);
+            $qs = trim($existingQs . (($existingQs !== '' && $newQs !== '') ? '&' : '') . $newQs, '&');
+            if ($qs !== '') $path .= '?' . $qs;
+        }
 
         // Nettoie les headers user pour éviter les doublons.
         $cleanHeaders = [];
@@ -153,9 +170,11 @@ class HttpClientService {
             $cleanHeaders[] = $h;
         }
 
-        $requestLines = ["POST $path HTTP/1.1"];
+        $requestLines = ["$method $path HTTP/1.1"];
         $requestLines[] = "Host: $host";
-        $requestLines[] = 'Content-Length: ' . strlen($body);
+        if ($method === 'POST') {
+            $requestLines[] = 'Content-Length: ' . strlen($body);
+        }
         $requestLines[] = 'Connection: close';
         foreach ($cleanHeaders as $h) $requestLines[] = $h;
         $rawRequest = implode("\r\n", $requestLines) . "\r\n\r\n" . $body;
@@ -230,6 +249,13 @@ class HttpClientService {
 
     public static function exec_get(string $url, array $query, array $headers = Json::DEFAULT_HEADER) {
         $headers = array_merge(Json::DEFAULT_HEADER,$headers);
+
+        if (self::needsTlsStreamFallback($url)) {
+            $result = self::sendViaStream('GET', $url, $query, $headers);
+            if ($result === null) throw new HttpException('stream fallback failed');
+            return $result;
+        }
+
         $curl = self::initGet($url, $headers, $query);
         $responses = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -237,11 +263,11 @@ class HttpClientService {
             $error = curl_error($curl);
             curl_close($curl);
             throw new HttpException($error);
-        } 
-        
+        }
+
         $json = json_decode($responses, true);
         curl_close($curl);
-       
+
         if (json_last_error() != JSON_ERROR_NONE) {
             throw new HttpException('json non valide', $httpCode);
         }
