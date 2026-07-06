@@ -744,6 +744,20 @@ class SheetManager extends AbstractManager
             $data['domains'] = $sheetData['domains'] ?? [];
             $data['subdomains'] =$sheetData['subdomains'] ?? [];
 
+            // Traçabilité de l'origine externe (batch HLK, import Cockpit, migration…).
+            // Le modèle Sheet::add() a des defaults ('' et 0) qui polluent l'idempotence
+            // si on ne les propage pas explicitement quand ils sont fournis.
+            if (isset($sheetData['netachat_id'])) {
+                $data['netachat_id'] = $sheetData['netachat_id'];
+            }
+            if (isset($sheetData['netachat_type'])) {
+                $data['netachat_type'] = $sheetData['netachat_type'];
+            }
+            // Clé d'idempotence canonique pour les imports depuis Cockpit/HLK.
+            if (isset($sheetData['achat_id_cockpit'])) {
+                $data['achat_id_cockpit'] = $sheetData['achat_id_cockpit'];
+            }
+
             $fileUpload = new FileUpload();
             
             $fileUpload = new FileUpload();

@@ -7,6 +7,7 @@ namespace App\Command\Command;
 use App\Manager\SheetManager;
 use App\Models\Sheet;
 use App\Models\SheetBeneficiary;
+use App\Models\SheetStipulation;
 use App\Models\SyncState;
 use App\Security\User;
 use App\Services\HlkSheetsMapper;
@@ -60,6 +61,7 @@ class ImportSheetsFromHlk extends Command
 
         $dryRun = (bool) $input->getOption('dry-run');
         $overrideSince = $input->getOption('since');
+        $tGlobal = microtime(true);
 
         $syncState = new SyncState();
         $state     = $syncState->getByJobName(self::JOB_NAME);
@@ -67,6 +69,21 @@ class ImportSheetsFromHlk extends Command
         // Détermination du curseur : override CLI > dernier curseur BDD > fallback
         $since = $overrideSince ?: ($state['last_cursor'] ?? self::DEFAULT_FALLBACK_SINCE);
         $io->section("Curseur signed_date >= {$since}" . ($dryRun ? '  [DRY-RUN]' : ''));
+
+        error_log("[import-hlk] ================================================================");
+        error_log("[import-hlk] Batch start | since={$since} | mode=" . ($dryRun ? 'DRY-RUN' : 'REAL') . " | job=" . self::JOB_NAME);
+        error_log("[import-hlk] ================================================================");
+        if ($state) {
+            error_log(sprintf(
+                "[import-hlk] État précédent : last_run=%s last_success=%s last_cursor=%s last_status=%s",
+                $state['last_run_at']     ?? 'n/a',
+                $state['last_success_at'] ?? 'n/a',
+                $state['last_cursor']     ?? 'n/a',
+                $state['last_status']     ?? 'n/a'
+            ));
+        } else {
+            error_log("[import-hlk] Aucun état précédent (première exécution)");
+        }
 
         $stats = ['fetched_rows' => 0, 'sheets' => 0, 'created' => 0, 'updated' => 0, 'errors' => 0];
         $newCursor = $since;
@@ -84,59 +101,100 @@ class ImportSheetsFromHlk extends Command
             $stats['sheets'] = count($sheets);
             $io->text("→ {$stats['sheets']} fiches uniques après agrégation par achat_id_cockpit");
 
+            // On persiste dans sync_state le résumé d'usage des catégories, pour
+            // pouvoir revenir dessus a posteriori (analyse / requête SQL).
+            $stats['category_usage'] = $mapper->getCategoryUsage();
+
             // 3) Ingestion
+            error_log("[import-hlk:ingest] ===== Début ingestion de {$stats['sheets']} fiches (mode=" . ($dryRun ? 'DRY-RUN' : 'REAL') . ') =====');
             $sheetModel   = new Sheet();
             $sheetManager = new SheetManager();
-            $benefRelation = new SheetBeneficiary();
+            $benefRelation      = new SheetBeneficiary();
+            $stipulationRelation = new SheetStipulation();
             $batchUser    = $this->buildBatchUser();
 
-            $stats['type_mismatch'] = 0; // fiches trouvées avec un netachat_type ≠ 'hlk'
+            $stats['filiales_added']       = 0; // total de liens (sheet, filiale) ajoutés (type=beneficiary)
+            $stats['filiales0_added']      = 0; // idem pour les stipulations (type=stipulation)
+            $stats['matched_by_contract']  = 0; // fiches retrouvées via contract_code (pas via achat_id)
+            $stats['backfilled']           = 0; // fiches sur lesquelles on a rempli achat_id_cockpit
 
             foreach ($sheets as $sheetData) {
                 try {
-                    $netachatId   = $sheetData['netachat_id'];
-                    $netachatType = $sheetData['netachat_type'];
-                    // Lookup souple : on cherche par netachat_id seul (peu importe le type
-                    // stocké) pour éviter de créer un doublon si la fiche a été importée
-                    // par un ancien mécanisme (netachat_type NULL ou legacy).
-                    $existing = $sheetModel->findByNetachatId($netachatId);
+                    $achatId      = $sheetData['achat_id_cockpit'];
+                    $label        = (string) ($sheetData['label'] ?? '');
+                    $nbFiliales   = count($sheetData['filiales']  ?? []);
+                    $nbFiliales0  = count($sheetData['filiales0'] ?? []);
+                    $nbContracts  = count($sheetData['contracts'] ?? []);
+                    $nbProviders  = count($sheetData['providers'] ?? []);
+
+                    // Étape 1 : lookup par achat_id_cockpit (cas nominal)
+                    $existing  = $sheetModel->findByAchatIdCockpit($achatId);
+                    $matchMode = $existing !== null ? 'achat_id' : null;
+
+                    // Étape 2 : sinon, lookup par contract_code (rattrape les fiches manuelles)
+                    if ($existing === null) {
+                        $contractCodes = [];
+                        foreach ($sheetData['contracts'] ?? [] as $c) {
+                            if (!empty($c['contract_code'])) {
+                                $contractCodes[] = $c['contract_code'];
+                            }
+                        }
+                        if (!empty($contractCodes)) {
+                            $existing = $sheetModel->findByContractCodes($contractCodes);
+                            if ($existing !== null) {
+                                $matchMode = 'contract_code';
+                                $stats['matched_by_contract']++;
+                            }
+                        }
+                    }
 
                     if ($existing === null) {
-                        // Création complète en brouillon
+                        // Étape 3 : rien trouvé → création complète en brouillon
+                        error_log(sprintf(
+                            "[import-hlk:ingest] CREATE%s achat_id_cockpit=%s label='%s' | providers=%d contracts=%d filiales=%d filiales0=%d",
+                            $dryRun ? ' [dry]' : '',
+                            $achatId, $label, $nbProviders, $nbContracts, $nbFiliales, $nbFiliales0
+                        ));
                         if ($dryRun) {
-                            $io->text("  [dry] CREATE fiche netachat_id={$netachatId} label='{$sheetData['label']}'");
+                            $io->text("  [dry] CREATE fiche achat_id_cockpit={$achatId} label='{$label}' ({$nbFiliales} filiales, {$nbFiliales0} stipulations, {$nbContracts} contrats)");
                         } else {
                             $sheetManager->add($batchUser, $sheetData);
                         }
                         $stats['created']++;
                     } else {
-                        $existingId       = (int) $existing['id'];
-                        $existingTypeRaw  = $existing['netachat_type'] ?? null;
+                        $existingId          = (int) $existing['id'];
+                        $existingAchatIdRaw  = $existing['achat_id_cockpit'] ?? null;
 
-                        // Le netachat_type est purement informatif : on le pose sur les nouvelles
-                        // fiches à titre de traçabilité, mais il n'entre PAS dans la logique
-                        // d'idempotence (on lookup par netachat_id seul). Si le type stocké
-                        // diffère de 'hlk', c'est probablement une fiche importée par un
-                        // ancien mécanisme — on la traite normalement et on note juste dans
-                        // les stats pour visibilité.
-                        if ($existingTypeRaw !== $netachatType) {
-                            $stats['type_mismatch']++;
-                            error_log(sprintf(
-                                '[ImportSheetsFromHlk] info : sheet_id=%d netachat_id=%s a un netachat_type=%s (vs %s côté HLK). Merge filiales appliqué quand même.',
-                                $existingId,
-                                (string) $netachatId,
-                                var_export($existingTypeRaw, true),
-                                $netachatType
-                            ));
-                        }
+                        error_log(sprintf(
+                            "[import-hlk:ingest] MERGE%s sheet_id=%d achat_id_cockpit=%s label='%s' | via=%s | filiales à ajouter=%d",
+                            $dryRun ? ' [dry]' : '',
+                            $existingId, $achatId, $label, $matchMode, $nbFiliales
+                        ));
 
-                        // Update partiel : uniquement les bénéficiaires (union avec l'existant)
                         if ($dryRun) {
-                            $io->text("  [dry] MERGE filiales sheet_id={$existingId} netachat_id={$netachatId} (existing_type=" . var_export($existingTypeRaw, true) . ')');
+                            $io->text("  [dry] MERGE filiales sheet_id={$existingId} ({$nbFiliales} filiales à unir) [via {$matchMode}]");
                         } else {
+                            // Backfill : si on a trouvé la fiche via contract_code et qu'elle
+                            // n'avait pas d'achat_id_cockpit, on le pose pour matcher plus
+                            // vite / plus fiablement aux prochains runs.
+                            if ($matchMode === 'contract_code' && empty($existingAchatIdRaw)) {
+                                $sheetModel->updateAchatIdCockpit($existingId, $achatId);
+                                $stats['backfilled']++;
+                                error_log("[import-hlk:ingest]   backfill achat_id_cockpit={$achatId} sur sheet_id={$existingId}");
+                            }
+
+                            // Merge des filiales (bénéficiaires) : union avec l'existant
                             foreach ($sheetData['filiales'] as $f) {
-                                if (isset($f['code']) && $f['code'] !== null) {
-                                    $benefRelation->add($existingId, (int) $f['code']);
+                                if (isset($f['id']) && $f['id'] !== null) {
+                                    $benefRelation->add($existingId, (int) $f['id']);
+                                    $stats['filiales_added']++;
+                                }
+                            }
+                            // Merge des filiales0 (stipulations pour autrui) : idem
+                            foreach ($sheetData['filiales0'] ?? [] as $f) {
+                                if (isset($f['id']) && $f['id'] !== null) {
+                                    $stipulationRelation->add($existingId, (int) $f['id']);
+                                    $stats['filiales0_added']++;
                                 }
                             }
                         }
@@ -144,7 +202,7 @@ class ImportSheetsFromHlk extends Command
                     }
                 } catch (Throwable $e) {
                     $stats['errors']++;
-                    error_log('[ImportSheetsFromHlk] erreur fiche netachat_id=' . ($sheetData['netachat_id'] ?? '?') . ' : ' . $e->getMessage());
+                    error_log('[import-hlk:ingest] ⚠ erreur fiche achat_id_cockpit=' . ($sheetData['achat_id_cockpit'] ?? '?') . ' : ' . $e->getMessage());
                 }
             }
 
@@ -156,14 +214,37 @@ class ImportSheetsFromHlk extends Command
                 $syncState->upsert(self::JOB_NAME, $newCursor, $status, null, $stats);
             }
 
+            $totalMs = round((microtime(true) - $tGlobal) * 1000);
+            error_log("[import-hlk] ================================================================");
+            error_log(sprintf(
+                "[import-hlk] BATCH TERMINÉ (%s) en %dms | created=%d updated=%d (dont via_contract=%d, backfilled=%d) errors=%d filiales_added=%d filiales0_added=%d | new_cursor=%s",
+                strtoupper($status),
+                $totalMs,
+                $stats['created'], $stats['updated'],
+                $stats['matched_by_contract'], $stats['backfilled'],
+                $stats['errors'],
+                $stats['filiales_added'], $stats['filiales0_added'],
+                $newCursor
+            ));
+            error_log("[import-hlk] ================================================================");
+
             $io->success('Import terminé');
             $io->table(
-                ['fetched_rows', 'sheets', 'created', 'updated', 'errors', 'nouveau curseur'],
-                [[$stats['fetched_rows'], $stats['sheets'], $stats['created'], $stats['updated'], $stats['errors'], $newCursor]]
+                ['fetched_rows', 'sheets', 'created', 'updated', 'via_contract', 'backfilled', 'errors', 'filiales_added', 'filiales0_added', 'nouveau curseur'],
+                [[
+                    $stats['fetched_rows'], $stats['sheets'], $stats['created'], $stats['updated'],
+                    $stats['matched_by_contract'], $stats['backfilled'],
+                    $stats['errors'], $stats['filiales_added'], $stats['filiales0_added'], $newCursor
+                ]]
             );
             return Command::SUCCESS;
 
         } catch (Throwable $e) {
+            $totalMs = round((microtime(true) - $tGlobal) * 1000);
+            error_log("[import-hlk] ================================================================");
+            error_log("[import-hlk] BATCH EN ÉCHEC après {$totalMs}ms : " . $e->getMessage());
+            error_log("[import-hlk] Stats partielles : created={$stats['created']} updated={$stats['updated']} errors={$stats['errors']}");
+            error_log("[import-hlk] ================================================================");
             $io->error('Batch en échec : ' . $e->getMessage());
             if (!$dryRun) {
                 $syncState->upsert(self::JOB_NAME, $newCursor, 'error', $e->getMessage(), $stats);

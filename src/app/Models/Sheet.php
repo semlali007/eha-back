@@ -790,8 +790,9 @@ class Sheet extends Model
             $data['entites_beneficiaires_edf_enedis'] = $data['entites_beneficiaires_edf_enedis'] ?? null;
             $data['geographic_detail'] = $data['geographic_detail'] ?? null;
             $data['acheteur'] = $data['acheteur'] ?? null;
+            $data['achat_id_cockpit'] = $data['achat_id_cockpit'] ?? null;
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur, achat_id_cockpit) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur, :achat_id_cockpit);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -826,6 +827,8 @@ class Sheet extends Model
             $sth->bindParam(':entites_beneficiaires_edf_enedis', $data['entites_beneficiaires_edf_enedis'], PDO::PARAM_STR);
             $sth->bindParam(':geographic_detail', $data['geographic_detail'], PDO::PARAM_STR);
             $sth->bindParam(':acheteur', $data['acheteur'], PDO::PARAM_STR);
+            $sth->bindValue(':achat_id_cockpit', $data['achat_id_cockpit'],
+                $data['achat_id_cockpit'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
@@ -937,11 +940,89 @@ class Sheet extends Model
     }
 
     /**
-     * Lookup pour l'idempotence des batchs d'import : cherche uniquement par
-     * netachat_id (lookup souple, indépendant du netachat_type). Le type est
-     * retourné pour permettre à l'appelant de logger si la source diffère.
+     * Lookup pour l'idempotence des batchs d'import : cherche par achat_id_cockpit.
+     * C'est le champ métier canonique pour identifier un achat côté Cockpit.
      *
-     * Retourne id + status + netachat_type, ou null si aucune fiche ne correspond.
+     * Retourne id + status, ou null si aucune fiche ne correspond.
+     */
+    public function findByAchatIdCockpit($achatId): ?array
+    {
+        $sth = $this->db->getPDO()->prepare(
+            'SELECT id, status FROM ' . $this->table
+            . ' WHERE achat_id_cockpit = :aid LIMIT 1'
+        );
+        $sth->bindValue(':aid', $achatId, \PDO::PARAM_INT);
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Lookup secondaire pour l'idempotence : cherche une fiche qui référence
+     * l'un des contract_code passés (via sheet_contracts). Utile pour rattacher
+     * des fiches créées manuellement (sans achat_id_cockpit) à leur équivalent HLK.
+     *
+     * Retourne id + status + achat_id_cockpit de la première fiche trouvée,
+     * ou null si aucun rattachement possible.
+     *
+     * @param string[] $codes
+     */
+    public function findByContractCodes(array $codes): ?array
+    {
+        // Nettoyage : que des strings non vides
+        $codes = array_values(array_filter(
+            array_map(fn($c) => is_string($c) ? trim($c) : (string) $c, $codes),
+            fn($c) => $c !== ''
+        ));
+        if (empty($codes)) {
+            return null;
+        }
+
+        // Construction dynamique des placeholders :c0, :c1, …
+        $placeholders = [];
+        $params       = [];
+        foreach ($codes as $i => $c) {
+            $key = ':c' . $i;
+            $placeholders[] = $key;
+            $params[$key]   = $c;
+        }
+        $sheetContractsTable = $this->db->getSchema() . 'sheet_contracts';
+        $inClause = implode(', ', $placeholders);
+
+        $sql = "SELECT DISTINCT sh.id, sh.status, sh.achat_id_cockpit
+                FROM {$this->table} sh
+                JOIN {$sheetContractsTable} sc ON sc.sheet_id = sh.id
+                WHERE sc.contract_code IN ({$inClause})
+                LIMIT 1";
+
+        $sth = $this->db->getPDO()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $sth->bindValue($k, $v, \PDO::PARAM_STR);
+        }
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Positionne achat_id_cockpit sur une fiche existante. Utilisé pour
+     * "rattraper" une fiche créée manuellement quand on la retrouve via
+     * ses contract_code — les prochains runs matcheront directement par
+     * achat_id_cockpit (plus rapide et plus fiable).
+     */
+    public function updateAchatIdCockpit(int $sheetId, $achatId): void
+    {
+        $sth = $this->db->getPDO()->prepare(
+            'UPDATE ' . $this->table . ' SET achat_id_cockpit = :aid WHERE id = :id'
+        );
+        $sth->bindValue(':aid', $achatId, \PDO::PARAM_INT);
+        $sth->bindValue(':id',  $sheetId, \PDO::PARAM_INT);
+        $sth->execute();
+    }
+
+    /**
+     * @deprecated Utiliser findByAchatIdCockpit() pour les nouveaux batchs.
+     * Conservé pour compatibilité avec du code historique éventuel.
      */
     public function findByNetachatId($netachatId): ?array
     {
