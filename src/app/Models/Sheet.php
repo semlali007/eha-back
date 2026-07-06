@@ -936,6 +936,25 @@ class Sheet extends Model
         }
     }
 
+    /**
+     * Lookup pour l'idempotence des batchs d'import : cherche uniquement par
+     * netachat_id (lookup souple, indépendant du netachat_type). Le type est
+     * retourné pour permettre à l'appelant de logger si la source diffère.
+     *
+     * Retourne id + status + netachat_type, ou null si aucune fiche ne correspond.
+     */
+    public function findByNetachatId($netachatId): ?array
+    {
+        $sth = $this->db->getPDO()->prepare(
+            'SELECT id, status, netachat_type FROM ' . $this->table
+            . ' WHERE netachat_id = :nid LIMIT 1'
+        );
+        $sth->bindValue(':nid', $netachatId, \PDO::PARAM_INT);
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
     public function getSheetByNetAchat($netAchatId)
     {
         try {

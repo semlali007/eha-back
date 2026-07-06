@@ -12,7 +12,8 @@ use App\Command\Command\{
     Migration,
     DeleteMigration,
     MigrationDomain,
-    UpdateSheets
+    UpdateSheets,
+    ImportSheetsFromHlk
 };
 
 /**
@@ -55,7 +56,8 @@ class Bootstrap {
             new Migration(),
             new DeleteMigration(),
             new MigrationDomain(),
-            new UpdateSheets()
+            new UpdateSheets(),
+            new ImportSheetsFromHlk()
         ] ;
     }
 
