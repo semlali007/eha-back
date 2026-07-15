@@ -31,9 +31,6 @@ class HlkSheetsService
      *  c'est un record en défaut côté HLK — on skippe et on passe. */
     private const PAGE_TIMEOUT_SEC = 30;
 
-    /** Date "plancher" envoyée à HLK dans le payload (paramètre signed_date). */
-    public const DEFAULT_SIGNED_SINCE = '2026-06-01';
-
     /**
      * @var array{
      *   total_pages_hlk:int,
@@ -67,15 +64,14 @@ class HlkSheetsService
         $totalPagesHlk = 1;
 
         error_log("[hlk-benef-sync:fetch] ===== Début stream HLK =====");
-        error_log("[hlk-benef-sync:fetch] url={$url} page_limit={$pageLimit} signed_date=" . self::DEFAULT_SIGNED_SINCE);
+        error_log("[hlk-benef-sync:fetch] url={$url} page_limit={$pageLimit}");
 
         do {
             $payload = [
                 'action_code' => $actionCode,
                 'password'    => $password,
                 'page'        => $page,
-                'limit'       => $pageLimit,
-                'signed_date' => self::DEFAULT_SIGNED_SINCE,
+                'limit'       => $pageLimit
             ];
 
             try {
