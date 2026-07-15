@@ -29,7 +29,8 @@
         "symfony/console": "^5.3",
         "monolog/monolog": "^2.8",
         "simplesamlphp/simplesamlphp": "^1.19",
-        "twig/twig": "*"
+        "twig/twig": "*",
+        "simplesamlphp/saml2": "4.19.2"
     },
     "require-dev": {
          "phpunit/phpunit": "^9.5"
