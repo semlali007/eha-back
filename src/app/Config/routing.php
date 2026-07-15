@@ -143,6 +143,9 @@ $router->post('/migration/save', 'App\Controllers\Admin\MigrateController@saveDa
 $router->post('/migration/migrate', 'App\Controllers\Admin\MigrateController@migrate', ["roles"=>['ADMIN']]);
 $router->post('/migration/list', 'App\Controllers\Admin\MigrateController@index', ["roles"=>['ADMIN']]);
 
+// HLK — sync bénéficiaires (bouton admin, endpoint synchrone, ~1-2 min)
+$router->post('/admin/hlk/sync-beneficiaries', 'App\Controllers\Admin\Hlk\HlkSyncController@syncBeneficiaries', ["roles"=>['ADMIN']]);
+
 $router->post('/purchases/search', 'App\Controllers\PurchaseController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 
 
