@@ -425,12 +425,13 @@ class HlkBeneficiarySyncManager
     {
         $total = 0;
         try {
-            $pdo = DBConnection::getInstance()->getPDO();
-            $stmt = $pdo->query('SELECT COUNT(*) AS c FROM sheet');
-            $row  = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $total = (int) ($row['c'] ?? 0);
+            $db     = DBConnection::getInstance();
+            $schema = $db->getSchema(); // ex: "EHA".
+            $stmt   = $db->getPDO()->query("SELECT COUNT(*) AS c FROM {$schema}sheet_headers");
+            $row    = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $total  = (int) ($row['c'] ?? 0);
         } catch (Throwable $e) {
-            error_log('[hlk-benef-sync] ⚠ coverage : COUNT(sheet) échec : ' . $e->getMessage());
+            error_log('[hlk-benef-sync] ⚠ coverage : COUNT(sheet_headers) échec : ' . $e->getMessage());
         }
         return [
             'eha_sheets_total' => $total,
