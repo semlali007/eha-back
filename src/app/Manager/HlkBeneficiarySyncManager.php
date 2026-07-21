@@ -39,13 +39,18 @@ class HlkBeneficiarySyncManager
      *   de vérifier avant de valider. Aucune filiale n'est créée, aucun lien
      *   sheet_filiales n'est posé. Sûr à lancer en preprod / prod.
      *
+     * @param callable|null $onProgress Callback appelé après chaque page traitée
+     *   avec (int $pageNum, array $partialStats). Utilisé par le controller pour
+     *   émettre des octets keepalive et éviter les timeouts intermédiaires
+     *   (nginx / WAF EDF) sur ce traitement long (~5-6 min).
+     *
      * @return array Rapport structuré : dry_run, pages_processed,
      *   rows_fetched, contracts_processed, contracts_matched, contracts_unmatched,
      *   fiches_updated, links_created, beneficiaries_created, errors,
      *   duration_ms, started_at, finished_at, fetch_info, coverage,
      *   warnings, preview (uniquement quand dry_run=true)
      */
-    public function run(bool $dryRun = false): array
+    public function run(bool $dryRun = false, ?callable $onProgress = null): array
     {
         $started = new \DateTimeImmutable();
         $t0 = microtime(true);
@@ -115,6 +120,13 @@ class HlkBeneficiarySyncManager
                     $stats['contracts_matched'], $stats['contracts_unmatched'],
                     count($updatedSheets), $stats['links_created'], $stats['beneficiaries_created']
                 ));
+
+                // Keepalive : appelle le callback pour émettre des octets vers
+                // le client et éviter les timeouts nginx / WAF sur cette
+                // requête longue durée.
+                if ($onProgress !== null) {
+                    $onProgress($pageNum, $stats);
+                }
             }
 
             $stats['fiches_updated'] = count($updatedSheets);
