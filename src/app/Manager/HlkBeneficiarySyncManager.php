@@ -33,6 +33,9 @@ class HlkBeneficiarySyncManager
     /** @var array<string,array<int,array{id:int,label:string}>> Cache : contract_code → fiches trouvées */
     private array $contractCache = [];
 
+    /** @var array<int,array<int,bool>> Cache : sheet_id → set des filiale_id déjà liés (évite de compter comme "à ajouter" un lien qui existe déjà) */
+    private array $existingLinksCache = [];
+
     /**
      * @param bool $dryRun Si true : aucune écriture BDD, on retourne juste le rapport
      *   de ce qui SERAIT fait + un aperçu (preview) pour permettre à l'admin
@@ -308,20 +311,42 @@ class HlkBeneficiarySyncManager
                 return;
             }
 
-            // Ajouter le lien sur chaque fiche matchée (skip write en dry_run)
+            // Ajouter le lien sur chaque fiche matchée (skip write en dry_run).
+            // On skip aussi les liens qui existent DÉJÀ en base : sinon le preview
+            // et les compteurs disent qu'on "ajoute" des bénéficiaires alors qu'ils
+            // sont déjà présents (ex: fiche 983, "ENEDIS" listé à ajouter alors
+            // qu'il est déjà rattaché).
             $sheetIds = [];
             foreach ($matchedSheets as $matched) {
                 $sheetId = $matched['id'];
                 $label   = $matched['label'];
                 $sheetIds[] = $sheetId;
+
+                // Charger (une fois par fiche) les liens sheet_filiales existants
+                $existingLinks = $this->getExistingLinks($sheetId, $sheetBenef);
+
+                // Si le lien existe déjà, on ne fait rien : pas d'add, pas de
+                // preview, pas de comptage. Le "ON CONFLICT DO UPDATE" du SQL
+                // aurait été un no-op de toute façon.
+                if (isset($existingLinks[$filialeId])) {
+                    continue;
+                }
+
                 try {
                     if (!$dryRun) {
                         $sheetBenef->add($sheetId, $filialeId);
+                        // Marquer comme existant maintenant pour ne pas re-compter
+                        // si HLK renvoie plusieurs rows (contract, benef) pour la
+                        // même paire (sheet, filiale).
+                        $this->existingLinksCache[$sheetId][$filialeId] = true;
+                    } else {
+                        // En dry_run on marque aussi pour dédup au sein du preview
+                        $this->existingLinksCache[$sheetId][$filialeId] = true;
                     }
                     $stats['links_created']++;
                     $updatedSheets[$sheetId] = true;
 
-                    // Preview : agréger par fiche
+                    // Preview : agréger par fiche — uniquement les vrais nouveaux liens
                     if ($dryRun) {
                         if (!isset($preview['fiches_by_id'][$sheetId])) {
                             $preview['fiches_by_id'][$sheetId] = [
@@ -357,6 +382,36 @@ class HlkBeneficiarySyncManager
             ];
             error_log("[hlk-benef-sync] ⚠ erreur row #{$rowIndex} (p{$pageNum}) : " . $e->getMessage());
         }
+    }
+
+    /**
+     * Charge (une seule fois par fiche) l'ensemble des filiale_id déjà liés à
+     * la fiche via sheet_filiales (type=beneficiary). Retourne un tableau
+     * {filiale_id => true} pour un O(1) lookup côté processRow.
+     *
+     * Sans ce cache, le manager compte comme "à ajouter" chaque bénéficiaire
+     * HLK même s'il est déjà rattaché à la fiche — ce qui pollue le preview
+     * et surestime `links_created` massivement.
+     *
+     * @return array<int,bool>
+     */
+    private function getExistingLinks(int $sheetId, SheetBeneficiary $sheetBenef): array
+    {
+        if (isset($this->existingLinksCache[$sheetId])) {
+            return $this->existingLinksCache[$sheetId];
+        }
+        $set = [];
+        try {
+            foreach ($sheetBenef->getBySheet($sheetId) as $row) {
+                if (isset($row['id'])) {
+                    $set[(int) $row['id']] = true;
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("[hlk-benef-sync] ⚠ getExistingLinks sheet_id={$sheetId} échec : " . $e->getMessage());
+        }
+        $this->existingLinksCache[$sheetId] = $set;
+        return $set;
     }
 
     /**

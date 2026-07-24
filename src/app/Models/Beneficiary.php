@@ -65,7 +65,16 @@ class Beneficiary extends Model
     public function get($options)
     {
         try {
-            $query = 'SELECT * FROM ' . $this->table . ' WHERE name=:name';
+            // Comparaison INSENSIBLE à la casse, aux accents et aux espaces
+            // de tête/queue : HLK renvoie souvent en majuscules sans accents
+            // ("ELECTRICITE DE STRASBOURG") alors qu'un utilisateur a saisi
+            // la variante accentuée ("Electricité de Strasbourg"). Sans cette
+            // normalisation on crée des doublons dans la table filiale.
+            //
+            // Utilise public.unaccent (extension installée sur la BDD EHA)
+            // qualifié explicitement pour éviter tout souci de search_path.
+            $query = 'SELECT * FROM ' . $this->table
+                . ' WHERE LOWER(public.unaccent(TRIM(name))) = LOWER(public.unaccent(TRIM(:name)))';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
             $sth->execute();
