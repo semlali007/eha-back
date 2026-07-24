@@ -73,8 +73,21 @@ class Beneficiary extends Model
             //
             // Utilise public.unaccent (extension installée sur la BDD EHA)
             // qualifié explicitement pour éviter tout souci de search_path.
-            $query = 'SELECT * FROM ' . $this->table
-                . ' WHERE LOWER(public.unaccent(TRIM(name))) = LOWER(public.unaccent(TRIM(:name)))';
+            //
+            // Tri par usage_count DESC puis id ASC : quand des doublons existent
+            // ("Enedis" id=3 avec 500 liens actifs ET "ENEDIS" id=2400 orphelin),
+            // on retourne d'abord la row la PLUS UTILISÉE. Le consommateur (sync
+            // HLK, migration managers) qui prend $found[0] cible ainsi la row
+            // "canonique de fait" plutôt qu'un orphelin. Tie-break par id ASC
+            // pour rester déterministe.
+            $schema = $this->db->getSchema();
+            $query = 'SELECT f.*, '
+                . '       (SELECT COUNT(*) FROM ' . $schema . 'sheet_filiales sf '
+                . '        WHERE sf.filiale_id = f.id AND sf.type = \'beneficiary\''
+                . '       ) AS usage_count '
+                . 'FROM ' . $this->table . ' f '
+                . 'WHERE LOWER(public.unaccent(TRIM(f.name))) = LOWER(public.unaccent(TRIM(:name))) '
+                . 'ORDER BY usage_count DESC, f.id ASC';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
             $sth->execute();

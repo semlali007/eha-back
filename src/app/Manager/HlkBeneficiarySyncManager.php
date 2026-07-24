@@ -33,7 +33,18 @@ class HlkBeneficiarySyncManager
     /** @var array<string,array<int,array{id:int,label:string}>> Cache : contract_code → fiches trouvées */
     private array $contractCache = [];
 
-    /** @var array<int,array<int,bool>> Cache : sheet_id → set des filiale_id déjà liés (évite de compter comme "à ajouter" un lien qui existe déjà) */
+    /**
+     * Cache : sheet_id → set des noms normalisés des bénéficiaires actuellement
+     * rattachés à la fiche (via sheet_filiales, type=beneficiary).
+     *
+     * L'unique clé de comparaison est le nom normalisé (lower+unaccent+trim) :
+     * peu importe l'ID de la row filiale sous-jacente, deux libellés qui
+     * normalisent au même nom sont considérés comme le même bénéficiaire.
+     * C'est ce qui permet de tolérer les doublons historiques dans filiale
+     * (Enedis id=3 et ENEDIS id=2400) sans re-créer de liens erronés.
+     *
+     * @var array<int,array<string,bool>>
+     */
     private array $existingLinksCache = [];
 
     /**
@@ -126,9 +137,15 @@ class HlkBeneficiarySyncManager
 
                 // Keepalive : appelle le callback pour émettre des octets vers
                 // le client et éviter les timeouts nginx / WAF sur cette
-                // requête longue durée.
+                // requête longue durée. On protège l'appel : si le client a
+                // fermé la connexion en cours de sync, flush() peut throw —
+                // on ne veut pas perdre les pages restantes pour autant.
                 if ($onProgress !== null) {
-                    $onProgress($pageNum, $stats);
+                    try {
+                        $onProgress($pageNum, $stats);
+                    } catch (Throwable $e) {
+                        error_log("[hlk-benef-sync] ⚠ onProgress callback threw : " . $e->getMessage());
+                    }
                 }
             }
 
@@ -235,11 +252,22 @@ class HlkBeneficiarySyncManager
     }
 
     /**
-     * Traite une ligne HLK : lookup contrat → résolution bénéficiaire → ajout du
-     * lien sheet_filiales sur chaque fiche matchée. Toutes les erreurs (row-level)
-     * sont capturées et empilées dans $stats['errors'] pour ne pas casser le loop.
+     * Traite UNE ligne HLK. Flow métier :
      *
-     * Log détaillé pour chaque row afin de voir vivre la progression.
+     *   1. Extraire (contract_code, benef_name) de la row HLK
+     *   2. Lookup contract → fiche(s) EHA rattachée(s) (cache)
+     *   3. Pour chaque fiche trouvée :
+     *      a. Charger les bénéficiaires actuellement rattachés à la fiche
+     *      b. Le nom HLK est-il déjà rattaché ? (comparaison lower+unaccent+trim)
+     *         → OUI : SKIP, rien à faire
+     *         → NON : résoudre/créer la row filiale, poser le lien sheet_filiales
+     *
+     * La résolution `Beneficiary::get()` est PARESSEUSE : on ne fait le lookup
+     * que si au moins une fiche a besoin d'un ajout. Si toutes les fiches
+     * matchées ont déjà le bénéf, on n'appelle jamais get() → pas de DB roundtrip.
+     *
+     * Toutes les erreurs row-level sont capturées dans $stats['errors'] pour
+     * ne pas casser le loop de la sync.
      */
     private function processRow(
         array $row,
@@ -255,6 +283,7 @@ class HlkBeneficiarySyncManager
         bool $dryRun
     ): void {
         try {
+            // === 1. Extraire (contract, benef) de la row HLK ==================
             $contractCode    = trim((string) ($row['contrat_numero']       ?? ''));
             $beneficiaryName = $this->cleanText($row['contrat_beneficiaire'] ?? '');
 
@@ -269,8 +298,9 @@ class HlkBeneficiarySyncManager
             }
 
             $stats['contracts_processed']++;
+            $normBenefKey = $this->normalizeKey($beneficiaryName);
 
-            // Cache : lookup fiches par code contrat (évite le SQL répété)
+            // === 2. Lookup contract → fiches (cache) ==========================
             if (!isset($this->contractCache[$contractCode])) {
                 $tLookup = microtime(true);
                 $found = $sheet->getByContract($contractCode);
@@ -301,52 +331,54 @@ class HlkBeneficiarySyncManager
             }
             $stats['contracts_matched']++;
 
-            // Résoudre / créer le bénéficiaire (skip write en dry_run)
-            $filialeId = $this->resolveOrCreateBeneficiary($beneficiaryName, $benefModel, $stats, $dryRun, $preview);
-            if ($filialeId === null) {
-                error_log(sprintf(
-                    '[hlk-benef-sync] row #%d (p%d) BENEF_NULL contract=%s benef=\'%s\', skip',
-                    $rowIndex, $pageNum, $contractCode, $beneficiaryName
-                ));
-                return;
-            }
+            // === 3. Pour chaque fiche matchée : skip si le nom est déjà rattaché,
+            //         sinon résoudre la filiale (paresseux) et ajouter le lien.
+            $filialeId       = null; // résolu à la demande, une seule fois
+            $addedSheetIds   = [];
+            $skippedSheetIds = [];
 
-            // Ajouter le lien sur chaque fiche matchée (skip write en dry_run).
-            // On skip aussi les liens qui existent DÉJÀ en base : sinon le preview
-            // et les compteurs disent qu'on "ajoute" des bénéficiaires alors qu'ils
-            // sont déjà présents (ex: fiche 983, "ENEDIS" listé à ajouter alors
-            // qu'il est déjà rattaché).
-            $sheetIds = [];
             foreach ($matchedSheets as $matched) {
                 $sheetId = $matched['id'];
                 $label   = $matched['label'];
-                $sheetIds[] = $sheetId;
 
-                // Charger (une fois par fiche) les liens sheet_filiales existants
-                $existingLinks = $this->getExistingLinks($sheetId, $sheetBenef);
+                // 3a. Noms des bénéficiaires actuellement rattachés à cette fiche
+                $existingNames = $this->getExistingLinks($sheetId, $sheetBenef);
 
-                // Si le lien existe déjà, on ne fait rien : pas d'add, pas de
-                // preview, pas de comptage. Le "ON CONFLICT DO UPDATE" du SQL
-                // aurait été un no-op de toute façon.
-                if (isset($existingLinks[$filialeId])) {
+                // 3b. Le nom HLK (normalisé) est-il déjà présent ?
+                if (isset($existingNames[$normBenefKey])) {
+                    $skippedSheetIds[] = $sheetId;
                     continue;
                 }
 
+                // 3c. Résolution paresseuse — au 1er ajout nécessaire seulement
+                if ($filialeId === null) {
+                    $filialeId = $this->resolveOrCreateBeneficiary(
+                        $beneficiaryName, $benefModel, $stats, $dryRun, $preview
+                    );
+                    if ($filialeId === null) {
+                        error_log(sprintf(
+                            '[hlk-benef-sync] row #%d (p%d) BENEF_NULL contract=%s benef=\'%s\', abandon row',
+                            $rowIndex, $pageNum, $contractCode, $beneficiaryName
+                        ));
+                        return; // impossible de résoudre → on abandonne toute la row
+                    }
+                }
+
+                // 3d. Ajouter le lien (skip write en dry_run)
                 try {
                     if (!$dryRun) {
                         $sheetBenef->add($sheetId, $filialeId);
-                        // Marquer comme existant maintenant pour ne pas re-compter
-                        // si HLK renvoie plusieurs rows (contract, benef) pour la
-                        // même paire (sheet, filiale).
-                        $this->existingLinksCache[$sheetId][$filialeId] = true;
-                    } else {
-                        // En dry_run on marque aussi pour dédup au sein du preview
-                        $this->existingLinksCache[$sheetId][$filialeId] = true;
                     }
+                    // Marquer le NOM comme désormais rattaché à cette fiche pour
+                    // dédupliquer les rows HLK suivantes ayant la même paire
+                    // (sheet, benef).
+                    $this->existingLinksCache[$sheetId][$normBenefKey] = true;
+
                     $stats['links_created']++;
                     $updatedSheets[$sheetId] = true;
+                    $addedSheetIds[] = $sheetId;
 
-                    // Preview : agréger par fiche — uniquement les vrais nouveaux liens
+                    // Preview : agréger par fiche — uniquement les vrais ajouts
                     if ($dryRun) {
                         if (!isset($preview['fiches_by_id'][$sheetId])) {
                             $preview['fiches_by_id'][$sheetId] = [
@@ -371,9 +403,10 @@ class HlkBeneficiarySyncManager
             }
 
             error_log(sprintf(
-                '[hlk-benef-sync] row #%d (p%d) MATCHED contract=%s benef=\'%s\' → fiche_ids=[%s] filiale_id=%d',
+                '[hlk-benef-sync] row #%d (p%d) contract=%s benef=\'%s\' → added=[%s] skipped_already_linked=[%s]',
                 $rowIndex, $pageNum, $contractCode, $beneficiaryName,
-                implode(',', $sheetIds), $filialeId
+                implode(',', $addedSheetIds),
+                implode(',', $skippedSheetIds)
             ));
         } catch (Throwable $e) {
             $stats['errors'][] = [
@@ -385,33 +418,33 @@ class HlkBeneficiarySyncManager
     }
 
     /**
-     * Charge (une seule fois par fiche) l'ensemble des filiale_id déjà liés à
-     * la fiche via sheet_filiales (type=beneficiary). Retourne un tableau
-     * {filiale_id => true} pour un O(1) lookup côté processRow.
+     * Charge (une seule fois par fiche, memoïsé) l'ensemble des NOMS normalisés
+     * des bénéficiaires actuellement rattachés à la fiche via sheet_filiales
+     * (type=beneficiary).
      *
-     * Sans ce cache, le manager compte comme "à ajouter" chaque bénéficiaire
-     * HLK même s'il est déjà rattaché à la fiche — ce qui pollue le preview
-     * et surestime `links_created` massivement.
+     * La normalisation (lower+unaccent+trim) est identique à celle utilisée
+     * pour comparer le nom HLK, ce qui garantit un match cohérent quelle que
+     * soit la casse ou les accents (Enedis / ENEDIS / Énédis → 'enedis').
      *
-     * @return array<int,bool>
+     * @return array<string,bool>  set de noms normalisés
      */
     private function getExistingLinks(int $sheetId, SheetBeneficiary $sheetBenef): array
     {
         if (isset($this->existingLinksCache[$sheetId])) {
             return $this->existingLinksCache[$sheetId];
         }
-        $set = [];
+        $names = [];
         try {
             foreach ($sheetBenef->getBySheet($sheetId) as $row) {
-                if (isset($row['id'])) {
-                    $set[(int) $row['id']] = true;
+                if (isset($row['name']) && $row['name'] !== '') {
+                    $names[$this->normalizeKey((string) $row['name'])] = true;
                 }
             }
         } catch (Throwable $e) {
             error_log("[hlk-benef-sync] ⚠ getExistingLinks sheet_id={$sheetId} échec : " . $e->getMessage());
         }
-        $this->existingLinksCache[$sheetId] = $set;
-        return $set;
+        $this->existingLinksCache[$sheetId] = $names;
+        return $names;
     }
 
     /**
@@ -431,7 +464,11 @@ class HlkBeneficiarySyncManager
         bool $dryRun,
         array &$preview
     ): ?int {
-        $key = mb_strtolower(trim($name));
+        // Clé cache normalisée comme le SQL de Beneficiary::get :
+        // lower + trim + strip accents. Sans strip d'accents ici, "Electricité"
+        // et "ELECTRICITE" auraient 2 cache keys distincts → 2 lookups + double
+        // comptage de beneficiaries_created en dry-run.
+        $key = $this->normalizeKey($name);
         if (isset($this->beneficiaryCache[$key])) {
             return $this->beneficiaryCache[$key];
         }
@@ -505,6 +542,23 @@ class HlkBeneficiarySyncManager
             'sheets_touched'   => $touchedCount,
             'touched_ratio'    => $total > 0 ? round($touchedCount / $total, 3) : 0.0,
         ];
+    }
+
+    /**
+     * Normalise un nom pour la clé de cache in-memory. Doit refléter exactement
+     * ce que Beneficiary::get() compare côté SQL : lower + trim + unaccent.
+     * Sinon deux noms qui résolvent au même benef en DB ont 2 cache keys →
+     * lookup DB redondant + double comptage en dry-run.
+     */
+    private function normalizeKey(string $name): string
+    {
+        $s = trim($name);
+        if ($s === '') return '';
+        $translit = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        if ($translit !== false && $translit !== '') {
+            $s = $translit;
+        }
+        return mb_strtolower($s);
     }
 
     /**
