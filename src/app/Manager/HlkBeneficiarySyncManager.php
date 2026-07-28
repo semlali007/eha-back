@@ -34,6 +34,19 @@ class HlkBeneficiarySyncManager
     private array $contractCache = [];
 
     /**
+     * Détail par contrat HLK : liste dédupée des bénéficiaires renvoyés par HLK
+     * pour chaque contract_code, avec les fiches EHA matchées. Sert au rapport
+     * final pour permettre au métier de vérifier que HLK renvoie bien tous les
+     * bénéficiaires attendus (comparaison avec le contrat papier).
+     *
+     * Structure : contract_code → [ 'benefs' => [orig_name => true, ...],
+     *                               'sheets' => [sheet_id => label, ...] ]
+     *
+     * @var array<string,array{benefs:array<string,bool>,sheets:array<int,string>}>
+     */
+    private array $contractDetails = [];
+
+    /**
      * Cache : sheet_id → set des noms normalisés des bénéficiaires actuellement
      * rattachés à la fiche (via sheet_filiales, type=beneficiary).
      *
@@ -201,6 +214,41 @@ class HlkBeneficiarySyncManager
         // résultat sans dépendre uniquement des stats HLK.
         $stats['coverage'] = $this->computeEhaCoverage(count($updatedSheets));
 
+        // Détail par contrat : liste dédupée des bénéficiaires renvoyés par HLK,
+        // triée alphabétiquement, avec les fiches EHA matchées. Le métier utilise
+        // ce bloc pour vérifier que HLK renvoie bien tous les bénéficiaires
+        // attendus (par rapport au contrat papier).
+        $contractsOut = [];
+        foreach ($this->contractDetails as $code => $detail) {
+            $benefs = array_keys($detail['benefs']);
+            sort($benefs, SORT_NATURAL | SORT_FLAG_CASE);
+            $sheets = [];
+            foreach ($detail['sheets'] as $sheetId => $label) {
+                $sheets[] = ['id' => $sheetId, 'label' => $label];
+            }
+            $contractsOut[] = [
+                'contract_code'  => $code,
+                'nb_beneficiaries' => count($benefs),
+                'beneficiaries'  => $benefs,
+                'matched_sheets' => $sheets,
+                'is_matched'     => !empty($sheets),
+            ];
+        }
+        // Tri : d'abord les matchés (pour les remonter en tête du rapport),
+        // puis par contract_code alphabétique.
+        usort($contractsOut, static function ($a, $b) {
+            if ($a['is_matched'] !== $b['is_matched']) {
+                return $a['is_matched'] ? -1 : 1;
+            }
+            return strcmp($a['contract_code'], $b['contract_code']);
+        });
+        $stats['contracts_details'] = [
+            'total'         => count($contractsOut),
+            'matched'       => count(array_filter($contractsOut, static fn($c) => $c['is_matched'])),
+            'unmatched'     => count(array_filter($contractsOut, static fn($c) => !$c['is_matched'])),
+            'contracts'     => $contractsOut,
+        ];
+
         $finished = new \DateTimeImmutable();
         $stats['duration_ms'] = (int) round((microtime(true) - $t0) * 1000);
         $stats['started_at']  = $started->format(\DateTimeInterface::ATOM);
@@ -222,8 +270,13 @@ class HlkBeneficiarySyncManager
 
             $stats['preview'] = [
                 'new_beneficiaries' => array_keys($preview['new_beneficiaries']),
-                'fiches_sample'     => array_slice($fiches, 0, 30),  // top 30
+                // Liste COMPLÈTE des fiches à enrichir (plus de limite top 30).
+                // Le front doit paginer côté client — les données restent
+                // manageable (~qq centaines de fiches × qq bénéfs chacune).
+                'fiches'            => $fiches,
                 'fiches_total'      => count($fiches),
+                // Conservé pour rétrocompat au cas où le front l'utilise :
+                'fiches_sample'     => array_slice($fiches, 0, 30),
                 'unmatched_samples' => $preview['unmatched_samples'],
             ];
         }
@@ -300,6 +353,14 @@ class HlkBeneficiarySyncManager
             $stats['contracts_processed']++;
             $normBenefKey = $this->normalizeKey($beneficiaryName);
 
+            // Alimenter le détail par contrat pour le rapport final
+            // (permet au métier de vérifier que HLK renvoie bien la liste
+            // complète des bénéficiaires attendus).
+            if (!isset($this->contractDetails[$contractCode])) {
+                $this->contractDetails[$contractCode] = ['benefs' => [], 'sheets' => []];
+            }
+            $this->contractDetails[$contractCode]['benefs'][$beneficiaryName] = true;
+
             // === 2. Lookup contract → fiches (cache) ==========================
             if (!isset($this->contractCache[$contractCode])) {
                 $tLookup = microtime(true);
@@ -330,6 +391,11 @@ class HlkBeneficiarySyncManager
                 return;
             }
             $stats['contracts_matched']++;
+
+            // Enregistrer les fiches matchées pour le détail par contrat
+            foreach ($matchedSheets as $matched) {
+                $this->contractDetails[$contractCode]['sheets'][(int) $matched['id']] = (string) $matched['label'];
+            }
 
             // === 3. Pour chaque fiche matchée : skip si le nom est déjà rattaché,
             //         sinon résoudre la filiale (paresseux) et ajouter le lien.
