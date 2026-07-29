@@ -129,16 +129,14 @@ class ImportSheetsFromHlk extends Command
         $totalMs = round((microtime(true) - $tGlobal) * 1000);
         error_log('[import-hlk] ================================================================');
         error_log(sprintf(
-            '[import-hlk] BATCH TERMINÉ (%s) en %dms | created=%d updated=%d (via_contract=%d backfilled=%d) errors=%d filiales_added=%d filiales0_added=%d | new_cursor=%s',
+            '[import-hlk] BATCH TERMINÉ (%s) en %dms | created=%d skipped_existing=%d (achat_id=%d, contract=%d) errors=%d | new_cursor=%s',
             strtoupper($status),
             $totalMs,
             $stats['created']             ?? 0,
-            $stats['updated']             ?? 0,
-            $stats['matched_by_contract'] ?? 0,
-            $stats['backfilled']          ?? 0,
+            $stats['skipped_existing']    ?? 0,
+            $stats['skipped_by_achat_id'] ?? 0,
+            $stats['skipped_by_contract'] ?? 0,
             count($stats['errors']        ?? []),
-            $stats['filiales_added']      ?? 0,
-            $stats['filiales0_added']     ?? 0,
             $newCursor
         ));
         error_log('[import-hlk] ================================================================');
@@ -148,17 +146,15 @@ class ImportSheetsFromHlk extends Command
     {
         $io->success('Import terminé');
         $io->table(
-            ['rows', 'sheets', 'created', 'updated', 'via_contract', 'backfilled', 'errors', 'filiales_added', 'filiales0_added', 'nouveau curseur'],
+            ['rows', 'sheets', 'created', 'skipped', 'via_achat_id', 'via_contract', 'errors', 'nouveau curseur'],
             [[
-                $stats['rows_fetched']       ?? 0,
-                $stats['sheets_aggregated']  ?? 0,
-                $stats['created']            ?? 0,
-                $stats['updated']            ?? 0,
-                $stats['matched_by_contract'] ?? 0,
-                $stats['backfilled']         ?? 0,
-                count($stats['errors']       ?? []),
-                $stats['filiales_added']     ?? 0,
-                $stats['filiales0_added']    ?? 0,
+                $stats['rows_fetched']        ?? 0,
+                $stats['sheets_aggregated']   ?? 0,
+                $stats['created']             ?? 0,
+                $stats['skipped_existing']    ?? 0,
+                $stats['skipped_by_achat_id'] ?? 0,
+                $stats['skipped_by_contract'] ?? 0,
+                count($stats['errors']        ?? []),
                 $newCursor,
             ]]
         );

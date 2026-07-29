@@ -1004,22 +1004,6 @@ class Sheet extends Model
         return $row === false ? null : $row;
     }
 
-    /**
-     * Positionne achat_id_cockpit sur une fiche existante. Utilisé pour
-     * "rattraper" une fiche créée manuellement quand on la retrouve via
-     * ses contract_code — les prochains runs matcheront directement par
-     * achat_id_cockpit.
-     */
-    public function updateAchatIdCockpit(int $sheetId, $achatId): void
-    {
-        $sth = $this->db->getPDO()->prepare(
-            'UPDATE ' . $this->table . ' SET achat_id_cockpit = :aid WHERE id = :id'
-        );
-        $sth->bindValue(':aid', $achatId, \PDO::PARAM_INT);
-        $sth->bindValue(':id',  $sheetId, \PDO::PARAM_INT);
-        $sth->execute();
-    }
-
     public function getSheetByNetAchat($netAchatId)
     {
         try {

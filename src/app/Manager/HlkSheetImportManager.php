@@ -3,8 +3,6 @@
 namespace App\Manager;
 
 use App\Models\Sheet;
-use App\Models\SheetBeneficiary;
-use App\Models\SheetStipulation;
 use App\Security\User;
 use App\Services\HlkSheetsMapper;
 use App\Services\HlkSheetsService;
@@ -18,11 +16,12 @@ use Throwable;
  * marchés HLK depuis un curseur `signed_date`, les agrège via HlkSheetsMapper
  * (1 fiche = 1 achat_id_cockpit), puis pour chaque fiche :
  *   1. Lookup par `achat_id_cockpit` (idempotence canonique)
- *   2. Sinon, lookup secondaire par `contract_code` (rattrape les fiches
- *      créées manuellement avant que le batch existe)
- *   3. Si trouvée : merge des bénéficiaires (union), backfill de
- *      `achat_id_cockpit` si absent
+ *   2. Sinon, lookup secondaire par `contract_code` (détecte les fiches
+ *      créées manuellement pour ce marché)
+ *   3. Si trouvée par l'un ou l'autre : **SKIP** — la spec est "création only",
+ *      on ne touche jamais une fiche existante (ni merge, ni backfill).
  *   4. Si absente : création complète en brouillon via `SheetManager::add()`
+ *      avec `auto_created = true`
  *
  * Le manager s'appuie sur le kernel HLK partagé :
  *   - HlkSheetsService  : stream + skip-on-fail pagination
@@ -48,8 +47,8 @@ class HlkSheetImportManager
      * @return array {
      *   dry_run:bool, signed_since:?string,
      *   pages_processed:int, rows_fetched:int, sheets_aggregated:int,
-     *   created:int, updated:int, matched_by_contract:int, backfilled:int,
-     *   filiales_added:int, filiales0_added:int,
+     *   created:int, skipped_existing:int,
+     *   skipped_by_achat_id:int, skipped_by_contract:int,
      *   errors:array[], warnings:array[], fetch_info:?array,
      *   duration_ms:int, started_at:string, finished_at:string,
      *   category_usage:array
@@ -61,19 +60,17 @@ class HlkSheetImportManager
         $t0 = microtime(true);
 
         $stats = [
-            'dry_run'             => $dryRun,
-            'signed_since'        => $signedSince,
-            'pages_processed'     => 0,
-            'rows_fetched'        => 0,
-            'sheets_aggregated'   => 0,
-            'created'             => 0,
-            'updated'             => 0,
-            'matched_by_contract' => 0,
-            'backfilled'          => 0,
-            'filiales_added'      => 0,
-            'filiales0_added'     => 0,
-            'errors'              => [],
-            'warnings'            => [],
+            'dry_run'              => $dryRun,
+            'signed_since'         => $signedSince,
+            'pages_processed'      => 0,
+            'rows_fetched'         => 0,
+            'sheets_aggregated'    => 0,
+            'created'              => 0,
+            'skipped_existing'     => 0,   // fiche EHA déjà présente → aucune écriture
+            'skipped_by_achat_id'  => 0,   // ↳ détail : trouvée via achat_id_cockpit
+            'skipped_by_contract'  => 0,   // ↳ détail : trouvée via contract_code (fiche manuelle)
+            'errors'               => [],
+            'warnings'             => [],
         ];
 
         error_log('[hlk-sheet-import] ================================================================');
@@ -123,17 +120,18 @@ class HlkSheetImportManager
         }
 
         // === PHASE 3 : Ingestion fiche par fiche ============================
-        $sheetModel      = new Sheet();
-        $sheetManager    = new SheetManager();
-        $benefRelation   = new SheetBeneficiary();
-        $stipRelation    = new SheetStipulation();
-        $batchUser       = $this->buildBatchUser();
+        // Sémantique stricte "création only" : on ne modifie AUCUNE fiche
+        // existante. Toute fiche déjà présente en EHA (retrouvée par
+        // achat_id_cockpit ou par contract_code) est SKIPPÉE.
+        $sheetModel   = new Sheet();
+        $sheetManager = new SheetManager();
+        $batchUser    = $this->buildBatchUser();
 
         foreach ($sheets as $sheetData) {
             try {
                 $this->ingestSheet(
                     $sheetData, $dryRun,
-                    $sheetModel, $sheetManager, $benefRelation, $stipRelation, $batchUser,
+                    $sheetModel, $sheetManager, $batchUser,
                     $stats
                 );
             } catch (Throwable $e) {
@@ -165,13 +163,12 @@ class HlkSheetImportManager
         $stats['finished_at'] = $finished->format(\DateTimeInterface::ATOM);
 
         error_log(sprintf(
-            '[hlk-sheet-import] terminé %s en %dms | pages=%d rows=%d sheets=%d | created=%d updated=%d (via_contract=%d backfilled=%d) | filiales=%d filiales0=%d | errors=%d warnings=%d',
+            '[hlk-sheet-import] terminé %s en %dms | pages=%d rows=%d sheets=%d | created=%d skipped_existing=%d (via achat_id=%d, via contract=%d) | errors=%d warnings=%d',
             $dryRun ? '[DRY-RUN]' : '[REAL]',
             $stats['duration_ms'],
             $stats['pages_processed'], $stats['rows_fetched'], $stats['sheets_aggregated'],
-            $stats['created'], $stats['updated'],
-            $stats['matched_by_contract'], $stats['backfilled'],
-            $stats['filiales_added'], $stats['filiales0_added'],
+            $stats['created'], $stats['skipped_existing'],
+            $stats['skipped_by_achat_id'], $stats['skipped_by_contract'],
             count($stats['errors']), count($stats['warnings'])
         ));
         error_log('[hlk-sheet-import] ================================================================');
@@ -180,7 +177,13 @@ class HlkSheetImportManager
     }
 
     /**
-     * Ingère UNE fiche (issue du mapper) : lookup existant → CREATE ou MERGE.
+     * Ingère UNE fiche (issue du mapper) : CREATE si absente en EHA, SKIP sinon.
+     *
+     * Contrat métier strict "création only" : aucune fiche existante n'est
+     * modifiée (pas de merge des bénéficiaires, pas de backfill). Le lookup
+     * secondaire par contract_code sert UNIQUEMENT à détecter la duplication —
+     * on ne touche pas à la fiche trouvée.
+     *
      * Toutes les erreurs remontent en Throwable — le loop appelant les capture
      * dans $stats['errors'].
      */
@@ -189,88 +192,61 @@ class HlkSheetImportManager
         bool $dryRun,
         Sheet $sheetModel,
         SheetManager $sheetManager,
-        SheetBeneficiary $benefRelation,
-        SheetStipulation $stipRelation,
         User $batchUser,
         array &$stats
     ): void {
         $achatId     = $sheetData['achat_id_cockpit'];
         $label       = (string) ($sheetData['label'] ?? '');
-        $nbFiliales  = count($sheetData['filiales']  ?? []);
-        $nbFiliales0 = count($sheetData['filiales0'] ?? []);
         $nbContracts = count($sheetData['contracts'] ?? []);
         $nbProviders = count($sheetData['providers'] ?? []);
+        $nbFiliales  = count($sheetData['filiales']  ?? []);
+        $nbFiliales0 = count($sheetData['filiales0'] ?? []);
 
-        // Étape 1 : lookup par achat_id_cockpit (cas nominal)
-        $existing  = $sheetModel->findByAchatIdCockpit($achatId);
-        $matchMode = $existing !== null ? 'achat_id' : null;
-
-        // Étape 2 : sinon, lookup par contract_code (rattrape les fiches manuelles)
-        if ($existing === null) {
-            $contractCodes = [];
-            foreach ($sheetData['contracts'] ?? [] as $c) {
-                if (!empty($c['contract_code'])) {
-                    $contractCodes[] = $c['contract_code'];
-                }
-            }
-            if (!empty($contractCodes)) {
-                $existing = $sheetModel->findByContractCodes($contractCodes);
-                if ($existing !== null) {
-                    $matchMode = 'contract_code';
-                    $stats['matched_by_contract']++;
-                }
-            }
-        }
-
-        if ($existing === null) {
-            // === CREATE : rien trouvé → création complète en brouillon
+        // Étape 1 : lookup par achat_id_cockpit (cas nominal — batch précédent)
+        $existing = $sheetModel->findByAchatIdCockpit($achatId);
+        if ($existing !== null) {
+            $stats['skipped_existing']++;
+            $stats['skipped_by_achat_id']++;
             error_log(sprintf(
-                "[hlk-sheet-import] CREATE%s achat_id_cockpit=%s label='%s' | providers=%d contracts=%d filiales=%d filiales0=%d",
+                "[hlk-sheet-import] SKIP%s achat_id_cockpit=%s (déjà en EHA sheet_id=%d, via achat_id)",
                 $dryRun ? ' [dry]' : '',
-                $achatId, $label, $nbProviders, $nbContracts, $nbFiliales, $nbFiliales0
+                $achatId, (int) $existing['id']
             ));
-            if (!$dryRun) {
-                $sheetManager->add($batchUser, $sheetData);
-            }
-            $stats['created']++;
             return;
         }
 
-        // === MERGE : fiche existante — union des filiales (bénéficiaires + stipulations)
-        $existingId         = (int) $existing['id'];
-        $existingAchatIdRaw = $existing['achat_id_cockpit'] ?? null;
-
-        error_log(sprintf(
-            "[hlk-sheet-import] MERGE%s sheet_id=%d achat_id_cockpit=%s label='%s' | via=%s | filiales à ajouter=%d",
-            $dryRun ? ' [dry]' : '',
-            $existingId, $achatId, $label, $matchMode, $nbFiliales
-        ));
-
-        if (!$dryRun) {
-            // Backfill : si trouvée via contract_code et sans achat_id_cockpit,
-            // on le pose pour matcher plus vite / plus fiablement aux prochains runs.
-            if ($matchMode === 'contract_code' && empty($existingAchatIdRaw)) {
-                $sheetModel->updateAchatIdCockpit($existingId, $achatId);
-                $stats['backfilled']++;
-                error_log("[hlk-sheet-import]   backfill achat_id_cockpit={$achatId} sur sheet_id={$existingId}");
-            }
-
-            // Merge filiales (bénéficiaires) : union avec l'existant
-            foreach ($sheetData['filiales'] ?? [] as $f) {
-                if (isset($f['id']) && $f['id'] !== null) {
-                    $benefRelation->add($existingId, (int) $f['id']);
-                    $stats['filiales_added']++;
-                }
-            }
-            // Merge filiales0 (stipulations pour autrui) : idem
-            foreach ($sheetData['filiales0'] ?? [] as $f) {
-                if (isset($f['id']) && $f['id'] !== null) {
-                    $stipRelation->add($existingId, (int) $f['id']);
-                    $stats['filiales0_added']++;
-                }
+        // Étape 2 : lookup secondaire par contract_code (détecte les fiches
+        // créées manuellement pour ce marché — on ne les touche pas non plus).
+        $contractCodes = [];
+        foreach ($sheetData['contracts'] ?? [] as $c) {
+            if (!empty($c['contract_code'])) {
+                $contractCodes[] = $c['contract_code'];
             }
         }
-        $stats['updated']++;
+        if (!empty($contractCodes)) {
+            $existing = $sheetModel->findByContractCodes($contractCodes);
+            if ($existing !== null) {
+                $stats['skipped_existing']++;
+                $stats['skipped_by_contract']++;
+                error_log(sprintf(
+                    "[hlk-sheet-import] SKIP%s achat_id_cockpit=%s (déjà en EHA sheet_id=%d, via contract_code — fiche manuelle)",
+                    $dryRun ? ' [dry]' : '',
+                    $achatId, (int) $existing['id']
+                ));
+                return;
+            }
+        }
+
+        // === CREATE : rien trouvé → création complète en brouillon
+        error_log(sprintf(
+            "[hlk-sheet-import] CREATE%s achat_id_cockpit=%s label='%s' | providers=%d contracts=%d filiales=%d filiales0=%d",
+            $dryRun ? ' [dry]' : '',
+            $achatId, $label, $nbProviders, $nbContracts, $nbFiliales, $nbFiliales0
+        ));
+        if (!$dryRun) {
+            $sheetManager->add($batchUser, $sheetData);
+        }
+        $stats['created']++;
     }
 
     /**
