@@ -47,11 +47,17 @@ class HlkSheetsService
      * réception. Une page en échec est skippée immédiatement (sans retry)
      * et loguée, la boucle continue avec la suivante.
      *
+     * @param string|null $signedSince Filtre `signed_date` HLK (YYYY-MM-DD).
+     *   - null : pas de filtre envoyé (comportement sync bénéf)
+     *   - date : envoie `signed_date` dans le payload (auto-import incrémental)
+     *
      * @return \Generator<int, array<int,array>, mixed, void>  Yield une liste
      *   de lignes HLK par itération. L'index yield est le numéro de page.
      */
-    public function streamAllPages(int $pageLimit = self::DEFAULT_PAGE_LIMIT): \Generator
-    {
+    public function streamAllPages(
+        int $pageLimit = self::DEFAULT_PAGE_LIMIT,
+        ?string $signedSince = null
+    ): \Generator {
         $actionCode = HLK['actions']['market_sheets']['list'];
         $url        = HLK['url'];
         $password   = HLK['pwd'];
@@ -64,7 +70,7 @@ class HlkSheetsService
         $totalPagesHlk = 1;
 
         error_log("[hlk-benef-sync:fetch] ===== Début stream HLK =====");
-        error_log("[hlk-benef-sync:fetch] url={$url} page_limit={$pageLimit}");
+        error_log("[hlk-benef-sync:fetch] url={$url} page_limit={$pageLimit}" . ($signedSince !== null ? " signed_date={$signedSince}" : ' (sans filtre)'));
 
         do {
             $payload = [
@@ -73,6 +79,9 @@ class HlkSheetsService
                 'page'        => $page,
                 'limit'       => $pageLimit
             ];
+            if ($signedSince !== null && $signedSince !== '') {
+                $payload['signed_date'] = $signedSince;
+            }
 
             try {
                 $envelope = $this->fetchPage($url, $payload, $page);
