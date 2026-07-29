@@ -132,7 +132,7 @@ class SheetManager extends AbstractManager
                     'search_words'=>'Mots clés',
                     'content'=>'Contenu',
                     'category'=>'Catégorie Achats',
-                    'contrat_groupe'=>'Contrat groupe'
+                    'contrat_groupe'=>'Contrat ouvert aux filiales'
                 ];
                 $diff = array_diff_assoc($previousSheet, $currentSheet);
                 $logs = new SheetLogs();
