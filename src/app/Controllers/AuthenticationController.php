@@ -54,7 +54,27 @@ class AuthenticationController extends Controller
 
     public function attributes(): mixed
     {
-        $attr =  $this->getSp()->getAttributes();
+        if (getenv('ENV') == 'locale') {
+           
+            $json = '{"gardianwebsso_cn":["LAMYA TIDJANI"],
+                      "gardianwebsso_mail":["lamya.tidjani@testiam.edf.fr"],
+                      "gardianwebsso_status":["A"],
+                      "gardianwebsso_department":["\/EDF\/9651\/9803\/9708\/9708-3\/6217M\/621727\/62172702"],
+                      "gardianwebsso_principal":["uid=G68670,ou=People,dc=gardiansesame"],
+                      "gardianwebsso_ismemberof":["cn=EHA_ADMIN,ou=Groups,dc=gardiansesame", "cn=EHA_GESTIONNAIRE,ou=Groups,dc=gardiansesame"],
+                      "gardianwebsso_groupid":["G68670"],
+                      "gardianwebsso_sn":["TIDJANI"],
+                      "gardianwebsso_id":["G68670"],
+                      "gardianwebsso_nivauth":["1"],
+                      "gardianwebsso_org":["62172702"],
+                      "gardianwebsso_givenname":["LAMYA"],
+                      "gardianwebsso_email":"lamya.tidjani@testiam.edf.fr"}';
+            $attr = json_decode($json, true);
+        } else {
+            $attr =  $this->getSp()->getAttributes();
+        }
+                      //"gardianwebsso_ismemberof":["cn=EHA_ADMIN,ou=Groups,dc=gardiansesame", "cn=EHA_GESTIONNAIRE,ou=Groups,dc=gardiansesame"],
+
         $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
         $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
         $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
@@ -70,10 +90,10 @@ class AuthenticationController extends Controller
     public function logout()
     {
 
-        $this->getSp()->logout([
-            'ReturnTo' => '/app/accueil',
-        ]);
+       // $this->getSp()->logout([
+       //     'ReturnTo' => '/app/accueil',
+        //]);
 
-        SimpleSAML_Session::getSessionFromRequest()->cleanup();
+        //SimpleSAML_Session::getSessionFromRequest()->cleanup();
     }
 }

@@ -49,19 +49,22 @@ class HttpClientService {
     }
 
     /**
-     * 
+     *
      * @param string $url
      * @param array $data
      * @return string
      */
     public static function get(string $url, array $data = []) {
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        
+
         //curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_PROXY, '');
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         $response = curl_exec($ch);
 
         if (curl_errno($ch)) {
@@ -114,11 +117,12 @@ class HttpClientService {
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
         curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_VERBOSE, true);
+        curl_setopt($curl, CURLOPT_PROXY, '');
 
         return $curl ;
 
@@ -205,12 +209,38 @@ class HttpClientService {
         stream_set_timeout($stream, 30);
         fwrite($stream, $rawRequest);
         $rawResponse = '';
+
+        // Cap de sécurité : évite l'OOM PHP (memory_limit=128M en preprod) quand
+        // HLK renvoie une réponse démesurée sur une recherche floue trop large
+        // (ex. "bouygues" matche 500+ entités). On préfère lever une exception
+        // catchable plutôt qu'un Fatal Error qui tue le worker PHP-FPM.
+        $maxBytes = 10 * 1024 * 1024; // 10 MB brut = ~30 MB en pic après json_decode
         while (!feof($stream)) {
             $chunk = fread($stream, 8192);
             if ($chunk === false) break;
             $rawResponse .= $chunk;
+            if (strlen($rawResponse) > $maxBytes) {
+                fclose($stream);
+                $sizeMB = round(strlen($rawResponse) / 1024 / 1024, 1);
+                error_log(sprintf(
+                    "[HttpClientService] sendViaStream ABORT url=%s reason=response_too_large size=%sMB max=%dMB",
+                    $url, $sizeMB, (int) ($maxBytes / 1024 / 1024)
+                ));
+                throw new \App\Exceptions\HttpException(sprintf(
+                    'Réponse HLK trop volumineuse (%s MB > %d MB) pour %s. Recherche probablement trop large.',
+                    $sizeMB, (int) ($maxBytes / 1024 / 1024), $url
+                ), 413);
+            }
         }
         fclose($stream);
+
+        // Log si réponse > 1 MB (aide à tracer les recherches "borderline")
+        if (strlen($rawResponse) > 1024 * 1024) {
+            error_log(sprintf(
+                "[HttpClientService] sendViaStream LARGE response url=%s size=%sMB",
+                $url, round(strlen($rawResponse) / 1024 / 1024, 2)
+            ));
+        }
 
         if ($rawResponse === '') return null;
 
@@ -285,13 +315,14 @@ class HttpClientService {
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
         curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_VERBOSE, true);
+        curl_setopt($curl, CURLOPT_PROXY, '');
 
         return $curl ;
-        
+
     }
 }
