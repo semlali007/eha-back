@@ -246,6 +246,10 @@ class HlkSheetsMapper
             // Publication : brouillon par défaut
             'status' => 0,
             'draft'  => true,
+
+            // Marqueur "création automatique" — permet au métier de distinguer
+            // dans l'UI les fiches créées par le batch HLK des créations manuelles.
+            'auto_created' => true,
         ];
     }
 

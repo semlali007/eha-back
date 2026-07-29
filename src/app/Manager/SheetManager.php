@@ -757,6 +757,11 @@ class SheetManager extends AbstractManager
             if (isset($sheetData['achat_id_cockpit'])) {
                 $data['achat_id_cockpit'] = $sheetData['achat_id_cockpit'];
             }
+            // Marqueur "création automatique" (batch HLK, future migration…).
+            // Défaut false si non fourni (création manuelle via UI).
+            if (isset($sheetData['auto_created'])) {
+                $data['auto_created'] = (bool) $sheetData['auto_created'];
+            }
 
             $fileUpload = new FileUpload();
             

@@ -791,8 +791,9 @@ class Sheet extends Model
             $data['geographic_detail'] = $data['geographic_detail'] ?? null;
             $data['acheteur'] = $data['acheteur'] ?? null;
             $data['achat_id_cockpit'] = $data['achat_id_cockpit'] ?? null;
+            $data['auto_created'] = !empty($data['auto_created']);
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur, achat_id_cockpit) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur, :achat_id_cockpit);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur, achat_id_cockpit, auto_created) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur, :achat_id_cockpit, :auto_created);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -829,6 +830,7 @@ class Sheet extends Model
             $sth->bindParam(':acheteur', $data['acheteur'], PDO::PARAM_STR);
             $sth->bindValue(':achat_id_cockpit', $data['achat_id_cockpit'],
                 $data['achat_id_cockpit'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $sth->bindValue(':auto_created', $data['auto_created'], PDO::PARAM_BOOL);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
