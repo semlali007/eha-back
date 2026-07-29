@@ -5,7 +5,11 @@ namespace App\Manager;
 use App\Models\Beneficiary;
 use App\Models\Sheet;
 use App\Models\SheetBeneficiary;
+use App\Services\BeneficiaryResolver;
+use App\Services\ContractLookupCache;
 use App\Services\HlkSheetsService;
+use App\Services\HlkSyncReport;
+use App\Services\HlkTextCleaner;
 use Core\Database\DBConnection;
 use Throwable;
 
@@ -27,11 +31,11 @@ use Throwable;
  */
 class HlkBeneficiarySyncManager
 {
-    /** @var array<string,int> Cache : nom → filiale.id (évite les lookups répétés) */
-    private array $beneficiaryCache = [];
+    /** Résolveur de filiales : cache + lookup + création (dry-run compatible). */
+    private ?BeneficiaryResolver $beneficiaryResolver = null;
 
-    /** @var array<string,array<int,array{id:int,label:string}>> Cache : contract_code → fiches trouvées */
-    private array $contractCache = [];
+    /** Cache lookup contract_code → fiches EHA rattachées. */
+    private ?ContractLookupCache $contractCache = null;
 
     /**
      * Détail par contrat HLK : liste dédupée des bénéficiaires renvoyés par HLK
@@ -119,6 +123,8 @@ class HlkBeneficiarySyncManager
         $sheet         = new Sheet();
         $sheetBenef    = new SheetBeneficiary();
         $benefModel    = new Beneficiary();
+        $this->beneficiaryResolver = new BeneficiaryResolver($benefModel);
+        $this->contractCache       = new ContractLookupCache($sheet);
         $updatedSheets = []; // set des sheet_id modifiés
         $rowIndexGlobal = 0;
 
@@ -199,28 +205,16 @@ class HlkBeneficiarySyncManager
             // Warning explicite si des pages HLK ont été skipées (records
             // corrompus suspectés côté HLK) ou si couverture < 100% pour une
             // autre raison. Le front affiche au métier avec la liste des pages.
-            $skipped = $fetchInfo['pages_skipped'] ?? [];
-            if (!empty($skipped) || ($fetchInfo['coverage_ratio'] ?? 1.0) < 1.0) {
-                $stats['warnings'][] = [
-                    'code'    => 'hlk_pages_skipped',
-                    'message' => sprintf(
-                        "Pages HLK ignorées (records HLK non lisibles) : %d page(s) sur %d [%s]. Les lignes de ces pages ne sont pas synchronisées. Signaler à l'équipe HLK avec ces numéros de pages.",
-                        count($skipped),
-                        $fetchInfo['total_pages_hlk'],
-                        implode(', ', $skipped) ?: '—'
-                    ),
-                    'pages_skipped'   => $skipped,
-                    'total_pages_hlk' => $fetchInfo['total_pages_hlk'],
-                    'pages_fetched'   => $fetchInfo['pages_fetched'],
-                    'coverage_ratio'  => $fetchInfo['coverage_ratio'],
-                ];
+            $skipWarning = HlkSyncReport::buildPagesSkippedWarning($fetchInfo);
+            if ($skipWarning !== null) {
+                $stats['warnings'][] = $skipWarning;
             }
         }
 
         // Rapport de couverture côté EHA : combien de fiches on a en base vs
         // combien ont été touchées par la sync. Permet au métier de juger le
         // résultat sans dépendre uniquement des stats HLK.
-        $stats['coverage'] = $this->computeEhaCoverage(count($updatedSheets));
+        $stats['coverage'] = HlkSyncReport::computeEhaCoverage(count($updatedSheets));
 
         // Détail par contrat : liste dédupée des bénéficiaires renvoyés par HLK,
         // triée alphabétiquement, avec les fiches EHA matchées. Le métier utilise
@@ -372,21 +366,16 @@ class HlkBeneficiarySyncManager
             $this->contractDetails[$contractCode]['benefs'][$beneficiaryName] = true;
 
             // === 2. Lookup contract → fiches (cache) ==========================
-            if (!isset($this->contractCache[$contractCode])) {
-                $tLookup = microtime(true);
-                $found = $sheet->getByContract($contractCode);
-                $rows_ = [];
-                foreach ($found ?? [] as $r) {
-                    $rows_[] = ['id' => (int) $r['id'], 'label' => $r['label'] ?? ''];
-                }
-                $this->contractCache[$contractCode] = $rows_;
+            $wasCached = $this->contractCache->isCached($contractCode);
+            $tLookup = microtime(true);
+            $matchedSheets = $this->contractCache->getSheets($contractCode);
+            if (!$wasCached) {
                 $lookupMs = round((microtime(true) - $tLookup) * 1000);
                 error_log(sprintf(
                     '[hlk-benef-sync] row #%d (p%d) LOOKUP contract=%s → %d fiche(s) (%dms) [cache miss]',
-                    $rowIndex, $pageNum, $contractCode, count($rows_), $lookupMs
+                    $rowIndex, $pageNum, $contractCode, count($matchedSheets), $lookupMs
                 ));
             }
-            $matchedSheets = $this->contractCache[$contractCode];
 
             if (empty($matchedSheets)) {
                 $stats['contracts_unmatched']++;
@@ -580,179 +569,26 @@ class HlkBeneficiarySyncManager
         return $this->existingLinksCache[$sheetId];
     }
 
-    /**
-     * Cherche un bénéficiaire par nom exact ; crée s'il n'existe pas.
-     *
-     * En dry_run : lookup normal ; si absent → on ne crée PAS, on note dans le
-     * preview et on retourne un ID "virtuel" (0) pour que le flux continue
-     * (le compteur links_created s'incrémente comme en mode réel).
-     *
-     * @param bool  $dryRun
-     * @param array &$preview Preview du dry_run (set des labels à créer)
-     */
+    /** @see BeneficiaryResolver::resolve — délégation kept for backward compat. */
     private function resolveOrCreateBeneficiary(
         string $name,
-        Beneficiary $model,
+        Beneficiary $model,       // conservé pour compat de signature — le resolver a déjà le modèle
         array &$stats,
         bool $dryRun,
         array &$preview
     ): ?int {
-        // Clé cache normalisée comme le SQL de Beneficiary::get :
-        // lower + trim + strip accents. Sans strip d'accents ici, "Electricité"
-        // et "ELECTRICITE" auraient 2 cache keys distincts → 2 lookups + double
-        // comptage de beneficiaries_created en dry-run.
-        $key = $this->normalizeKey($name);
-        if (isset($this->beneficiaryCache[$key])) {
-            return $this->beneficiaryCache[$key];
-        }
-        try {
-            $found = $model->get(['name' => $name]);
-            if (is_array($found) && count($found) > 0 && isset($found[0]['id'])) {
-                $this->beneficiaryCache[$key] = (int) $found[0]['id'];
-                return $this->beneficiaryCache[$key];
-            }
-            // Le bénéficiaire n'existe pas.
-            if ($dryRun) {
-                // On note ce qui serait créé, sans écrire.
-                $preview['new_beneficiaries'][$name] = true;
-                $stats['beneficiaries_created']++;
-                error_log("[hlk-benef-sync] filiale '{$name}' À CRÉER (dry-run)");
-                // ID virtuel 0 pour permettre au flux de continuer et compter les links
-                $this->beneficiaryCache[$key] = 0;
-                return 0;
-            }
-            // Création réelle (ON CONFLICT DO NOTHING — retour 0 si conflit)
-            $newId = (int) $model->add(['name' => $name]);
-            if ($newId > 0) {
-                $this->beneficiaryCache[$key] = $newId;
-                $stats['beneficiaries_created']++;
-                // Audit : liste des filiales réellement créées (même clé que
-                // le preview dry-run pour un affichage unifié côté front).
-                $preview['new_beneficiaries'][$name] = true;
-                error_log("[hlk-benef-sync] filiale '{$name}' CRÉÉE (id={$newId})");
-                return $newId;
-            }
-            // Fallback : re-lookup si ON CONFLICT n'a rien retourné
-            $found = $model->get(['name' => $name]);
-            if (is_array($found) && count($found) > 0 && isset($found[0]['id'])) {
-                $this->beneficiaryCache[$key] = (int) $found[0]['id'];
-                return $this->beneficiaryCache[$key];
-            }
-        } catch (Throwable $e) {
-            $stats['errors'][] = [
-                'beneficiary' => $name,
-                'message'     => 'resolveOrCreateBeneficiary: ' . $e->getMessage(),
-            ];
-            error_log("[hlk-benef-sync] ⚠ resolve filiale '{$name}' échec : " . $e->getMessage());
-        }
-        return null;
+        return $this->beneficiaryResolver->resolve($name, $dryRun, $stats, $preview);
     }
 
-    /**
-     * Rapport de couverture EHA : combien de fiches en base, combien touchées.
-     * Le métier voit d'un coup si la sync a atteint une part significative
-     * du référentiel EHA. Un ratio très bas est un signal qu'il faut creuser
-     * côté HLK (pages skipées probablement).
-     *
-     * @param int $touchedCount Nombre de fiches touchées par cette sync
-     * @return array{
-     *   eha_sheets_total:int,
-     *   sheets_touched:int,
-     *   touched_ratio:float
-     * }
-     */
-    private function computeEhaCoverage(int $touchedCount): array
-    {
-        $total = 0;
-        try {
-            $db     = DBConnection::getInstance();
-            $schema = $db->getSchema(); // ex: "EHA".
-            $stmt   = $db->getPDO()->query("SELECT COUNT(*) AS c FROM {$schema}sheet_headers");
-            $row    = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $total  = (int) ($row['c'] ?? 0);
-        } catch (Throwable $e) {
-            error_log('[hlk-benef-sync] ⚠ coverage : COUNT(sheet_headers) échec : ' . $e->getMessage());
-        }
-        return [
-            'eha_sheets_total' => $total,
-            'sheets_touched'   => $touchedCount,
-            'touched_ratio'    => $total > 0 ? round($touchedCount / $total, 3) : 0.0,
-        ];
-    }
-
-    /**
-     * Normalise un nom pour la clé de cache in-memory. Doit refléter exactement
-     * ce que Beneficiary::get() compare côté SQL : LOWER(unaccent(TRIM(...))).
-     *
-     * ⚠️ Ne PAS utiliser iconv//TRANSLIT ici : le résultat dépend de la locale
-     * système et peut retourner '?' ou '' pour un accent sur des serveurs
-     * mal configurés (RHEL 7 default, conteneurs minimaux). Résultat :
-     * 'Electricité' → 'electricit?' côté PHP mais 'electricite' côté SQL → mismatch.
-     *
-     * Approche en 2 couches déterministes :
-     *   1. Normalizer::FORM_D + strip \p{Mn} — méthode standard, gère toutes
-     *      les combinaisons Unicode. Requiert ext-intl (présent par défaut PHP 8+).
-     *   2. Table de fallback explicite — attrape les ligatures (œ, æ, ß) que
-     *      Normalizer ne décompose pas, et couvre le cas où intl est absent.
-     */
+    /** @see HlkTextCleaner::normalizeKey — délégation kept for backward compat. */
     private function normalizeKey(string $name): string
     {
-        $s = trim($name);
-        if ($s === '') return '';
-
-        // Couche 1 : décomposition Unicode + strip des marques combinantes
-        //   'é' (U+00E9)  →  'e' + U+0301  →  strip U+0301  →  'e'
-        if (class_exists('\Normalizer')) {
-            $decomposed = @\Normalizer::normalize($s, \Normalizer::FORM_D);
-            if (is_string($decomposed)) {
-                $stripped = preg_replace('/\p{Mn}+/u', '', $decomposed);
-                if (is_string($stripped)) {
-                    $s = $stripped;
-                }
-            }
-        }
-
-        // Couche 2 : table de correspondance pour :
-        //   - Ligatures / caractères composés non décomposés par NFD (œ, æ, ß)
-        //   - Fallback complet si ext-intl indisponible ou Normalizer a échoué
-        static $map = [
-            'À'=>'A','Á'=>'A','Â'=>'A','Ã'=>'A','Ä'=>'A','Å'=>'A',
-            'à'=>'a','á'=>'a','â'=>'a','ã'=>'a','ä'=>'a','å'=>'a',
-            'Ç'=>'C','ç'=>'c',
-            'È'=>'E','É'=>'E','Ê'=>'E','Ë'=>'E',
-            'è'=>'e','é'=>'e','ê'=>'e','ë'=>'e',
-            'Ì'=>'I','Í'=>'I','Î'=>'I','Ï'=>'I',
-            'ì'=>'i','í'=>'i','î'=>'i','ï'=>'i',
-            'Ñ'=>'N','ñ'=>'n',
-            'Ò'=>'O','Ó'=>'O','Ô'=>'O','Õ'=>'O','Ö'=>'O','Ø'=>'O',
-            'ò'=>'o','ó'=>'o','ô'=>'o','õ'=>'o','ö'=>'o','ø'=>'o',
-            'Ù'=>'U','Ú'=>'U','Û'=>'U','Ü'=>'U',
-            'ù'=>'u','ú'=>'u','û'=>'u','ü'=>'u',
-            'Ý'=>'Y','ý'=>'y','ÿ'=>'y',
-            'Œ'=>'OE','œ'=>'oe',
-            'Æ'=>'AE','æ'=>'ae',
-            'ß'=>'ss',
-        ];
-        $s = strtr($s, $map);
-
-        return mb_strtolower($s, 'UTF-8');
+        return HlkTextCleaner::normalizeKey($name);
     }
 
-    /**
-     * Corrige le double-encodage UTF-8 fréquent dans le payload HLK (MarchÃ© → Marché)
-     * et trim les blancs. Idempotent : sans souci sur les chaînes déjà propres.
-     */
+    /** @see HlkTextCleaner::clean — délégation kept for backward compat. */
     private function cleanText(?string $value): string
     {
-        if ($value === null || $value === '') {
-            return '';
-        }
-        if (preg_match('/Ã[©¨ª«®¯»¸¡Â]/u', $value)) {
-            $decoded = @mb_convert_encoding($value, 'ISO-8859-1', 'UTF-8');
-            if ($decoded !== false) {
-                $value = $decoded;
-            }
-        }
-        return trim($value);
+        return HlkTextCleaner::clean($value);
     }
 }
