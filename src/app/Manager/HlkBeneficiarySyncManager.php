@@ -47,16 +47,24 @@ class HlkBeneficiarySyncManager
     private array $contractDetails = [];
 
     /**
-     * Cache : sheet_id → set des noms normalisés des bénéficiaires actuellement
-     * rattachés à la fiche (via sheet_filiales, type=beneficiary).
+     * Cache : sheet_id → 2 sets de noms normalisés (lower+unaccent+trim).
      *
-     * L'unique clé de comparaison est le nom normalisé (lower+unaccent+trim) :
-     * peu importe l'ID de la row filiale sous-jacente, deux libellés qui
-     * normalisent au même nom sont considérés comme le même bénéficiaire.
-     * C'est ce qui permet de tolérer les doublons historiques dans filiale
-     * (Enedis id=3 et ENEDIS id=2400) sans re-créer de liens erronés.
+     * Structure de chaque entrée :
+     *   [
+     *     'beneficiary' => [ 'norm_name1' => true, 'norm_name2' => true, ... ],
+     *     'blocking'    => [ 'norm_name3' => true, ... ]
+     *   ]
      *
-     * @var array<int,array<string,bool>>
+     * - 'beneficiary' : noms des rows sheet_filiales de type='beneficiary'
+     * - 'blocking'    : noms des rows sheet_filiales d'AUTRE type (stipulation…)
+     *
+     * La comparaison "déjà rattaché ?" se fait par nom normalisé, ce qui tolère
+     * les doublons historiques dans filiale (Enedis id=3 et ENEDIS id=2400).
+     * Le set 'blocking' évite les tentatives d'INSERT vouées à l'échec quand
+     * la même paire (sheet, filiale) existe déjà sous un autre type — la
+     * contrainte UNIQUE(sheet_id, filiale_id) empêche la co-existence.
+     *
+     * @var array<int, array<string, array<string, bool>>>
      */
     private array $existingLinksCache = [];
 
@@ -254,32 +262,34 @@ class HlkBeneficiarySyncManager
         $stats['started_at']  = $started->format(\DateTimeInterface::ATOM);
         $stats['finished_at'] = $finished->format(\DateTimeInterface::ATOM);
 
-        // Preview finalisé : convertir les sets internes en listes propres pour le JSON
-        if ($dryRun) {
-            $fiches = array_map(function ($f) {
-                return [
-                    'id'                      => $f['id'],
-                    'label'                   => $f['label'],
-                    'contracts'               => array_keys($f['contracts']),
-                    'beneficiaries_to_add'    => array_keys($f['beneficiaries']),
-                    'nb_beneficiaries_to_add' => count($f['beneficiaries']),
-                ];
-            }, $preview['fiches_by_id']);
-            // Trier par nb bénéficiaires décroissant pour surfacer les impacts majeurs
-            usort($fiches, fn($a, $b) => $b['nb_beneficiaries_to_add'] <=> $a['nb_beneficiaries_to_add']);
-
-            $stats['preview'] = [
-                'new_beneficiaries' => array_keys($preview['new_beneficiaries']),
-                // Liste COMPLÈTE des fiches à enrichir (plus de limite top 30).
-                // Le front doit paginer côté client — les données restent
-                // manageable (~qq centaines de fiches × qq bénéfs chacune).
-                'fiches'            => $fiches,
-                'fiches_total'      => count($fiches),
-                // Conservé pour rétrocompat au cas où le front l'utilise :
-                'fiches_sample'     => array_slice($fiches, 0, 30),
-                'unmatched_samples' => $preview['unmatched_samples'],
+        // Détail des fiches touchées + bénéficiaires ajoutés + samples unmatched.
+        // Populé dans les DEUX modes :
+        //   - dry_run : "aperçu de ce qui SERAIT fait"
+        //   - real    : "audit de ce qui a été fait"
+        // Le champ `stats.preview` reste le même pour un affichage unifié côté front.
+        $fiches = array_map(function ($f) {
+            return [
+                'id'                      => $f['id'],
+                'label'                   => $f['label'],
+                'contracts'               => array_keys($f['contracts']),
+                'beneficiaries_to_add'    => array_keys($f['beneficiaries']),
+                'nb_beneficiaries_to_add' => count($f['beneficiaries']),
             ];
-        }
+        }, $preview['fiches_by_id']);
+        // Trier par nb bénéficiaires décroissant pour surfacer les impacts majeurs
+        usort($fiches, fn($a, $b) => $b['nb_beneficiaries_to_add'] <=> $a['nb_beneficiaries_to_add']);
+
+        $stats['preview'] = [
+            'new_beneficiaries' => array_keys($preview['new_beneficiaries']),
+            // Liste COMPLÈTE des fiches enrichies (plus de limite top 30).
+            // Le front doit paginer côté client — les données restent
+            // manageable (~qq centaines de fiches × qq bénéfs chacune).
+            'fiches'            => $fiches,
+            'fiches_total'      => count($fiches),
+            // Conservé pour rétrocompat au cas où le front l'utilise :
+            'fiches_sample'     => array_slice($fiches, 0, 30),
+            'unmatched_samples' => $preview['unmatched_samples'],
+        ];
 
         error_log(sprintf(
             "[hlk-benef-sync] terminé %s en %dms | pages=%d rows=%d | contracts_processed=%d matched=%d unmatched=%d | fiches_updated=%d links_created=%d benefs_created=%d | coverage=%d/%d (%.1f%%) | errors=%d warnings=%d",
@@ -384,7 +394,7 @@ class HlkBeneficiarySyncManager
                     '[hlk-benef-sync] row #%d (p%d) UNMATCHED contract=%s benef=\'%s\'',
                     $rowIndex, $pageNum, $contractCode, $beneficiaryName
                 ));
-                if ($dryRun && !isset($unmatchedSet[$contractCode]) && count($preview['unmatched_samples']) < 30) {
+                if (!isset($unmatchedSet[$contractCode]) && count($preview['unmatched_samples']) < 30) {
                     $preview['unmatched_samples'][] = $contractCode;
                     $unmatchedSet[$contractCode] = true;
                 }
@@ -397,26 +407,58 @@ class HlkBeneficiarySyncManager
                 $this->contractDetails[$contractCode]['sheets'][(int) $matched['id']] = (string) $matched['label'];
             }
 
-            // === 3. Pour chaque fiche matchée : skip si le nom est déjà rattaché,
-            //         sinon résoudre la filiale (paresseux) et ajouter le lien.
+            // === 3. Pour chaque fiche matchée : skip si le nom est déjà rattaché
+            //         en 'beneficiary' (rien à faire), skip proprement avec warning
+            //         si déjà rattaché en 'stipulation' (INSERT échouerait), sinon
+            //         résoudre la filiale (paresseux) et ajouter le lien.
             $filialeId       = null; // résolu à la demande, une seule fois
             $addedSheetIds   = [];
             $skippedSheetIds = [];
+            $blockedSheetIds = [];
 
             foreach ($matchedSheets as $matched) {
                 $sheetId = $matched['id'];
                 $label   = $matched['label'];
 
-                // 3a. Noms des bénéficiaires actuellement rattachés à cette fiche
-                $existingNames = $this->getExistingLinks($sheetId, $sheetBenef);
+                // 3a. Charger les 2 sets de noms pour cette fiche (memoïsé) :
+                //     'beneficiary' → déjà rattaché comme bénéficiaire
+                //     'blocking'    → déjà rattaché en autre type (stipulation…)
+                $existing    = $this->getExistingLinks($sheetId);
+                $benefSet    = $existing['beneficiary'];
+                $blockingSet = $existing['blocking'];
 
-                // 3b. Le nom HLK (normalisé) est-il déjà présent ?
-                if (isset($existingNames[$normBenefKey])) {
+                // 3b. Déjà lié en 'beneficiary' → skip silencieux
+                if (isset($benefSet[$normBenefKey])) {
                     $skippedSheetIds[] = $sheetId;
                     continue;
                 }
 
-                // 3c. Résolution paresseuse — au 1er ajout nécessaire seulement
+                // 3c. Déjà lié en AUTRE type (stipulation) → l'INSERT échouerait
+                //     car la contrainte UNIQUE(sheet_id, filiale_id) n'inclut pas
+                //     le type. On skip proprement + on marque le cache pour ne
+                //     pas retenter sur les rows HLK dupliquées → coupe la boucle.
+                if (isset($blockingSet[$normBenefKey])) {
+                    $this->existingLinksCache[$sheetId]['beneficiary'][$normBenefKey] = true;
+                    $blockedSheetIds[] = $sheetId;
+                    $stats['warnings'][] = [
+                        'code'          => 'blocked_by_other_type',
+                        'sheet_id'      => $sheetId,
+                        'sheet_label'   => $label,
+                        'contract_code' => $contractCode,
+                        'beneficiary'   => $beneficiaryName,
+                        'message'       => sprintf(
+                            "Fiche %d : '%s' déjà rattaché en 'stipulation pour autrui' — impossible de l'ajouter aussi en bénéficiaire (contrainte BDD sheet_filiales). À traiter manuellement si besoin.",
+                            $sheetId, $beneficiaryName
+                        ),
+                    ];
+                    error_log(sprintf(
+                        "[hlk-benef-sync] row #%d (p%d) BLOCKED_BY_STIPULATION sheet_id=%d benef='%s' — skip",
+                        $rowIndex, $pageNum, $sheetId, $beneficiaryName
+                    ));
+                    continue;
+                }
+
+                // 3d. Résolution paresseuse — au 1er ajout nécessaire seulement
                 if ($filialeId === null) {
                     $filialeId = $this->resolveOrCreateBeneficiary(
                         $beneficiaryName, $benefModel, $stats, $dryRun, $preview
@@ -430,34 +472,36 @@ class HlkBeneficiarySyncManager
                     }
                 }
 
-                // 3d. Ajouter le lien (skip write en dry_run)
+                // 3e. Ajouter le lien (skip write en dry_run)
                 try {
                     if (!$dryRun) {
                         $sheetBenef->add($sheetId, $filialeId);
                     }
                     // Marquer le NOM comme désormais rattaché à cette fiche pour
-                    // dédupliquer les rows HLK suivantes ayant la même paire
-                    // (sheet, benef).
-                    $this->existingLinksCache[$sheetId][$normBenefKey] = true;
+                    // dédupliquer les rows HLK suivantes ayant la même paire.
+                    $this->existingLinksCache[$sheetId]['beneficiary'][$normBenefKey] = true;
 
                     $stats['links_created']++;
                     $updatedSheets[$sheetId] = true;
                     $addedSheetIds[] = $sheetId;
 
-                    // Preview : agréger par fiche — uniquement les vrais ajouts
-                    if ($dryRun) {
-                        if (!isset($preview['fiches_by_id'][$sheetId])) {
-                            $preview['fiches_by_id'][$sheetId] = [
-                                'id'            => $sheetId,
-                                'label'         => $label,
-                                'contracts'     => [],
-                                'beneficiaries' => [],
-                            ];
-                        }
-                        $preview['fiches_by_id'][$sheetId]['contracts'][$contractCode]       = true;
-                        $preview['fiches_by_id'][$sheetId]['beneficiaries'][$beneficiaryName] = true;
+                    // Agrégation par fiche — populée dans les 2 modes :
+                    //   - dry_run : liste des ajouts qui SERAIENT faits (preview)
+                    //   - real    : audit des ajouts EFFECTUÉS
+                    if (!isset($preview['fiches_by_id'][$sheetId])) {
+                        $preview['fiches_by_id'][$sheetId] = [
+                            'id'            => $sheetId,
+                            'label'         => $label,
+                            'contracts'     => [],
+                            'beneficiaries' => [],
+                        ];
                     }
+                    $preview['fiches_by_id'][$sheetId]['contracts'][$contractCode]       = true;
+                    $preview['fiches_by_id'][$sheetId]['beneficiaries'][$beneficiaryName] = true;
                 } catch (Throwable $e) {
+                    // Marquer quand même le cache pour éviter le retry sur les
+                    // rows HLK dupliquées (128 erreurs identiques → une seule).
+                    $this->existingLinksCache[$sheetId]['beneficiary'][$normBenefKey] = true;
                     $stats['errors'][] = [
                         'contract_code' => $contractCode,
                         'beneficiary'   => $beneficiaryName,
@@ -469,10 +513,11 @@ class HlkBeneficiarySyncManager
             }
 
             error_log(sprintf(
-                '[hlk-benef-sync] row #%d (p%d) contract=%s benef=\'%s\' → added=[%s] skipped_already_linked=[%s]',
+                '[hlk-benef-sync] row #%d (p%d) contract=%s benef=\'%s\' → added=[%s] skipped_already_linked=[%s] blocked_by_stipulation=[%s]',
                 $rowIndex, $pageNum, $contractCode, $beneficiaryName,
                 implode(',', $addedSheetIds),
-                implode(',', $skippedSheetIds)
+                implode(',', $skippedSheetIds),
+                implode(',', $blockedSheetIds)
             ));
         } catch (Throwable $e) {
             $stats['errors'][] = [
@@ -484,33 +529,55 @@ class HlkBeneficiarySyncManager
     }
 
     /**
-     * Charge (une seule fois par fiche, memoïsé) l'ensemble des NOMS normalisés
-     * des bénéficiaires actuellement rattachés à la fiche via sheet_filiales
-     * (type=beneficiary).
+     * Charge (une seule fois par fiche, memoïsé) 2 sets de noms normalisés :
+     *   - 'beneficiary' : noms déjà liés à la fiche en type='beneficiary'
+     *                     → skip silencieux (rien à faire)
+     *   - 'blocking'    : noms déjà liés à la fiche en AUTRE type (ex. 'stipulation')
+     *                     → skip avec warning (l'INSERT échouerait à cause de la
+     *                       contrainte UNIQUE(sheet_id, filiale_id) qui n'inclut
+     *                       pas le type)
      *
-     * La normalisation (lower+unaccent+trim) est identique à celle utilisée
-     * pour comparer le nom HLK, ce qui garantit un match cohérent quelle que
-     * soit la casse ou les accents (Enedis / ENEDIS / Énédis → 'enedis').
+     * La lecture par type conserve la sémantique demandée : la vérif "est-ce
+     * qu'il est déjà là comme bénéficiaire ?" reste filtrée sur beneficiary.
+     * Le set 'blocking' sert uniquement à couper court au retry inutile ET
+     * à produire un message d'erreur clair dans le rapport.
      *
-     * @return array<string,bool>  set de noms normalisés
+     * Fait la requête directement (pas via SheetBeneficiary::getBySheet) pour
+     * récupérer les 2 types en un seul roundtrip DB.
+     *
+     * @return array<string, array<string, bool>>  ['beneficiary' => [...], 'blocking' => [...]]
      */
-    private function getExistingLinks(int $sheetId, SheetBeneficiary $sheetBenef): array
+    private function getExistingLinks(int $sheetId): array
     {
         if (isset($this->existingLinksCache[$sheetId])) {
             return $this->existingLinksCache[$sheetId];
         }
-        $names = [];
+        $beneficiary = [];
+        $blocking    = [];
         try {
-            foreach ($sheetBenef->getBySheet($sheetId) as $row) {
-                if (isset($row['name']) && $row['name'] !== '') {
-                    $names[$this->normalizeKey((string) $row['name'])] = true;
+            $db     = DBConnection::getInstance();
+            $schema = $db->getSchema(); // ex: "EHA".
+            $sql = "SELECT f.name, sf.type
+                    FROM {$schema}sheet_filiales sf
+                    INNER JOIN {$schema}filiale f ON f.id = sf.filiale_id
+                    WHERE sf.sheet_id = :sheet_id";
+            $sth = $db->getPDO()->prepare($sql);
+            $sth->bindValue(':sheet_id', $sheetId, \PDO::PARAM_INT);
+            $sth->execute();
+            foreach ($sth->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                if (empty($row['name'])) continue;
+                $key = $this->normalizeKey((string) $row['name']);
+                if (($row['type'] ?? '') === 'beneficiary') {
+                    $beneficiary[$key] = true;
+                } else {
+                    $blocking[$key] = true;
                 }
             }
         } catch (Throwable $e) {
             error_log("[hlk-benef-sync] ⚠ getExistingLinks sheet_id={$sheetId} échec : " . $e->getMessage());
         }
-        $this->existingLinksCache[$sheetId] = $names;
-        return $names;
+        $this->existingLinksCache[$sheetId] = ['beneficiary' => $beneficiary, 'blocking' => $blocking];
+        return $this->existingLinksCache[$sheetId];
     }
 
     /**
@@ -559,6 +626,9 @@ class HlkBeneficiarySyncManager
             if ($newId > 0) {
                 $this->beneficiaryCache[$key] = $newId;
                 $stats['beneficiaries_created']++;
+                // Audit : liste des filiales réellement créées (même clé que
+                // le preview dry-run pour un affichage unifié côté front).
+                $preview['new_beneficiaries'][$name] = true;
                 error_log("[hlk-benef-sync] filiale '{$name}' CRÉÉE (id={$newId})");
                 return $newId;
             }
