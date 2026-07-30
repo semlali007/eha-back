@@ -4,6 +4,7 @@ namespace App\Manager;
 
 use App\Models\Sheet;
 use App\Security\User;
+use App\Services\HlkEligibility;
 use App\Services\HlkSheetsMapper;
 use App\Services\HlkSheetsService;
 use App\Services\HlkSyncReport;
@@ -114,9 +115,12 @@ class HlkSheetImportManager
         // a plusieurs contrats dont certains ouverts aux filiales et d'autres non,
         // on ne garde que les contrats ouverts → la fiche générée ne contient
         // que la partie éligible.
+        //
+        // Même règle et même helper que HlkBeneficiarySyncManager, via
+        // HlkEligibility — garantit la cohérence entre les 2 features.
         $filteredRows = [];
         foreach ($allRows as $row) {
-            if (filter_var($row['contrat_ouvert_filiales'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            if (HlkEligibility::isContratOpenToFiliales($row['contrat_ouvert_filiales'] ?? null)) {
                 $filteredRows[] = $row;
             }
         }

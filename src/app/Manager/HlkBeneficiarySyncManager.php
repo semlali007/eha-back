@@ -7,6 +7,7 @@ use App\Models\Sheet;
 use App\Models\SheetBeneficiary;
 use App\Services\BeneficiaryResolver;
 use App\Services\ContractLookupCache;
+use App\Services\HlkEligibility;
 use App\Services\HlkSheetsService;
 use App\Services\HlkSyncReport;
 use App\Services\HlkTextCleaner;
@@ -596,27 +597,10 @@ class HlkBeneficiarySyncManager
         return HlkTextCleaner::normalizeKey($name);
     }
 
-    /**
-     * True si la valeur `contrat_ouvert_filiales` renvoyée par HLK indique OUI.
-     *
-     * Règle métier (confirmée) : HLK renvoie toujours le champ, mais peut être
-     * null ; null est considéré comme false (contrat pas ouvert aux filiales →
-     * skip). Idem pour toute autre valeur "négative" (false, 0, 'false', 'non', '').
-     *
-     * Tolère les représentations positives : booléen true, entier 1, chaînes
-     * 'true'/'1'/'oui'/'yes' (insensible casse) — au cas où HLK sérialise
-     * différemment selon la version.
-     */
+    /** @see HlkEligibility::isContratOpenToFiliales — délégation vers kernel partagé. */
     private function isOpenToFiliales(mixed $value): bool
     {
-        if ($value === null)  return false;
-        if ($value === true)  return true;
-        if ($value === 1)     return true;
-        if (is_string($value)) {
-            $v = strtolower(trim($value));
-            return in_array($v, ['true', '1', 'oui', 'yes'], true);
-        }
-        return false;
+        return HlkEligibility::isContratOpenToFiliales($value);
     }
 
     /** @see HlkTextCleaner::clean — délégation kept for backward compat. */
