@@ -3,6 +3,7 @@
 namespace App\Manager;
 
 use App\Models\Sheet;
+use App\Models\SyncRun;
 use App\Security\User;
 use App\Services\HlkEligibility;
 use App\Services\HlkSheetsMapper;
@@ -41,22 +42,24 @@ class HlkSheetImportManager
     private const BATCH_USER_NNI      = 'HLK_BATCH';
     private const BATCH_USER_FULLNAME = 'HLK Batch Import';
 
+    /** Nom du job pour la traçabilité dans sync_state / sync_runs. */
+    public const JOB_NAME = 'import_sheets_from_hlk';
+
     /**
      * @param bool $dryRun Si true : aucune écriture BDD, uniquement rapport.
+     *   La ligne sync_runs est quand même écrite (avec dry_run=true) pour que
+     *   les simulations restent traçables dans l'historique.
      * @param string|null $signedSince Curseur `signed_date` HLK. Null = pas de filtre.
+     * @param string $triggeredBy Origine du run — 'cli' | 'cron' | 'admin:<NNI>' | 'webhook'.
+     *   Persisté dans sync_runs.triggered_by pour tracer qui a lancé quoi.
      *
-     * @return array {
-     *   dry_run:bool, signed_since:?string,
-     *   pages_processed:int, rows_fetched:int, sheets_aggregated:int,
-     *   created:int, skipped_existing:int,
-     *   skipped_by_achat_id:int, skipped_by_contract:int,
-     *   errors:array[], warnings:array[], fetch_info:?array,
-     *   duration_ms:int, started_at:string, finished_at:string,
-     *   category_usage:array
-     * }
+     * @return array Rapport structuré (cf. docblock complet dans le corps).
      */
-    public function run(bool $dryRun = false, ?string $signedSince = null): array
-    {
+    public function run(
+        bool $dryRun = false,
+        ?string $signedSince = null,
+        string $triggeredBy = 'cli'
+    ): array {
         $started = new \DateTimeImmutable();
         $t0 = microtime(true);
 
@@ -77,7 +80,24 @@ class HlkSheetImportManager
         ];
 
         error_log('[hlk-sheet-import] ================================================================');
-        error_log('[hlk-sheet-import] Démarrage import ' . ($dryRun ? '[DRY-RUN]' : '[REAL]') . ' | signed_since=' . ($signedSince ?? '(none)'));
+        error_log('[hlk-sheet-import] Démarrage import ' . ($dryRun ? '[DRY-RUN]' : '[REAL]') . ' | signed_since=' . ($signedSince ?? '(none)') . ' | triggered_by=' . $triggeredBy);
+
+        // Traçabilité : insère immédiatement une ligne 'running' dans sync_runs.
+        // L'admin verra le run en cours dans l'écran d'historique dès son
+        // démarrage. Si l'insert échoue (BDD down), on continue quand même le
+        // batch — la traçabilité n'est pas critique métier.
+        $syncRun = new SyncRun();
+        $runId = null;
+        try {
+            $runId = $syncRun->startRun(self::JOB_NAME, $triggeredBy, $dryRun, $signedSince);
+            error_log("[hlk-sheet-import] sync_runs id={$runId} enregistré (status=running)");
+        } catch (Throwable $e) {
+            error_log("[hlk-sheet-import] ⚠ startRun failed : {$e->getMessage()} — le batch continue sans traçabilité BDD");
+        }
+
+        // IDs des fiches créées par ce run — persistés dans sync_runs.created_sheet_ids
+        // pour le drill-down UI ("voir les N fiches créées ce run").
+        $createdSheetIds = [];
 
         $service = new HlkSheetsService();
         $allRows = [];
@@ -161,7 +181,7 @@ class HlkSheetImportManager
                 $this->ingestSheet(
                     $sheetData, $dryRun,
                     $sheetModel, $sheetManager, $batchUser,
-                    $stats
+                    $stats, $createdSheetIds
                 );
             } catch (Throwable $e) {
                 $stats['errors'][] = [
@@ -190,10 +210,48 @@ class HlkSheetImportManager
         $stats['duration_ms'] = (int) round((microtime(true) - $t0) * 1000);
         $stats['started_at']  = $started->format(\DateTimeInterface::ATOM);
         $stats['finished_at'] = $finished->format(\DateTimeInterface::ATOM);
+        $stats['created_sheet_ids'] = $createdSheetIds;
+
+        // === Status final pour sync_runs =====================================
+        // - 'error'   : au moins une erreur fatale (fetch ou map) → run vraiment cassé
+        // - 'partial' : erreurs row-level OU pages HLK skipées → certaines rows perdues
+        // - 'success' : rien de tout ça
+        $hasFatal = false;
+        foreach ($stats['errors'] as $err) {
+            $lvl = $err['level'] ?? '';
+            if (is_string($lvl) && str_starts_with($lvl, 'fatal')) {
+                $hasFatal = true;
+                break;
+            }
+        }
+        $status = $hasFatal ? 'error'
+                : (empty($stats['errors']) && empty($stats['warnings']) ? 'success' : 'partial');
+
+        // Curseur pour le prochain run — la date du jour SAUF si error fatale
+        // (dans ce cas on garde l'ancien curseur pour rejouer la même fenêtre).
+        $nextCursor = $hasFatal ? null : date('Y-m-d');
+        $stats['next_cursor']       = $nextCursor;
+        $stats['status']            = $status;
+        $stats['triggered_by']      = $triggeredBy;
+
+        // Persistance sync_runs (best-effort — pas critique si ça échoue)
+        if ($runId !== null) {
+            try {
+                $syncRun->finishRun(
+                    $runId, $status, $nextCursor,
+                    $stats, $stats['errors'], $stats['warnings'], $createdSheetIds
+                );
+                $stats['sync_run_id'] = $runId;
+                error_log("[hlk-sheet-import] sync_runs id={$runId} finalisé (status={$status})");
+            } catch (Throwable $e) {
+                error_log("[hlk-sheet-import] ⚠ finishRun failed run_id={$runId} : {$e->getMessage()}");
+            }
+        }
 
         error_log(sprintf(
-            '[hlk-sheet-import] terminé %s en %dms | pages=%d rows=%d eligible=%d (ineligible=%d) sheets=%d | created=%d skipped_existing=%d (via achat_id=%d, via contract=%d) | errors=%d warnings=%d',
+            '[hlk-sheet-import] terminé %s [%s] en %dms | pages=%d rows=%d eligible=%d (ineligible=%d) sheets=%d | created=%d skipped_existing=%d (via achat_id=%d, via contract=%d) | errors=%d warnings=%d',
             $dryRun ? '[DRY-RUN]' : '[REAL]',
+            strtoupper($status),
             $stats['duration_ms'],
             $stats['pages_processed'], $stats['rows_fetched'],
             $stats['rows_eligible'], $stats['rows_ineligible'],
@@ -224,7 +282,8 @@ class HlkSheetImportManager
         Sheet $sheetModel,
         SheetManager $sheetManager,
         User $batchUser,
-        array &$stats
+        array &$stats,
+        array &$createdSheetIds
     ): void {
         $achatId     = $sheetData['achat_id_cockpit'];
         $label       = (string) ($sheetData['label'] ?? '');
@@ -275,7 +334,17 @@ class HlkSheetImportManager
             $achatId, $label, $nbProviders, $nbContracts, $nbFiliales, $nbFiliales0
         ));
         if (!$dryRun) {
-            $sheetManager->add($batchUser, $sheetData);
+            // SheetManager::add() renvoie un JSON string {id, data} — on décode
+            // pour récupérer l'id de la fiche créée, à persister dans
+            // sync_runs.created_sheet_ids pour le drill-down UI.
+            $addResult = $sheetManager->add($batchUser, $sheetData);
+            $decoded   = is_string($addResult) ? json_decode($addResult, true) : null;
+            $newId     = is_array($decoded) ? (int) ($decoded['id'] ?? 0) : 0;
+            if ($newId > 0) {
+                $createdSheetIds[] = $newId;
+            } else {
+                error_log("[hlk-sheet-import] ⚠ CREATE achat_id_cockpit={$achatId} : impossible de récupérer l'id (SheetManager::add retour inattendu)");
+            }
         }
         $stats['created']++;
     }
