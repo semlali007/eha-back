@@ -64,6 +64,8 @@ class HlkSheetImportManager
             'signed_since'         => $signedSince,
             'pages_processed'      => 0,
             'rows_fetched'         => 0,
+            'rows_eligible'        => 0,   // rows gardées après filtre "contrat_ouvert_filiales = true"
+            'rows_ineligible'      => 0,   // rows droppées par le filtre (contrat_ouvert_filiales != true)
             'sheets_aggregated'    => 0,
             'created'              => 0,
             'skipped_existing'     => 0,   // fiche EHA déjà présente → aucune écriture
@@ -103,6 +105,29 @@ class HlkSheetImportManager
             ];
             error_log("[hlk-sheet-import] ⚠ FATAL fetch : {$e->getMessage()}");
         }
+
+        // === PHASE 1b : Filtre éligibilité "contrat ouvert aux filiales" =====
+        // Règle métier : le batch ne traite QUE les contrats HLK marqués
+        // `contrat_ouvert_filiales = true`. Les autres sont hors périmètre.
+        //
+        // Filtre row-par-row (pas achat-par-achat) : si un même achat_id_cockpit
+        // a plusieurs contrats dont certains ouverts aux filiales et d'autres non,
+        // on ne garde que les contrats ouverts → la fiche générée ne contient
+        // que la partie éligible.
+        $filteredRows = [];
+        foreach ($allRows as $row) {
+            if (filter_var($row['contrat_ouvert_filiales'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                $filteredRows[] = $row;
+            }
+        }
+        $stats['rows_eligible']   = count($filteredRows);
+        $stats['rows_ineligible'] = count($allRows) - count($filteredRows);
+        error_log(sprintf(
+            '[hlk-sheet-import] filtre contrat_ouvert_filiales=true : %d rows gardées / %d droppées (sur %d)',
+            $stats['rows_eligible'], $stats['rows_ineligible'], count($allRows)
+        ));
+        $allRows = $filteredRows;
+        unset($filteredRows);
 
         // === PHASE 2 : Agrégation via mapper ===============================
         $mapper = new HlkSheetsMapper();
@@ -163,10 +188,12 @@ class HlkSheetImportManager
         $stats['finished_at'] = $finished->format(\DateTimeInterface::ATOM);
 
         error_log(sprintf(
-            '[hlk-sheet-import] terminé %s en %dms | pages=%d rows=%d sheets=%d | created=%d skipped_existing=%d (via achat_id=%d, via contract=%d) | errors=%d warnings=%d',
+            '[hlk-sheet-import] terminé %s en %dms | pages=%d rows=%d eligible=%d (ineligible=%d) sheets=%d | created=%d skipped_existing=%d (via achat_id=%d, via contract=%d) | errors=%d warnings=%d',
             $dryRun ? '[DRY-RUN]' : '[REAL]',
             $stats['duration_ms'],
-            $stats['pages_processed'], $stats['rows_fetched'], $stats['sheets_aggregated'],
+            $stats['pages_processed'], $stats['rows_fetched'],
+            $stats['rows_eligible'], $stats['rows_ineligible'],
+            $stats['sheets_aggregated'],
             $stats['created'], $stats['skipped_existing'],
             $stats['skipped_by_achat_id'], $stats['skipped_by_contract'],
             count($stats['errors']), count($stats['warnings'])

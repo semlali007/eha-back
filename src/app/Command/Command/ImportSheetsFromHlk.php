@@ -146,9 +146,10 @@ class ImportSheetsFromHlk extends Command
     {
         $io->success('Import terminé');
         $io->table(
-            ['rows', 'sheets', 'created', 'skipped', 'via_achat_id', 'via_contract', 'errors', 'nouveau curseur'],
+            ['rows', 'eligible', 'sheets', 'created', 'skipped', 'via_achat_id', 'via_contract', 'errors', 'nouveau curseur'],
             [[
                 $stats['rows_fetched']        ?? 0,
+                sprintf('%d/%d', $stats['rows_eligible'] ?? 0, ($stats['rows_eligible'] ?? 0) + ($stats['rows_ineligible'] ?? 0)),
                 $stats['sheets_aggregated']   ?? 0,
                 $stats['created']             ?? 0,
                 $stats['skipped_existing']    ?? 0,
