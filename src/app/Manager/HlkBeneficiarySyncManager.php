@@ -91,17 +91,18 @@ class HlkBeneficiarySyncManager
         $t0 = microtime(true);
 
         $stats = [
-            'dry_run'              => $dryRun,
-            'pages_processed'      => 0,
-            'rows_fetched'         => 0,
-            'contracts_processed'  => 0, // nb de (contract_code, beneficiaire) traités
-            'contracts_matched'    => 0, // avec au moins 1 fiche EHA trouvée
-            'contracts_unmatched'  => 0, // contrats HLK non présents en EHA (log info)
-            'fiches_updated'       => 0, // fiches distinctes ayant reçu au moins 1 lien
-            'links_created'        => 0, // nouvelles lignes sheet_filiales
-            'beneficiaries_created'=> 0, // filiales créées en base (ou qui seraient créées)
-            'errors'               => [],
-            'warnings'             => [],
+            'dry_run'                          => $dryRun,
+            'pages_processed'                  => 0,
+            'rows_fetched'                     => 0,
+            'rows_skipped_not_open_to_filiales'=> 0, // rows HLK filtrées : contrat pas ouvert aux filiales
+            'contracts_processed'              => 0, // nb de (contract_code, beneficiaire) traités
+            'contracts_matched'                => 0, // avec au moins 1 fiche EHA trouvée
+            'contracts_unmatched'              => 0, // contrats HLK non présents en EHA (log info)
+            'fiches_updated'                   => 0, // fiches distinctes ayant reçu au moins 1 lien
+            'links_created'                    => 0, // nouvelles lignes sheet_filiales
+            'beneficiaries_created'            => 0, // filiales créées en base (ou qui seraient créées)
+            'errors'                           => [],
+            'warnings'                         => [],
         ];
 
         // Preview : uniquement rempli en dry_run — permet à l'admin de vérifier
@@ -292,11 +293,12 @@ class HlkBeneficiarySyncManager
         ];
 
         error_log(sprintf(
-            "[hlk-benef-sync] terminé %s en %dms | pages=%d rows=%d | contracts_processed=%d matched=%d unmatched=%d | fiches_updated=%d links_created=%d benefs_created=%d | coverage=%d/%d (%.1f%%) | errors=%d warnings=%d",
+            "[hlk-benef-sync] terminé %s en %dms | pages=%d rows=%d skipped_not_open=%d | contracts_processed=%d matched=%d unmatched=%d | fiches_updated=%d links_created=%d benefs_created=%d | coverage=%d/%d (%.1f%%) | errors=%d warnings=%d",
             $dryRun ? '[DRY-RUN]' : '[REAL]',
             $stats['duration_ms'],
             $stats['pages_processed'],
             $stats['rows_fetched'],
+            $stats['rows_skipped_not_open_to_filiales'],
             $stats['contracts_processed'],
             $stats['contracts_matched'],
             $stats['contracts_unmatched'],
@@ -346,6 +348,14 @@ class HlkBeneficiarySyncManager
         bool $dryRun
     ): void {
         try {
+            // === 0. Filtre métier : seuls les contrats OUVERTS AUX FILIALES ===
+            //         Le champ `contrat_ouvert_filiales` est toujours envoyé par
+            //         HLK ; null → considéré non-ouvert → skip.
+            if (!$this->isOpenToFiliales($row['contrat_ouvert_filiales'] ?? null)) {
+                $stats['rows_skipped_not_open_to_filiales']++;
+                return;
+            }
+
             // === 1. Extraire (contract, benef) de la row HLK ==================
             $contractCode    = trim((string) ($row['contrat_numero']       ?? ''));
             $beneficiaryName = $this->cleanText($row['contrat_beneficiaire'] ?? '');
@@ -736,6 +746,29 @@ class HlkBeneficiarySyncManager
         $s = strtr($s, $map);
 
         return mb_strtolower($s, 'UTF-8');
+    }
+
+    /**
+     * True si la valeur `contrat_ouvert_filiales` renvoyée par HLK indique OUI.
+     *
+     * Règle métier (confirmée) : HLK renvoie toujours le champ, mais peut être
+     * null ; null est considéré comme false (contrat pas ouvert aux filiales →
+     * skip). Idem pour toute autre valeur "négative" (false, 0, 'false', 'non', '').
+     *
+     * Tolère les représentations positives : booléen true, entier 1, chaînes
+     * 'true'/'1'/'oui'/'yes' (insensible casse) — au cas où HLK sérialise
+     * différemment selon la version.
+     */
+    private function isOpenToFiliales(mixed $value): bool
+    {
+        if ($value === null)  return false;
+        if ($value === true)  return true;
+        if ($value === 1)     return true;
+        if (is_string($value)) {
+            $v = strtolower(trim($value));
+            return in_array($v, ['true', '1', 'oui', 'yes'], true);
+        }
+        return false;
     }
 
     /**
