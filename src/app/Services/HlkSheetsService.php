@@ -25,11 +25,11 @@ use Core\Util\Json;
  */
 class HlkSheetsService
 {
-    private const DEFAULT_PAGE_LIMIT = 100;
+    public const DEFAULT_PAGE_LIMIT = 100;
 
-    /** Timeout cURL par page. Court : une page saine répond en ~1s, au-delà
-     *  c'est un record en défaut côté HLK — on skippe et on passe. */
-    private const PAGE_TIMEOUT_SEC = 30;
+    // Le timeout cURL est hardcodé à 30s dans HttpClientService::init().
+    // Une page HLK saine répond en ~1s ; au-delà c'est un record en défaut
+    // côté HLK — le catch d'HttpException dans streamAllPages skippe la page.
 
     /**
      * @var array{
@@ -154,8 +154,7 @@ class HlkSheetsService
         $response = HttpClientService::exec_post(
             $url,
             $payload,
-            Json::DEFAULT_HEADER,
-            self::PAGE_TIMEOUT_SEC
+            Json::DEFAULT_HEADER
         );
         $pageMs = round((microtime(true) - $tPage) * 1000);
         error_log("[hlk-benef-sync:fetch] page={$page} OK ({$pageMs}ms)");
