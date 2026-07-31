@@ -4,7 +4,6 @@ namespace App\Controllers\Admin\Hlk;
 
 use App\Controllers\Controller;
 use App\Manager\HlkSheetImportManager;
-use App\Models\Sheet;
 use App\Models\SyncRun;
 use Core\Database\DBConnection;
 use Exception;
@@ -133,7 +132,7 @@ class HlkHistoryController extends Controller
             $sth->execute();
             $total = (int) $sth->fetchColumn();
 
-            $sqlList = "SELECT id, label, status, draft, achat_id_cockpit, netachat_type,
+            $sqlList = "SELECT id, label, status, achat_id_cockpit, netachat_type,
                                created_at, updated_at, created_by_full_name, acheteur
                         FROM {$schema}sheet_headers
                         WHERE {$whereSql}
@@ -198,7 +197,7 @@ class HlkHistoryController extends Controller
             $params[$key]   = (int) $id;
         }
         $inClause = implode(', ', $placeholders);
-        $sql = "SELECT id, label, status, draft, achat_id_cockpit, created_at
+        $sql = "SELECT id, label, status, achat_id_cockpit, created_at
                 FROM {$schema}sheet_headers
                 WHERE id IN ({$inClause})
                 ORDER BY id";
