@@ -52,13 +52,19 @@ class HlkSheetImportManager
      * @param string|null $signedSince Curseur `signed_date` HLK. Null = pas de filtre.
      * @param string $triggeredBy Origine du run — 'cli' | 'cron' | 'admin:<NNI>' | 'webhook'.
      *   Persisté dans sync_runs.triggered_by pour tracer qui a lancé quoi.
+     * @param callable|null $onProgress Callback appelé aux étapes clés du run
+     *   avec (string $stage, array $partial) — utile depuis un controller HTTP
+     *   pour émettre des octets keepalive et éviter les timeouts intermédiaires
+     *   (nginx / WAF EDF) sur ce traitement long (~5-10 min).
+     *   $stage ∈ { 'page_fetched', 'map_done', 'ingest_progress' }
      *
      * @return array Rapport structuré (cf. docblock complet dans le corps).
      */
     public function run(
         bool $dryRun = false,
         ?string $signedSince = null,
-        string $triggeredBy = 'cli'
+        string $triggeredBy = 'cli',
+        ?callable $onProgress = null
     ): array {
         $started = new \DateTimeImmutable();
         $t0 = microtime(true);
@@ -117,6 +123,10 @@ class HlkSheetImportManager
                     '[hlk-sheet-import] page=%d reçue (%d rows, cumul=%d)',
                     $pageNum, count($pageRows), $stats['rows_fetched']
                 ));
+
+                // Keepalive : émet un signal au controller HTTP (le controller
+                // enverra un octet vers le browser pour maintenir la connexion).
+                $this->safeProgress($onProgress, 'page_fetched', ['page' => $pageNum, 'rows_fetched' => $stats['rows_fetched']]);
             }
         } catch (Throwable $e) {
             $stats['errors'][] = [
@@ -159,6 +169,7 @@ class HlkSheetImportManager
             $sheets = $mapper->transform($allRows);
             $stats['sheets_aggregated'] = count($sheets);
             $stats['category_usage']    = $mapper->getCategoryUsage();
+            $this->safeProgress($onProgress, 'map_done', ['sheets_aggregated' => count($sheets)]);
         } catch (Throwable $e) {
             $stats['errors'][] = [
                 'level'   => 'fatal_map',
@@ -176,7 +187,9 @@ class HlkSheetImportManager
         $sheetManager = new SheetManager();
         $batchUser    = $this->buildBatchUser();
 
+        $ingestIndex = 0;
         foreach ($sheets as $sheetData) {
+            $ingestIndex++;
             try {
                 $this->ingestSheet(
                     $sheetData, $dryRun,
@@ -193,6 +206,18 @@ class HlkSheetImportManager
                     $sheetData['achat_id_cockpit'] ?? '?',
                     $e->getMessage()
                 ));
+            }
+
+            // Keepalive : signal périodique tous les 20 sheets ingérés
+            // (l'ingestion peut prendre plusieurs secondes par sheet quand il y
+            // a beaucoup de contrats/providers/filiales à insérer).
+            if ($ingestIndex % 20 === 0) {
+                $this->safeProgress($onProgress, 'ingest_progress', [
+                    'ingested' => $ingestIndex,
+                    'total'    => count($sheets),
+                    'created'  => $stats['created'],
+                    'skipped'  => $stats['skipped_existing'],
+                ]);
             }
         }
 
@@ -359,5 +384,22 @@ class HlkSheetImportManager
         $user->setNni(self::BATCH_USER_NNI);
         $user->setFullname(self::BATCH_USER_FULLNAME);
         return $user;
+    }
+
+    /**
+     * Invoque proprement le callback onProgress. Isolé pour :
+     *   1. Éviter un check `!== null` répété partout dans le code
+     *   2. Protéger le batch d'une exception dans le callback (le controller
+     *      appelant peut throw si le client HTTP a fermé la connexion — on ne
+     *      veut pas perdre les rows/fiches restantes pour autant)
+     */
+    private function safeProgress(?callable $onProgress, string $stage, array $partial): void
+    {
+        if ($onProgress === null) return;
+        try {
+            $onProgress($stage, $partial);
+        } catch (Throwable $e) {
+            error_log("[hlk-sheet-import] ⚠ onProgress callback threw ({$stage}) : " . $e->getMessage());
+        }
     }
 }
