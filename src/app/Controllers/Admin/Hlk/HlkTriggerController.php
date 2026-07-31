@@ -53,6 +53,12 @@ class HlkTriggerController extends Controller
         @ini_set('output_buffering', '0');
         @ini_set('zlib.output_compression', '0');
 
+        // Le batch accumule TOUTES les rows HLK en mémoire avant l'agrégation
+        // par le mapper (nécessaire car un achat peut couvrir plusieurs pages).
+        // À gros volume (~40k rows × ~1KB), le défaut 128M sature — on relève
+        // à 1G pour absorber toute la donnée HLK sans risque de fatal error.
+        @ini_set('memory_limit', '1024M');
+
         // --- Keepalive streaming (même pattern que HlkSyncController) ---
         header('Content-Type: application/json; charset=utf-8');
         header('X-Accel-Buffering: no'); // demande à nginx de ne pas bufferiser

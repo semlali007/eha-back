@@ -51,6 +51,11 @@ class ImportSheetsFromHlk extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // Batch potentiellement long + volumineux — même config que l'endpoint
+        // admin (HlkTriggerController) pour un comportement cohérent CLI/HTTP.
+        set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+
         $io = new style($input, $output);
         $io->title('Import fiches marché HLK');
 

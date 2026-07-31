@@ -169,6 +169,10 @@ class HlkSheetImportManager
             $sheets = $mapper->transform($allRows);
             $stats['sheets_aggregated'] = count($sheets);
             $stats['category_usage']    = $mapper->getCategoryUsage();
+            // Libération mémoire : les rows brutes ne servent plus après l'agrégation.
+            // Sur ~40k rows × ~1KB, ça peut libérer 40-80MB pour la phase d'ingest
+            // qui va instancier plein de models Sheet / SheetManager.
+            unset($allRows);
             $this->safeProgress($onProgress, 'map_done', ['sheets_aggregated' => count($sheets)]);
         } catch (Throwable $e) {
             $stats['errors'][] = [
