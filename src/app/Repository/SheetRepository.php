@@ -346,6 +346,17 @@ class SheetRepository extends AbstractRepository {
         try {
             $details = (new Sheet())->get($id);
 
+            // Cast explicite en boolean pour le front — PostgreSQL/PDO renvoie
+            // 't'/'f' en string par défaut sur les colonnes BOOLEAN, ce qui
+            // devient `true` (car chaîne non vide) côté JS/PHP naïf → boolean
+            // toujours vrai. Le cast garantit un vrai `true`/`false` JSON.
+            // Défaut `false` si la colonne n'existe pas encore (BDD antérieure
+            // à la migration add_auto_created_to_sheet_headers.sql).
+            $details['auto_created'] = filter_var(
+                $details['auto_created'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
             // Ajouter l'objet supplier_size dynamiquement depuis la base
             if (isset($details['id_supplier_size']) && !empty($details['id_supplier_size'])) {
                 $supplierSizeModel = new \App\Models\SupplierSize();
