@@ -20,9 +20,13 @@ class SheetBeneficiary extends Model
     public function add($sheetId, $filialeId)
     {
         try {
+            // ON CONFLICT force aussi type='beneficiary' : si la paire (sheet,
+            // filiale) existait déjà avec type='stipulation' (historique), un
+            // ajout côté bénéficiaire la fait basculer — auto-migration
+            // paresseuse vers la fusion Bénéficiaire / Stipulation.
             $query = '
             INSERT INTO ' . $this->table . ' (sheet_id, filiale_id, type) VALUES (:sheet_id, :filiale_id, :type)
-             ON CONFLICT(sheet_id,filiale_id) DO UPDATE SET filiale_id = :filiale_id
+             ON CONFLICT(sheet_id,filiale_id) DO UPDATE SET filiale_id = :filiale_id, type = \'beneficiary\'
 
             ';
             $sth = $this->db->getPDO()->prepare($query);

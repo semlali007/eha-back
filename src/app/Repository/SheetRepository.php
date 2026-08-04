@@ -487,8 +487,7 @@ class SheetRepository extends AbstractRepository {
             'Fournisseur numéro TVA intracommunautaire',    // ← valeur change : provider TVA ?? supplier_vat_number
             'Code NAF fournisseur',                         // ← NEW (index 10)
             'Contacts fournisseur',
-            'Bénéficiaires',
-            'Stipulation pour autrui',
+            'Bénéficiaire',
             'Entités bénéficiaires d\'EDF SA / ENEDIS',
             'Numéros de contrats',
             'Kit de portage joint',
@@ -550,25 +549,11 @@ class SheetRepository extends AbstractRepository {
             }
             $supplierVatFallback = $sheet['supplier_vat_number'] ?? '';
 
+            // Fusion Bénéficiaire / Stipulation pour autrui (RG9) : une seule
+            // colonne dédupliquée, à partir des deux listes historiques.
             $filiales = $sheetFiliale->getBySheet($sheet['id']);
-            $sheet['filiales'] = '';
-            foreach ($filiales as $key => $filiale) {
-                if ($key !== 0) {
-                    $sheet['filiales'] .= '|';
-                }
-
-                $sheet['filiales'] .= $filiale['name'];
-            }
-
             $filiales0 = $sheetFiliale0->getBySheet($sheet['id']);
-            $sheet['filiales0'] = '';
-            foreach ($filiales0 as $key => $filiale0) {
-                if ($key !== 0) {
-                    $sheet['filiales0'] .= '|';
-                }
-
-                $sheet['filiales0'] .= $filiale0['name'];
-            }
+            $sheet['filiales'] = $this->mergeBeneficiaryNames($filiales, $filiales0);
 
             $zones = $sheetZone->getBySheet($sheet['id']);
             $sheet['zones'] = '';
@@ -588,7 +573,7 @@ class SheetRepository extends AbstractRepository {
                 $sheet['groups'] .= $group['name'];
             }
 
-           
+
             $options = $sheetOption->getBySheet($sheet['id']);
             $sheet['options'] = '';
 
@@ -704,6 +689,8 @@ class SheetRepository extends AbstractRepository {
             // Préparer la ligne de données dans l'ordre du header.
             // ⚠️ Suite à l'ajout de SIREN (idx 8) et Code NAF (idx 10), tous les
             // index >= 9 ont été shiftés de +2 par rapport à la version précédente.
+            // Puis fusion Bénéficiaire / Stipulation pour autrui (RG9) : les index
+            // >= 13 ont été re-shiftés de -1 (colonne "Stipulation pour autrui" supprimée).
             $rowData = [
                 $compteur,                                                       // 0  → 1. N° / Compteur
                 $sheet['label'],                                                 // 1  → 2. Nom fiche
@@ -717,23 +704,22 @@ class SheetRepository extends AbstractRepository {
                 '',                                                              // 9  → 10. Numéro TVA (idem)
                 '',                                                              // 10 → 11. Code NAF (idem)
                 '',                                                              // 11 → 12. Contacts fournisseur (rempli plus bas)
-                $sheet['filiales'],                                              // 12 → 13. Bénéficiaires
-                $sheet['filiales0'],                                             // 13 → 14. Stipulation pour autrui
-                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 14 → 15. Entités bénéficiaires d'EDF SA / ENEDIS
-                '',                                                              // 15 → 16. Numéros de contrats (rempli plus bas)
-                $kitPortageJoint,                                                // 16 → 17. Kit de portage joint
-                $piecesJointes,                                                  // 17 → 18. Pièces jointes
-                isset($sheet['committee']) ? $sheet['committee'] : '',           // 18 → 19. Comité de Gestion de la Demande
-                $sheet['zones'],                                                 // 19 → 20. Zone géographique d'application des marchés
-                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 20 → 21. Zone géographique détail si région
-                $sheet['dauphin'],                                               // 21 → 22. Approvisionnement sous dauphin
-                $sheet['edf_open'],                                              // 22 → 23. Marché ouvert au personnel EDF
-                isset($sheet['acheteur']) ? $sheet['acheteur'] : '',             // 23 → 24. Acheteur
-                $sheet['contract_manager'],                                      // 24 → 25. Contract manager
-                $sheet['mise_a_jour_donnee'],                                    // 25 → 26. Mise à jour de la donnée
-                $sheet['status'],                                                // 26 → 27. Statut
-                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 27 → 28. Dernière modification
-                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 28 → 29. Commentaires
+                $sheet['filiales'],                                              // 12 → 13. Bénéficiaire (fusionné)
+                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 13 → 14. Entités bénéficiaires d'EDF SA / ENEDIS
+                '',                                                              // 14 → 15. Numéros de contrats (rempli plus bas)
+                $kitPortageJoint,                                                // 15 → 16. Kit de portage joint
+                $piecesJointes,                                                  // 16 → 17. Pièces jointes
+                isset($sheet['committee']) ? $sheet['committee'] : '',           // 17 → 18. Comité de Gestion de la Demande
+                $sheet['zones'],                                                 // 18 → 19. Zone géographique d'application des marchés
+                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 19 → 20. Zone géographique détail si région
+                $sheet['dauphin'],                                               // 20 → 21. Approvisionnement sous dauphin
+                $sheet['edf_open'],                                              // 21 → 22. Marché ouvert au personnel EDF
+                isset($sheet['acheteur']) ? $sheet['acheteur'] : '',             // 22 → 23. Acheteur
+                $sheet['contract_manager'],                                      // 23 → 24. Contract manager
+                $sheet['mise_a_jour_donnee'],                                    // 24 → 25. Mise à jour de la donnée
+                $sheet['status'],                                                // 25 → 26. Statut
+                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 26 → 27. Dernière modification
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 27 → 28. Commentaires
             ];
             
             unset($sheet['id']);
@@ -760,7 +746,7 @@ class SheetRepository extends AbstractRepository {
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
-                    $rowData[15] = $m; // Numéros de contrats (index shifted 13 → 15 après ajout SIREN/NAF)
+                    $rowData[14] = $m; // Numéros de contrats (index 13 → 15 après ajout SIREN/NAF, → 14 après fusion Bénéficiaire/Stipulation)
                     $htmlInfo = $htmlContractsMap[$m] ?? null;
                     // Priorité fournisseur : HTML > BDD > liste de la fiche
                     if ($htmlInfo !== null && !empty($htmlInfo['provider'])) {
@@ -789,7 +775,7 @@ class SheetRepository extends AbstractRepository {
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
-                    $rowData[15] = $contract['contract_code']; // index shifted 13 → 15
+                    $rowData[14] = $contract['contract_code']; // index 13 → 15 après ajout SIREN/NAF, → 14 après fusion Bénéficiaire/Stipulation
                     $rowData[7]  = !empty($contract['provider']) ? $contract['provider'] : $sheetProvidersFallback;
                     $fiscals = $this->resolveProviderFiscals($rowData[7], $providerExactFiscalMap, $providerNormFiscalMap, $globalProviderNormFiscalMap, $supplierVatFallback);
                     $rowData[8]  = $fiscals['siren'];
@@ -1000,6 +986,26 @@ class SheetRepository extends AbstractRepository {
         $raw = preg_replace('/[\s,;.]+$/m', '', $raw);
         // Trim final, incluant la ponctuation résiduelle en bout de cellule
         return trim($raw, " \t\n,;.");
+    }
+
+    /**
+     * Fusionne les listes "bénéficiaire direct" et "stipulation pour autrui"
+     * d'une fiche en une seule chaîne dédupliquée par filiale (RG9). Une même
+     * filiale présente dans les deux listes historiques n'apparaît qu'une fois.
+     *
+     * @param array $beneficiaries Rows filiale (bénéficiaire direct)
+     * @param array $stipulations  Rows filiale (stipulation pour autrui)
+     */
+    private function mergeBeneficiaryNames(array $beneficiaries, array $stipulations): string
+    {
+        $namesById = [];
+        foreach (array_merge($beneficiaries, $stipulations) as $filiale) {
+            if (isset($filiale['id'])) {
+                $namesById[$filiale['id']] = $filiale['name'];
+            }
+        }
+        asort($namesById, SORT_NATURAL | SORT_FLAG_CASE);
+        return implode('|', $namesById);
     }
 
     /**

@@ -19,7 +19,8 @@ use Core\Util\Json;
  *
  * L'API renvoie un produit cartésien contrat × option × bénéficiaire :
  *   - contrat_numero          : code du contrat (clé de rattachement côté EHA)
- *   - contrat_beneficiaire    : nom de la filiale bénéficiaire (nullable)
+ *   - contrat_beneficiaire    : nom de la filiale bénéficiaire directe (nullable)
+ *   - contrat_stipulation     : nom de la filiale en stipulation pour autrui (nullable)
  *   - achat_id_cockpit        : identifiant Cockpit de l'achat
  *   - eb_libelle              : libellé du bénéficiaire (entité bénéficiaire)
  */

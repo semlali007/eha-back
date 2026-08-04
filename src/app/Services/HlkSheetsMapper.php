@@ -180,11 +180,14 @@ class HlkSheetsMapper
         $categoryLb = HlkTextCleaner::clean($first['achat_categorie'] ?? '');
         $category   = $this->resolveOrCreateCategory($categoryLb);
 
-        // Contracts, providers, filiales, filiales0, entités bénéficiaires : agrégés
+        // Contracts, providers, filiales, entités bénéficiaires : agrégés.
+        // Bénéficiaires directs (contrat_beneficiaire) et stipulation pour
+        // autrui (contrat_stipulation) sont fusionnés dans une seule liste :
+        // les fiches créées automatiquement n'alimentent plus le champ
+        // "stipulation" séparé (cf. fusion Bénéficiaire / Stipulation).
         $contracts       = $this->aggregateContracts($rows);
         $providers       = $this->aggregateProviders($rows);
         $filiales        = $this->aggregateFiliales($rows);
-        $filiales0       = $this->aggregateFiliales0($rows);
         $ebLibelles      = $this->aggregateEbLibelles($rows);
 
         // Dates : converties depuis epoch millis (string) → 'YYYY-MM-DD'
@@ -215,7 +218,6 @@ class HlkSheetsMapper
             'providers'                        => $providers,
             'supplier_vat_number'              => HlkTextCleaner::clean($first['contrat_fournisseur_tva'] ?? ''),
             'filiales'                         => $filiales,
-            'filiales0'                        => $filiales0,
             'entites_beneficiaires_edf_enedis' => $ebLibelles,
 
             // Contrats
@@ -341,38 +343,28 @@ class HlkSheetsMapper
         return null;
     }
 
+    /**
+     * Agrège les bénéficiaires d'une fiche à partir des DEUX champs HLK
+     * historiques (contrat_beneficiaire = bénéficiaire direct, contrat_stipulation
+     * = stipulation pour autrui) en une seule liste dédupliquée par nom. Les
+     * fiches créées automatiquement n'alimentent plus de champ "stipulation"
+     * séparé — les deux notions sont fusionnées dès l'agrégation HLK.
+     */
     private function aggregateFiliales(array $rows): array
     {
         $seen = [];
         foreach ($rows as $r) {
-            $name = HlkTextCleaner::clean($r['contrat_beneficiaire'] ?? '');
-            if ($name === '') continue;
-            $seen[$name] = true;
+            foreach (['contrat_beneficiaire', 'contrat_stipulation'] as $field) {
+                $name = HlkTextCleaner::clean($r[$field] ?? '');
+                if ($name === '') continue;
+                $seen[$name] = true;
+            }
         }
         // Format attendu par SheetManager::addSheet() : ['id' => filiale_id, ...]
         // (pas 'code' — clé qui serait ignorée par le loop)
         $out = [];
         foreach (array_keys($seen) as $name) {
             $id = $this->resolveOrCreateBeneficiary($name);
-            if ($id !== null) {
-                $out[] = ['id' => $id, 'name' => $name];
-            }
-        }
-        return $out;
-    }
-
-    private function aggregateFiliales0(array $rows): array
-    {
-        $seen = [];
-        foreach ($rows as $r) {
-            $name = HlkTextCleaner::clean($r['contrat_stipulation'] ?? '');
-            if ($name === '') continue;
-            $seen[$name] = true;
-        }
-        // Idem : SheetManager::addSheet() attend 'id' pour les filiales0
-        $out = [];
-        foreach (array_keys($seen) as $name) {
-            $id = $this->resolveOrCreateBeneficiary($name); // même table beneficiary
             if ($id !== null) {
                 $out[] = ['id' => $id, 'name' => $name];
             }
