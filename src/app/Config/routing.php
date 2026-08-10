@@ -44,6 +44,7 @@ $router->get('/products/search/:code', 'App\Controllers\ProductController@search
 $router->get('/providers/show/:code', 'App\Controllers\ProviderController@show', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->get('/providers/search/:code', 'App\Controllers\ProviderController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 $router->post('/providers/add', 'App\Controllers\ProviderController@add', ["roles"=>['USER']]);
+$router->post('/providers/update', 'App\Controllers\ProviderController@update', ["roles"=>['USER']]);
 $router->post('/providers/remove', 'App\Controllers\ProviderController@remove', ["roles"=>['USER']]);
 
 
@@ -141,6 +142,18 @@ $router->post('/import/upload', 'App\Controllers\Admin\ImportController@upload',
 $router->post('/migration/save', 'App\Controllers\Admin\MigrateController@saveData', ["roles"=>['ADMIN']]);
 $router->post('/migration/migrate', 'App\Controllers\Admin\MigrateController@migrate', ["roles"=>['ADMIN']]);
 $router->post('/migration/list', 'App\Controllers\Admin\MigrateController@index', ["roles"=>['ADMIN']]);
+
+// HLK — sync bénéficiaires (bouton admin, endpoint synchrone, ~1-2 min)
+$router->post('/admin/hlk/sync-beneficiaries', 'App\Controllers\Admin\Hlk\HlkSyncController@syncBeneficiaries', ["roles"=>['ADMIN']]);
+
+// HLK — auto-import fiches marché : trigger async (fire-and-forget)
+// Body optionnel : { signed_since: "YYYY-MM-DD", dry_run: true|false }
+$router->post('/admin/hlk/import-sheets/trigger', 'App\Controllers\Admin\Hlk\HlkTriggerController@triggerImportSheets', ["roles"=>['ADMIN']]);
+
+// HLK — historique des runs sync (écran admin, lecture seule)
+$router->get('/admin/hlk/sync-runs',            'App\Controllers\Admin\Hlk\HlkHistoryController@listRuns',        ["roles"=>['ADMIN']]);
+$router->get('/admin/hlk/sync-runs/:id',        'App\Controllers\Admin\Hlk\HlkHistoryController@runDetail',       ["roles"=>['ADMIN']]);
+$router->get('/admin/hlk/created-sheets',       'App\Controllers\Admin\Hlk\HlkHistoryController@listCreatedSheets',["roles"=>['ADMIN']]);
 
 $router->post('/purchases/search', 'App\Controllers\PurchaseController@search', ["roles"=>['USER'],"provider"=>["HLK"]]);
 

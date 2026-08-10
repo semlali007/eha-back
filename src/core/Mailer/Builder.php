@@ -188,9 +188,39 @@ class Builder {
 
     /**
      * Envoi de l'email
+     *
+     * Logué systématiquement (succès ET échec) avec sujet + destinataires,
+     * quel que soit l'appelant (hotline, archivage, notifications HLK…) —
+     * point de passage unique pour tous les envois de mail de l'app.
      */
     public function send() {
-        $this->mail->send();
+        $to  = array_column($this->mail->getToAddresses(), 0);
+        $cc  = array_column($this->mail->getCcAddresses(), 0);
+        $bcc = array_column($this->mail->getBccAddresses(), 0);
+        $recipientsLog = 'to=[' . implode(',', $to) . ']'
+            . ($cc  ? ' cc=['  . implode(',', $cc)  . ']' : '')
+            . ($bcc ? ' bcc=[' . implode(',', $bcc) . ']' : '');
+
+        try {
+            $sent = $this->mail->send();
+            error_log(sprintf(
+                '[mailer] %s subject="%s" %s mailer=%s',
+                $sent ? 'OK' : 'ECHEC (send()=false, pas d\'exception)',
+                $this->mail->Subject,
+                $recipientsLog,
+                $this->mail->Mailer
+            ));
+            return $sent;
+        } catch (\Throwable $e) {
+            error_log(sprintf(
+                '[mailer] ECHEC subject="%s" %s mailer=%s error=%s',
+                $this->mail->Subject,
+                $recipientsLog,
+                $this->mail->Mailer,
+                $e->getMessage()
+            ));
+            throw $e;
+        }
     }
     
     /**

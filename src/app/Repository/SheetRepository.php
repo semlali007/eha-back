@@ -30,6 +30,23 @@ use Exception;
 
 class SheetRepository extends AbstractRepository {
 
+    /**
+     * Suffixes légaux français à supprimer en fin de label normalisé.
+     * Ordre du plus long au plus court (sas avant sa, sarl avant sa, etc.).
+     */
+    private const LEGAL_SUFFIXES = [
+        'selarl', 'sasu', 'sarl', 'sccv', 'scop', 'scea', 'eirl',
+        'sas',  'sci', 'snc', 'scs', 'sca', 'eurl', 'gie',
+        'sa',   'se',  'sc',  'ei',  'sem', 'ets', 'cie',
+    ];
+
+    /** Stop-words FR à virer du label tokenisé pour le matching fuzzy. */
+    private const STOP_WORDS = [
+        'et', 'de', 'du', 'des', 'la', 'le', 'les',
+        'l', 'd', 'a', 'au', 'aux', 'en', 'par', 'pour',
+        'avec', 'sur', 'sous', 'sans',
+    ];
+
     public function search($options, $userNni = null) {
 
         try {
@@ -329,6 +346,17 @@ class SheetRepository extends AbstractRepository {
         try {
             $details = (new Sheet())->get($id);
 
+            // Cast explicite en boolean pour le front — PostgreSQL/PDO renvoie
+            // 't'/'f' en string par défaut sur les colonnes BOOLEAN, ce qui
+            // devient `true` (car chaîne non vide) côté JS/PHP naïf → boolean
+            // toujours vrai. Le cast garantit un vrai `true`/`false` JSON.
+            // Défaut `false` si la colonne n'existe pas encore (BDD antérieure
+            // à la migration add_auto_created_to_sheet_headers.sql).
+            $details['auto_created'] = filter_var(
+                $details['auto_created'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
             // Ajouter l'objet supplier_size dynamiquement depuis la base
             if (isset($details['id_supplier_size']) && !empty($details['id_supplier_size'])) {
                 $supplierSizeModel = new \App\Models\SupplierSize();
@@ -419,6 +447,12 @@ class SheetRepository extends AbstractRepository {
     }
 
     public function export($options, $userNni = null) {
+        // Export = opération longue (N+1 queries per sheet : filiales, zones,
+        // groupes, contrats, fichiers, etc.). Le default PHP web (30s) est trop
+        // court pour les gros résultats. On lève à 5 min, suffisant pour des
+        // dizaines de milliers de fiches.
+        @set_time_limit(600);
+
         $options['userNni'] = $userNni;
         try {
             $options['words'] = $this->getFormattedWords($options['search']['searchText']);
@@ -436,16 +470,22 @@ class SheetRepository extends AbstractRepository {
         $committee = new Committee();
         $sheetContract = new SheetContract();
         $result = $sheet->searchWithoutPagination($options, $userNni);
+        // Map globale normalisée : tous les providers BDD avec leurs fiscaux.
+        // Servira de filet de sécurité (tier 3) si le nom du contrat ne matche
+        // ni exactement, ni normalisé, dans la liste de la fiche courante.
+        $globalProviderNormFiscalMap = $this->loadGlobalProviderFiscalMap();
         $header = [
             'N° / Compteur',
             'Nom fiche',
-            'Contrat groupe',
+            'Contrat ouvert aux filiales',
             'Mots clés',
             'Date de début de validité',
             'Date de fin de validité',
             'Options',
             'Fournisseurs',
-            'Fournisseur numéro TVA intracommunautaire',
+            'SIREN fournisseur',                            // ← NEW (index 8)
+            'Fournisseur numéro TVA intracommunautaire',    // ← valeur change : provider TVA ?? supplier_vat_number
+            'Code NAF fournisseur',                         // ← NEW (index 10)
             'Contacts fournisseur',
             'Bénéficiaires',
             'Stipulation pour autrui',
@@ -486,13 +526,29 @@ class SheetRepository extends AbstractRepository {
 
             $providers = $sheetProvider->getBySheet($sheet['id']);
             $sheet['providers'] = '';
-                foreach ($providers as $key => $provider) {
-                    if ($key !== 0) {
-                        $sheet['providers'] .= '|';
-                    }
-
-                    $sheet['providers'] .= $provider['name'];
+            // Pour le lookup des fiscaux dans les lignes de contrat plus bas :
+            //   - $providerExactFiscalMap : clé = label tel quel, match strict
+            //   - $providerNormFiscalMap  : clé = label normalisé (parens, suffixes,
+            //                                stop-words, token-sort), match fuzzy
+            $providerExactFiscalMap = [];
+            $providerNormFiscalMap  = [];
+            foreach ($providers as $key => $provider) {
+                if ($key !== 0) {
+                    $sheet['providers'] .= '|';
                 }
+                $sheet['providers'] .= $provider['name'];
+                $fiscals = [
+                    'siren'      => $provider['siren'] ?? '',
+                    'numero_tva' => $provider['numero_tva'] ?? '',
+                    'code_naf'   => $provider['code_naf'] ?? '',
+                ];
+                $providerExactFiscalMap[$provider['name']] = $fiscals;
+                $norm = self::normalizeProviderLabel((string) $provider['name']);
+                if ($norm !== '' && !isset($providerNormFiscalMap[$norm])) {
+                    $providerNormFiscalMap[$norm] = $fiscals;
+                }
+            }
+            $supplierVatFallback = $sheet['supplier_vat_number'] ?? '';
 
             $filiales = $sheetFiliale->getBySheet($sheet['id']);
             $sheet['filiales'] = '';
@@ -645,35 +701,39 @@ class SheetRepository extends AbstractRepository {
             $htmlContractsMap = $this->parseContractsFromHtml($sheet['content']);
             $contractCodes = [];
             
-            // Préparer la ligne de données dans l'ordre du header
+            // Préparer la ligne de données dans l'ordre du header.
+            // ⚠️ Suite à l'ajout de SIREN (idx 8) et Code NAF (idx 10), tous les
+            // index >= 9 ont été shiftés de +2 par rapport à la version précédente.
             $rowData = [
-                $compteur, // 1. N° / Compteur
-                $sheet['label'], // 2. Nom fiche
-                $sheet['contrat_groupe'], // 3. Contrat groupe
-                isset($sheet['keywords']) ? $sheet['keywords'] : '', // 4. Mots clés
-                isset($sheet['start_date']) ? $sheet['start_date'] : '', // 5. Date de début de validité
-                isset($sheet['end_date']) ? $sheet['end_date'] : '', // 6. Date de fin de validité
-                $sheet['options'], // 7. Options
-                $sheet['providers'], // 8. Fournisseurs
-                $sheet['supplier_vat_number'], // 9. Fournisseur numéro TVA intracommunautaire
-                '', // 10. Contacts fournisseur (rempli plus bas, dépend du contrat)
-                $sheet['filiales'], // 11. Bénéficiaires
-                $sheet['filiales0'], // 12. Stipulation pour autrui
-                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 13. Entités bénéficiaires d'EDF SA / ENEDIS
-                '', // 14. Numéros de contrats (sera rempli plus bas)
-                $kitPortageJoint, // 15. Kit de portage joint
-                $piecesJointes, // 16. Pièces jointes
-                isset($sheet['committee']) ? $sheet['committee'] : '', // 17. Comité de Gestion de la Demande
-                $sheet['zones'], // 18. Zone géographique d'application des marchés
-                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 19. Zone géographique détail si région
-                $sheet['dauphin'], // 20. Approvisionnement sous dauphin
-                $sheet['edf_open'], // 21. Marché ouvert au personnel EDF
-                isset($sheet['acheteur']) ? $sheet['acheteur'] : '', // 22. Acheteur
-                $sheet['contract_manager'], // 23. Contract manager
-                $sheet['mise_a_jour_donnee'], // 24. Mise à jour de la donnée
-                $sheet['status'], // 25. Statut
-                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 26. Dernière modification
-                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 27. Commentaires
+                $compteur,                                                       // 0  → 1. N° / Compteur
+                $sheet['label'],                                                 // 1  → 2. Nom fiche
+                $sheet['contrat_groupe'],                                        // 2  → 3. Contrat ouvert aux filiales
+                isset($sheet['keywords']) ? $sheet['keywords'] : '',             // 3  → 4. Mots clés
+                isset($sheet['start_date']) ? $sheet['start_date'] : '',         // 4  → 5. Date de début de validité
+                isset($sheet['end_date']) ? $sheet['end_date'] : '',             // 5  → 6. Date de fin de validité
+                $sheet['options'],                                               // 6  → 7. Options
+                $sheet['providers'],                                             // 7  → 8. Fournisseurs
+                '',                                                              // 8  → 9. SIREN (rempli plus bas après lookup par contrat)
+                '',                                                              // 9  → 10. Numéro TVA (idem)
+                '',                                                              // 10 → 11. Code NAF (idem)
+                '',                                                              // 11 → 12. Contacts fournisseur (rempli plus bas)
+                $sheet['filiales'],                                              // 12 → 13. Bénéficiaires
+                $sheet['filiales0'],                                             // 13 → 14. Stipulation pour autrui
+                isset($sheet['entites_beneficiaires_edf_enedis']) ? $sheet['entites_beneficiaires_edf_enedis'] : '', // 14 → 15. Entités bénéficiaires d'EDF SA / ENEDIS
+                '',                                                              // 15 → 16. Numéros de contrats (rempli plus bas)
+                $kitPortageJoint,                                                // 16 → 17. Kit de portage joint
+                $piecesJointes,                                                  // 17 → 18. Pièces jointes
+                isset($sheet['committee']) ? $sheet['committee'] : '',           // 18 → 19. Comité de Gestion de la Demande
+                $sheet['zones'],                                                 // 19 → 20. Zone géographique d'application des marchés
+                isset($sheet['geographic_detail']) ? $sheet['geographic_detail'] : '', // 20 → 21. Zone géographique détail si région
+                $sheet['dauphin'],                                               // 21 → 22. Approvisionnement sous dauphin
+                $sheet['edf_open'],                                              // 22 → 23. Marché ouvert au personnel EDF
+                isset($sheet['acheteur']) ? $sheet['acheteur'] : '',             // 23 → 24. Acheteur
+                $sheet['contract_manager'],                                      // 24 → 25. Contract manager
+                $sheet['mise_a_jour_donnee'],                                    // 25 → 26. Mise à jour de la donnée
+                $sheet['status'],                                                // 26 → 27. Statut
+                trim((isset($sheet['formated_updated_date']) ? $sheet['formated_updated_date'] : '') . ' par ' . (isset($sheet['updated_by_full_name']) ? $sheet['updated_by_full_name'] : ''), ' par '), // 27 → 28. Dernière modification
+                isset($sheet['comments']) ? $sheet['comments'] : $sheet['description'] // 28 → 29. Commentaires
             ];
             
             unset($sheet['id']);
@@ -700,7 +760,7 @@ class SheetRepository extends AbstractRepository {
             if(isset($match[1])){
                 foreach($match[1] as $m){
                     $contractCodes[] = $m;
-                    $rowData[13] = $m; // Numéros de contrats (position 14, index 13)
+                    $rowData[15] = $m; // Numéros de contrats (index shifted 13 → 15 après ajout SIREN/NAF)
                     $htmlInfo = $htmlContractsMap[$m] ?? null;
                     // Priorité fournisseur : HTML > BDD > liste de la fiche
                     if ($htmlInfo !== null && !empty($htmlInfo['provider'])) {
@@ -710,11 +770,16 @@ class SheetRepository extends AbstractRepository {
                     } else {
                         $rowData[7] = $sheetProvidersFallback;
                     }
+                    // Lookup des fiscaux pour le fournisseur de cette ligne
+                    $fiscals = $this->resolveProviderFiscals($rowData[7], $providerExactFiscalMap, $providerNormFiscalMap, $globalProviderNormFiscalMap, $supplierVatFallback);
+                    $rowData[8]  = $fiscals['siren'];
+                    $rowData[9]  = $fiscals['tva'];
+                    $rowData[10] = $fiscals['naf'];
                     // Priorité contacts : HTML > BDD > vide
                     if ($htmlInfo !== null && !empty($htmlInfo['contact'])) {
-                        $rowData[9] = $htmlInfo['contact'];
+                        $rowData[11] = $htmlInfo['contact']; // index shifted 9 → 11
                     } else {
-                        $rowData[9] = $this->cleanContactText($contractContactsMap[$m] ?? '');
+                        $rowData[11] = $this->cleanContactText($contractContactsMap[$m] ?? '');
                     }
                     $csv['data'][] = $rowData;
                     $csv['meta'][] = ['strikethrough' => $htmlInfo['strikethrough'] ?? false];
@@ -724,9 +789,13 @@ class SheetRepository extends AbstractRepository {
             foreach ($contracts as $key => $contract) {
                 if(!in_array($contract['contract_code'], $contractCodes)){
                     $contractCodes[] = $contract['contract_code'];
-                    $rowData[13] = $contract['contract_code']; // Numéros de contrats (position 14, index 13)
+                    $rowData[15] = $contract['contract_code']; // index shifted 13 → 15
                     $rowData[7]  = !empty($contract['provider']) ? $contract['provider'] : $sheetProvidersFallback;
-                    $rowData[9]  = $this->cleanContactText($contract['contacts'] ?? '');
+                    $fiscals = $this->resolveProviderFiscals($rowData[7], $providerExactFiscalMap, $providerNormFiscalMap, $globalProviderNormFiscalMap, $supplierVatFallback);
+                    $rowData[8]  = $fiscals['siren'];
+                    $rowData[9]  = $fiscals['tva'];
+                    $rowData[10] = $fiscals['naf'];
+                    $rowData[11] = $this->cleanContactText($contract['contacts'] ?? ''); // index shifted 9 → 11
                     $csv['data'][] = $rowData;
                     $csv['meta'][] = ['strikethrough' => false];
                 }
@@ -736,7 +805,11 @@ class SheetRepository extends AbstractRepository {
                 // Aucun contrat → on garde la liste complète des fournisseurs de la fiche,
                 // pas de contacts
                 $rowData[7] = $sheetProvidersFallback;
-                $rowData[9] = '';
+                $fiscals = $this->resolveProviderFiscals($rowData[7], $providerExactFiscalMap, $providerNormFiscalMap, $globalProviderNormFiscalMap, $supplierVatFallback);
+                $rowData[8]  = $fiscals['siren'];
+                $rowData[9]  = $fiscals['tva'];
+                $rowData[10] = $fiscals['naf'];
+                $rowData[11] = ''; // index shifted 9 → 11
                 $csv['data'][] = $rowData;
                 $csv['meta'][] = ['strikethrough' => false];
             }
@@ -929,6 +1002,161 @@ class SheetRepository extends AbstractRepository {
         return trim($raw, " \t\n,;.");
     }
 
+    /**
+     * Normalisation d'un label fournisseur pour matching robuste :
+     *   1. strip contenu entre parenthèses
+     *   2. esperluettes (&, ＆ fullwidth) → espace
+     *   3. lower + translit accents
+     *   4. ponctuation → espace + collapse whitespace
+     *   5. strip itératif des suffixes légaux (SA, SAS, SARL…) en fin
+     *   6. tokenize + strip stop-words FR + sort alphabétique
+     */
+    private static function normalizeProviderLabel(string $label): string
+    {
+        $s = trim($label);
+        if ($s === '') {
+            return '';
+        }
+        $s = preg_replace('/\([^)]*\)/u', ' ', $s) ?? $s;
+        $s = preg_replace('/[&\x{FF06}]/u', ' ', $s) ?? $s;
+        $s = mb_strtolower($s, 'UTF-8');
+        $translit = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        if ($translit !== false) {
+            $s = strtolower($translit);
+        }
+        $s = preg_replace('/[^a-z0-9]+/u', ' ', $s) ?? $s;
+        $s = preg_replace('/\s+/', ' ', $s) ?? $s;
+        $s = trim($s);
+        if ($s === '') {
+            return '';
+        }
+        $s = self::stripLegalSuffixes($s);
+        if ($s === '') {
+            return '';
+        }
+        $tokens = explode(' ', $s);
+        $stopSet = array_flip(self::STOP_WORDS);
+        $tokens = array_values(array_filter(
+            $tokens,
+            static fn(string $t): bool => $t !== '' && !isset($stopSet[$t])
+        ));
+        sort($tokens, SORT_STRING);
+        return implode(' ', $tokens);
+    }
+
+    private static function stripLegalSuffixes(string $s): string
+    {
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            foreach (self::LEGAL_SUFFIXES as $sfx) {
+                $pattern = '/^(.+?)\s+' . preg_quote($sfx, '/') . '$/';
+                if (preg_match($pattern, $s, $m) === 1) {
+                    $s = trim($m[1]);
+                    $changed = true;
+                    break;
+                }
+            }
+        }
+        return $s;
+    }
+
+    /**
+     * Charge tous les providers BDD avec leurs fiscaux dans une map normalisée.
+     * Appelée 1x au début de export() puis partagée pour toutes les fiches.
+     *
+     * En cas de doublons (plusieurs providers BDD normalisent au même label),
+     * on garde le premier rencontré — choix arbitraire mais stable.
+     *
+     * @return array<string, array{siren:string, numero_tva:string, code_naf:string}>
+     */
+    private function loadGlobalProviderFiscalMap(): array
+    {
+        $allProviders = (new \App\Models\Provider())->getList([]);
+        $map = [];
+        foreach ($allProviders as $p) {
+            $norm = self::normalizeProviderLabel((string) ($p['name'] ?? ''));
+            if ($norm === '' || isset($map[$norm])) {
+                continue;
+            }
+            $map[$norm] = [
+                'siren'      => (string) ($p['siren'] ?? ''),
+                'numero_tva' => (string) ($p['numero_tva'] ?? ''),
+                'code_naf'   => (string) ($p['code_naf'] ?? ''),
+            ];
+        }
+        return $map;
+    }
+
+    /**
+     * Résout les 3 colonnes fiscales (siren / tva / naf) pour une cellule
+     * "Fournisseur" donnée dans une ligne d'export.
+     *
+     * La cellule peut contenir 1 nom ou plusieurs noms joints par "|". Pour
+     * chaque nom, on tente une cascade :
+     *   1. Match exact contre la liste providers de la fiche
+     *   2. Match normalisé contre la liste providers de la fiche
+     *   3. Match normalisé contre TOUS les providers BDD
+     *
+     * Au 1er match trouvé, on prend ses fiscaux. Si aucun match : skip ce nom.
+     *
+     * Règle TVA : si aucun provider matché n'a de TVA, on retombe sur le
+     * supplier_vat_number saisi sur la fiche.
+     *
+     * @param array<string, array{siren:string, numero_tva:string, code_naf:string}> $sheetExact
+     * @param array<string, array{siren:string, numero_tva:string, code_naf:string}> $sheetNorm
+     * @param array<string, array{siren:string, numero_tva:string, code_naf:string}> $globalNorm
+     */
+    private function resolveProviderFiscals(
+        string $providerNamesCell,
+        array $sheetExact,
+        array $sheetNorm,
+        array $globalNorm,
+        string $vatFallback
+    ): array {
+        if ($providerNamesCell === '') {
+            return ['siren' => '', 'tva' => $vatFallback, 'naf' => ''];
+        }
+        $sirens = [];
+        $tvas = [];
+        $nafs = [];
+        foreach (explode('|', $providerNamesCell) as $name) {
+            $name = trim($name);
+            if ($name === '') {
+                continue;
+            }
+            // Cascade : exact sheet → normalisé sheet → normalisé global
+            $f = null;
+            if (isset($sheetExact[$name])) {
+                $f = $sheetExact[$name];
+            } else {
+                $norm = self::normalizeProviderLabel($name);
+                if ($norm !== '' && isset($sheetNorm[$norm])) {
+                    $f = $sheetNorm[$norm];
+                } elseif ($norm !== '' && isset($globalNorm[$norm])) {
+                    $f = $globalNorm[$norm];
+                }
+            }
+            if ($f === null) {
+                continue;
+            }
+            if (!empty($f['siren'])) {
+                $sirens[] = $f['siren'];
+            }
+            if (!empty($f['numero_tva'])) {
+                $tvas[] = $f['numero_tva'];
+            }
+            if (!empty($f['code_naf'])) {
+                $nafs[] = $f['code_naf'];
+            }
+        }
+        return [
+            'siren' => implode('|', $sirens),
+            'tva'   => !empty($tvas) ? implode('|', $tvas) : $vatFallback,
+            'naf'   => implode('|', $nafs),
+        ];
+    }
+
 
     public function exportAll($options, $userNni = null) {
         $options['userNni'] = $userNni;
@@ -986,13 +1214,29 @@ class SheetRepository extends AbstractRepository {
 
             $providers = $sheetProvider->getBySheet($sheet['id']);
             $sheet['providers'] = '';
-                foreach ($providers as $key => $provider) {
-                    if ($key !== 0) {
-                        $sheet['providers'] .= '|';
-                    }
-
-                    $sheet['providers'] .= $provider['name'];
+            // Pour le lookup des fiscaux dans les lignes de contrat plus bas :
+            //   - $providerExactFiscalMap : clé = label tel quel, match strict
+            //   - $providerNormFiscalMap  : clé = label normalisé (parens, suffixes,
+            //                                stop-words, token-sort), match fuzzy
+            $providerExactFiscalMap = [];
+            $providerNormFiscalMap  = [];
+            foreach ($providers as $key => $provider) {
+                if ($key !== 0) {
+                    $sheet['providers'] .= '|';
                 }
+                $sheet['providers'] .= $provider['name'];
+                $fiscals = [
+                    'siren'      => $provider['siren'] ?? '',
+                    'numero_tva' => $provider['numero_tva'] ?? '',
+                    'code_naf'   => $provider['code_naf'] ?? '',
+                ];
+                $providerExactFiscalMap[$provider['name']] = $fiscals;
+                $norm = self::normalizeProviderLabel((string) $provider['name']);
+                if ($norm !== '' && !isset($providerNormFiscalMap[$norm])) {
+                    $providerNormFiscalMap[$norm] = $fiscals;
+                }
+            }
+            $supplierVatFallback = $sheet['supplier_vat_number'] ?? '';
 
             $filiales = $sheetFiliale->getBySheet($sheet['id']);
             $sheet['filiales'] = '';
@@ -1256,6 +1500,15 @@ class SheetRepository extends AbstractRepository {
             }
         }
         $list = array_values(array_unique($list));
+
+        // Sanitisation finale : on ne laisse passer que des tokens composés
+        // d'alphanumériques et de tirets. Tout autre caractère (apostrophe,
+        // opérateurs tsquery |&!:(), wildcards LIKE %_, etc.) est filtré pour
+        // éviter une injection / un crash SQL en aval.
+        $list = array_filter($list, function ($w) {
+            return is_string($w) && preg_match('/^[a-zA-Z0-9\-]+$/', $w) === 1;
+        });
+        $list = array_values($list);
 
         return implode("|", $list);
     }

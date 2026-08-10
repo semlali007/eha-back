@@ -126,10 +126,13 @@ class ApiReferentialController extends Controller
                     'id' => $prov['id'],
                     'code' => $prov['id'],
                     'name' => $prov['name'],
-                    'label' => $prov['name']
+                    'label' => $prov['name'],
+                    'siren' => $prov['siren'] ?? null,
+                    'numero_tva' => $prov['numero_tva'] ?? null,
+                    'code_naf' => $prov['code_naf'] ?? null,
                 ];
             }
-            
+
             header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'success',
@@ -349,7 +352,10 @@ class ApiReferentialController extends Controller
             foreach ($providers as $prov) {
                 $result['providers'][] = [
                     'id' => $prov['id'],
-                    'name' => $prov['name']
+                    'name' => $prov['name'],
+                    'siren' => $prov['siren'] ?? null,
+                    'numero_tva' => $prov['numero_tva'] ?? null,
+                    'code_naf' => $prov['code_naf'] ?? null,
                 ];
             }
 

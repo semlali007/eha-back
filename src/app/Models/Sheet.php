@@ -103,7 +103,12 @@ class Sheet extends Model
             // qui place en tête les fiches dont le label contient la chaîne exacte.
             // unaccent et lower sont appliqués en SQL (cohérent avec le reste de la requête).
             $rawSearch = strtolower(trim($options['search']['searchText'] ?? ''));
-            $escapedSearch = addslashes($rawSearch);
+            // Strip des wildcards LIKE pour éviter qu'une saisie type "%test%" devienne
+            // une recherche "matches tout". Backslash retiré pour neutraliser les escapes.
+            $rawSearch = str_replace(['%', '_', '\\'], '', $rawSearch);
+            // Échappement PostgreSQL : on double les apostrophes pour qu'elles soient
+            // interprétées comme un caractère littéral dans la string SQL.
+            $escapedSearch = str_replace("'", "''", $rawSearch);
 
             $query = "select distinct *,
             CASE
@@ -217,9 +222,11 @@ class Sheet extends Model
         }
 
         $searchProviderRaw = strtolower(trim($options['searchProvider'] ?? ""));
+        // Strip wildcards LIKE et backslash, puis échappement PG (apostrophes doublées)
+        $searchProviderRaw = str_replace(['%', '_', '\\'], '', $searchProviderRaw);
         if ($searchProviderRaw != '') {
             $searchProvider = Arrays::getFormattedWords($searchProviderRaw);
-            $searchProviderEscaped = addslashes($searchProviderRaw);
+            $searchProviderEscaped = str_replace("'", "''", $searchProviderRaw);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
             $search .= " LEFT JOIN
@@ -248,7 +255,7 @@ class Sheet extends Model
 
         // Filtre searchProvider : par nom fournisseur OU par numéro TVA
         if ($searchProviderRaw != '') {
-            $searchProviderEscaped = addslashes($searchProviderRaw);
+            $searchProviderEscaped = str_replace("'", "''", $searchProviderRaw);
             $search .= " AND (spa.sheet_id IS NOT NULL OR lower(s.supplier_vat_number) LIKE '%{$searchProviderEscaped}%') ";
         }
 
@@ -334,13 +341,13 @@ class Sheet extends Model
         if ($dateStart !== '' || $dateEnd !== '') {
             if ($dateStart !== '' && $dateEnd !== '') {
                 // Both dates provided - filter sheets with start_date >= dateStart AND end_date <= dateEnd
-                $search .= " AND (s.start_date >= '" . addslashes($dateStart) . "' AND s.end_date <= '" . addslashes($dateEnd) . "')";
+                $search .= " AND (s.start_date >= '" . str_replace("'", "''", $dateStart) . "' AND s.end_date <= '" . str_replace("'", "''", $dateEnd) . "')";
             } elseif ($dateStart !== '') {
                 // Only start date - filter sheets with start_date >= dateStart
-                $search .= " AND s.start_date >= '" . addslashes($dateStart) . "'";
+                $search .= " AND s.start_date >= '" . str_replace("'", "''", $dateStart) . "'";
             } elseif ($dateEnd !== '') {
                 // Only end date - filter sheets with end_date <= dateEnd
-                $search .= " AND s.end_date <= '" . addslashes($dateEnd) . "'";
+                $search .= " AND s.end_date <= '" . str_replace("'", "''", $dateEnd) . "'";
             }
         }
     }
@@ -482,15 +489,14 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT p.provider_label as name , p.provider_code as code , CASE WHEN PROVIDERS.COUNT IS NULL 
-       THEN 0 
-       ELSE PROVIDERS.COUNT 
-       END AS COUNT  from {$this->providerTable} p LEFT join 
-         
+       SELECT p.provider_label as name , p.provider_code as code , providers.count AS COUNT
+       from {$this->providerTable} p INNER JOIN
+
         (SELECT  count(sp.*) as count, sp.provider_code as code FROM   {$this->sheetProviderTable} sp WHERE sp.sheet_id  in
          ( SELECT s.id  FROM  " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
-         
-         order by COUNT desc, p.provider_label 
+
+         order by COUNT desc, p.provider_label
+         LIMIT 50
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
@@ -624,7 +630,7 @@ class Sheet extends Model
 
         // Quote string values properly for SQL
         $quotedValues = array_map(function($val) {
-            return "'" . addslashes($val) . "'";
+            return "'" . str_replace("'", "''", (string) $val) . "'";
         }, $value);
         
         $valueStr = '(' . implode(', ', $quotedValues) . ')';
@@ -784,8 +790,10 @@ class Sheet extends Model
             $data['entites_beneficiaires_edf_enedis'] = $data['entites_beneficiaires_edf_enedis'] ?? null;
             $data['geographic_detail'] = $data['geographic_detail'] ?? null;
             $data['acheteur'] = $data['acheteur'] ?? null;
+            $data['achat_id_cockpit'] = $data['achat_id_cockpit'] ?? null;
+            $data['auto_created'] = !empty($data['auto_created']);
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur, achat_id_cockpit, auto_created) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur, :achat_id_cockpit, :auto_created);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -820,6 +828,9 @@ class Sheet extends Model
             $sth->bindParam(':entites_beneficiaires_edf_enedis', $data['entites_beneficiaires_edf_enedis'], PDO::PARAM_STR);
             $sth->bindParam(':geographic_detail', $data['geographic_detail'], PDO::PARAM_STR);
             $sth->bindParam(':acheteur', $data['acheteur'], PDO::PARAM_STR);
+            $sth->bindValue(':achat_id_cockpit', $data['achat_id_cockpit'],
+                $data['achat_id_cockpit'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $sth->bindValue(':auto_created', $data['auto_created'], PDO::PARAM_BOOL);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
@@ -928,6 +939,69 @@ class Sheet extends Model
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
+    }
+
+    /**
+     * Lookup pour l'idempotence des batchs d'import : cherche par achat_id_cockpit.
+     * C'est le champ métier canonique pour identifier un achat côté Cockpit.
+     *
+     * Retourne id + status, ou null si aucune fiche ne correspond.
+     */
+    public function findByAchatIdCockpit($achatId): ?array
+    {
+        $sth = $this->db->getPDO()->prepare(
+            'SELECT id, status FROM ' . $this->table
+            . ' WHERE achat_id_cockpit = :aid LIMIT 1'
+        );
+        $sth->bindValue(':aid', $achatId, \PDO::PARAM_INT);
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Lookup secondaire pour l'idempotence : cherche une fiche qui référence
+     * l'un des contract_code passés (via sheet_contracts). Utile pour rattacher
+     * des fiches créées manuellement (sans achat_id_cockpit) à leur équivalent HLK.
+     *
+     * Retourne id + status + achat_id_cockpit de la première fiche trouvée,
+     * ou null si aucun rattachement possible.
+     *
+     * @param string[] $codes
+     */
+    public function findByContractCodes(array $codes): ?array
+    {
+        $codes = array_values(array_filter(
+            array_map(fn($c) => is_string($c) ? trim($c) : (string) $c, $codes),
+            fn($c) => $c !== ''
+        ));
+        if (empty($codes)) {
+            return null;
+        }
+
+        $placeholders = [];
+        $params       = [];
+        foreach ($codes as $i => $c) {
+            $key = ':c' . $i;
+            $placeholders[] = $key;
+            $params[$key]   = $c;
+        }
+        $sheetContractsTable = $this->db->getSchema() . 'sheet_contracts';
+        $inClause = implode(', ', $placeholders);
+
+        $sql = "SELECT DISTINCT sh.id, sh.status, sh.achat_id_cockpit
+                FROM {$this->table} sh
+                JOIN {$sheetContractsTable} sc ON sc.sheet_id = sh.id
+                WHERE sc.contract_code IN ({$inClause})
+                LIMIT 1";
+
+        $sth = $this->db->getPDO()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $sth->bindValue($k, $v, \PDO::PARAM_STR);
+        }
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
     }
 
     public function getSheetByNetAchat($netAchatId)
