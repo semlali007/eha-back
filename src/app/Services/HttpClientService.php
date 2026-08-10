@@ -200,7 +200,15 @@ class HttpClientService {
             $ctx
         );
 
-        if ($stream === false) return null;
+        if ($stream === false) {
+            error_log(sprintf(
+                '[HttpClientService] sendViaStream ECHEC connexion ssl://%s:%d errno=%d errstr=%s (openssl=%s, TLSv1.3_client_const=%s)',
+                $host, $port, $errno, $errstr,
+                defined('OPENSSL_VERSION_TEXT') ? OPENSSL_VERSION_TEXT : 'ext-openssl absente',
+                defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT') ? 'defined' : 'absente'
+            ));
+            return null;
+        }
 
         stream_set_timeout($stream, 30);
         fwrite($stream, $rawRequest);
@@ -212,7 +220,18 @@ class HttpClientService {
         }
         fclose($stream);
 
-        if ($rawResponse === '') return null;
+        // Log si réponse > 1 MB (aide à tracer les recherches "borderline")
+        if (strlen($rawResponse) > 1024 * 1024) {
+            error_log(sprintf(
+                "[HttpClientService] sendViaStream LARGE response url=%s size=%sMB",
+                $url, round(strlen($rawResponse) / 1024 / 1024, 2)
+            ));
+        }
+
+        if ($rawResponse === '') {
+            error_log("[HttpClientService] sendViaStream ECHEC : connexion ssl://{$host}:{$port} OK mais reponse vide (url={$url})");
+            return null;
+        }
 
         $split = explode("\r\n\r\n", $rawResponse, 2);
         $rawHeaders = $split[0] ?? '';
