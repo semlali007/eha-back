@@ -4,6 +4,7 @@ namespace App\Manager;
 
 use App\Models\Sheet;
 use App\Models\SyncRun;
+use App\Models\SyncState;
 use App\Security\User;
 use App\Services\HlkEligibility;
 use App\Services\HlkSheetCreationNotifier;
@@ -37,8 +38,11 @@ use Throwable;
  * Retourne un rapport structuré identique en forme à HlkBeneficiarySyncManager
  * (dry_run, stats, warnings, fetch_info) pour un affichage unifié côté front.
  *
- * ⚠ Utilisation typique : appelé par la command CLI ImportSheetsFromHlk,
- * qui persiste `signed_since` en curseur dans `sync_state` et rejoue.
+ * Gestion du curseur `sync_state` centralisée ICI (pas chez l'appelant) : si
+ * `$signedSince` est null, il est résolu depuis le dernier curseur connu en
+ * base ; en fin de run (hors dry_run), le nouveau curseur y est persisté.
+ * Comportement identique quel que soit l'appelant — CLI/cron
+ * (ImportSheetsFromHlk) ou déclenchement HTTP admin (HlkTriggerController).
  */
 class HlkSheetImportManager
 {
@@ -49,11 +53,16 @@ class HlkSheetImportManager
     /** Nom du job pour la traçabilité dans sync_state / sync_runs. */
     public const JOB_NAME = 'import_sheets_from_hlk';
 
+    /** Curseur de départ si sync_state n'a encore aucun état pour ce job. */
+    private const DEFAULT_FALLBACK_SINCE = '2000-01-01';
+
     /**
      * @param bool $dryRun Si true : aucune écriture BDD, uniquement rapport.
      *   La ligne sync_runs est quand même écrite (avec dry_run=true) pour que
      *   les simulations restent traçables dans l'historique.
-     * @param string|null $signedSince Curseur `signed_date` HLK. Null = pas de filtre.
+     * @param string|null $signedSince Curseur `signed_date` HLK. Null = résolu
+     *   automatiquement depuis le dernier curseur connu dans `sync_state`
+     *   (ou `DEFAULT_FALLBACK_SINCE` si aucun état n'existe encore).
      * @param string $triggeredBy Origine du run — 'cli' | 'cron' | 'admin:<NNI>' | 'webhook'.
      *   Persisté dans sync_runs.triggered_by pour tracer qui a lancé quoi.
      * @param callable|null $onProgress Callback appelé aux étapes clés du run
@@ -72,6 +81,20 @@ class HlkSheetImportManager
     ): array {
         $started = new \DateTimeImmutable();
         $t0 = microtime(true);
+
+        // Curseur : si l'appelant n'en fournit pas explicitement (ex. bouton
+        // admin "Relancer maintenant" sans date précisée), on résout depuis
+        // sync_state — même comportement quel que soit l'appelant (CLI/cron
+        // ou déclenchement HTTP admin), pour rester "iso batch".
+        if ($signedSince === null) {
+            try {
+                $state       = (new SyncState())->getByJobName(self::JOB_NAME);
+                $signedSince = $state['last_cursor'] ?? self::DEFAULT_FALLBACK_SINCE;
+            } catch (Throwable $e) {
+                $signedSince = self::DEFAULT_FALLBACK_SINCE;
+                error_log("[hlk-sheet-import] ⚠ lecture sync_state échouée, fallback sur {$signedSince} : {$e->getMessage()}");
+            }
+        }
 
         $stats = [
             'dry_run'              => $dryRun,
@@ -266,6 +289,28 @@ class HlkSheetImportManager
         $stats['next_cursor']       = $nextCursor;
         $stats['status']            = $status;
         $stats['triggered_by']      = $triggeredBy;
+
+        // Persistance sync_state (best-effort, pas en dry_run) — même logique
+        // pour tous les appelants (CLI/cron, admin HTTP). Si next_cursor est
+        // null (erreur fatale), on garde le curseur d'entrée pour rejouer la
+        // même fenêtre au prochain run plutôt que de le perdre.
+        if (!$dryRun) {
+            try {
+                $errorMessage = null;
+                foreach ($stats['errors'] as $err) {
+                    $lvl = $err['level'] ?? '';
+                    if (is_string($lvl) && str_starts_with($lvl, 'fatal')) {
+                        $errorMessage = $err['message'] ?? null;
+                        break;
+                    }
+                }
+                $cursorToPersist = $nextCursor ?? $signedSince;
+                (new SyncState())->upsert(self::JOB_NAME, $cursorToPersist, $status, $errorMessage, $stats);
+                error_log("[hlk-sheet-import] sync_state mis à jour : cursor={$cursorToPersist} status={$status}");
+            } catch (Throwable $e) {
+                error_log("[hlk-sheet-import] ⚠ mise à jour sync_state échouée : {$e->getMessage()}");
+            }
+        }
 
         // Persistance sync_runs (best-effort — pas critique si ça échoue)
         if ($runId !== null) {

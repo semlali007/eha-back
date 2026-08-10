@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Command\Command;
 
 use App\Manager\HlkSheetImportManager;
-use App\Models\SyncState;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
@@ -18,17 +17,17 @@ use Throwable;
 /**
  * Batch d'import automatique des fiches marché depuis HLK.
  *
- * Coquille CLI autour de HlkSheetImportManager :
- *   1. Lit le curseur `signed_date` depuis sync_state (last_cursor)
- *   2. Appelle HlkSheetImportManager::run($dryRun, $signedSince, $triggeredBy)
- *   3. Persiste le nouveau curseur dans sync_state
+ * Coquille CLI autour de HlkSheetImportManager : délégation intégrale, y
+ * compris pour le curseur `sync_state` — lu et persisté par le manager
+ * lui-même (identique au déclenchement via l'endpoint admin HTTP,
+ * HlkTriggerController, pour rester "iso batch" quel que soit l'appelant).
  *
  * L'historique complet du run (stats, errors, warnings, IDs fiches créées)
  * est écrit dans sync_runs par le manager lui-même — la CLI n'a rien à faire
  * pour ça, l'écran admin le lira directement.
  *
  * Usage :
- *   php bin/console app:import-sheets:hlk                        → sync incrémentale
+ *   php bin/console app:import-sheets:hlk                        → sync incrémentale (curseur auto)
  *   php bin/console app:import-sheets:hlk --since=YYYY-MM-DD     → force le curseur
  *   php bin/console app:import-sheets:hlk --dry-run              → simulation
  *   php bin/console app:import-sheets:hlk --triggered-by=cron    → tag l'origine
@@ -36,9 +35,6 @@ use Throwable;
 class ImportSheetsFromHlk extends Command
 {
     protected static $defaultName = 'app:import-sheets:hlk';
-
-    private const JOB_NAME               = HlkSheetImportManager::JOB_NAME;
-    private const DEFAULT_FALLBACK_SINCE = '2000-01-01';
 
     protected function configure(): void
     {
@@ -63,62 +59,34 @@ class ImportSheetsFromHlk extends Command
         $overrideSince = $input->getOption('since');
         $triggeredBy   = (string) $input->getOption('triggered-by');
 
-        // === Curseur : override CLI > dernier curseur BDD > fallback très ancien
-        $syncState = new SyncState();
-        $state     = $syncState->getByJobName(self::JOB_NAME);
-        $since     = $overrideSince ?: ($state['last_cursor'] ?? self::DEFAULT_FALLBACK_SINCE);
+        // null → HlkSheetImportManager résout le curseur depuis sync_state.
+        $since = $overrideSince ?: null;
 
-        $io->section("Curseur signed_date >= {$since}" . ($dryRun ? '  [DRY-RUN]' : '') . " | triggered_by={$triggeredBy}");
-        $this->logStartHeader($since, $dryRun, $triggeredBy, $state);
-
-        // Curseur "à persister" par défaut = celui d'entrée. Le manager peut
-        // renvoyer un next_cursor différent (aujourd'hui) si le run a avancé.
-        $newCursor = $since;
+        $io->section(
+            ($since !== null ? "Curseur signed_date >= {$since} (override)" : 'Curseur automatique (sync_state)')
+            . ($dryRun ? '  [DRY-RUN]' : '') . " | triggered_by={$triggeredBy}"
+        );
+        error_log('[import-hlk] ================================================================');
+        error_log('[import-hlk] Batch start | since=' . ($since ?? '(auto, résolu par le manager)') . ' | mode=' . ($dryRun ? 'DRY-RUN' : 'REAL') . " | triggered_by={$triggeredBy}");
+        error_log('[import-hlk] ================================================================');
 
         try {
-            // === Délégation intégrale au manager ==========================
+            // === Délégation intégrale au manager (curseur inclus) ==========
             $manager = new HlkSheetImportManager();
             $stats   = $manager->run($dryRun, $since, $triggeredBy);
 
-            // Le manager a déjà calculé status et next_cursor (partagés avec sync_runs)
-            $status    = $stats['status']      ?? 'partial';
-            $newCursor = $stats['next_cursor'] ?? $since;
+            $status    = $stats['status']       ?? 'partial';
+            $newCursor = $stats['next_cursor']  ?? $stats['signed_since'] ?? (string) $since;
 
-            // Persistance dans sync_state (curseur du prochain run) — pas en dry_run
-            if (!$dryRun && $newCursor !== null) {
-                $syncState->upsert(self::JOB_NAME, $newCursor, $status, null, $stats);
-            }
-
-            $this->logFinalSummary($stats, $newCursor, $status);
-            $this->printCliSummary($io, $stats, $newCursor);
+            $this->logFinalSummary($stats, (string) $newCursor, $status);
+            $this->printCliSummary($io, $stats, (string) $newCursor);
 
             return Command::SUCCESS;
 
         } catch (Throwable $e) {
             error_log('[import-hlk] BATCH EN ÉCHEC : ' . $e->getMessage());
             $io->error('Batch en échec : ' . $e->getMessage());
-            if (!$dryRun) {
-                $syncState->upsert(self::JOB_NAME, $newCursor, 'error', $e->getMessage(), []);
-            }
             return Command::FAILURE;
-        }
-    }
-
-    private function logStartHeader(string $since, bool $dryRun, string $triggeredBy, ?array $state): void
-    {
-        error_log('[import-hlk] ================================================================');
-        error_log("[import-hlk] Batch start | since={$since} | mode=" . ($dryRun ? 'DRY-RUN' : 'REAL') . " | triggered_by={$triggeredBy} | job=" . self::JOB_NAME);
-        error_log('[import-hlk] ================================================================');
-        if ($state) {
-            error_log(sprintf(
-                '[import-hlk] État précédent : last_run=%s last_success=%s last_cursor=%s last_status=%s',
-                $state['last_run_at']     ?? 'n/a',
-                $state['last_success_at'] ?? 'n/a',
-                $state['last_cursor']     ?? 'n/a',
-                $state['last_status']     ?? 'n/a'
-            ));
-        } else {
-            error_log('[import-hlk] Aucun état précédent (première exécution)');
         }
     }
 

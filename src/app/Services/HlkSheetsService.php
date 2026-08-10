@@ -8,8 +8,11 @@ use Core\Util\Json;
 /**
  * Client HLK pour récupérer les fiches marché.
  *
- * Utilisé par la sync bénéficiaires (endpoint admin déclenché par bouton).
- * Récupère toutes les fiches en paginant, sans filtre.
+ * Utilisé par la sync bénéficiaires (endpoint admin déclenché par bouton) ET
+ * par l'auto-import des fiches (HlkSheetImportManager) — même client partagé.
+ * Récupère toutes les fiches en paginant, avec `is_contrat_groupe=true` pour
+ * que HLK ne renvoie que les contrats groupe (filtre côté HLK plutôt que de
+ * tout rapatrier pour jeter le superflu côté EHA).
  *
  * Certains records HLK ne sont pas sérialisables par leur backend et font
  * hanger la page entière (ticket ouvert côté équipe HLK). Le fetch est donc
@@ -74,10 +77,15 @@ class HlkSheetsService
 
         do {
             $payload = [
-                'action_code' => $actionCode,
-                'password'    => $password,
-                'page'        => $page,
-                'limit'       => $pageLimit
+                'action_code'        => $actionCode,
+                'password'           => $password,
+                'page'               => $page,
+                'limit'              => $pageLimit,
+                // Filtre côté HLK : ne renvoie que les contrats groupe, au
+                // lieu de tout rapatrier puis filtrer côté EHA (cf.
+                // HlkEligibility::isContratOpenToFiliales, toujours appliqué
+                // en aval en filet de sécurité).
+                'is_contrat_groupe'  => true,
             ];
             if ($signedSince !== null && $signedSince !== '') {
                 $payload['signed_date'] = $signedSince;
