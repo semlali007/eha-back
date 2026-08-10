@@ -6,6 +6,7 @@ use App\Models\Sheet;
 use App\Models\SyncRun;
 use App\Security\User;
 use App\Services\HlkEligibility;
+use App\Services\HlkSheetCreationNotifier;
 use App\Services\HlkSheetsMapper;
 use App\Services\HlkSheetsService;
 use App\Services\HlkSyncReport;
@@ -23,7 +24,10 @@ use Throwable;
  *   3. Si trouvée par l'un ou l'autre : **SKIP** — la spec est "création only",
  *      on ne touche jamais une fiche existante (ni merge, ni backfill).
  *   4. Si absente : création complète en brouillon via `SheetManager::add()`
- *      avec `auto_created = true`
+ *      avec `auto_created = true`, puis notification email (BAL fonctionnelle
+ *      configurée via `BAL_ACHATPEDIA_FICHES_A_PUBLIER`) via
+ *      `HlkSheetCreationNotifier` — un échec d'envoi n'invalide jamais la
+ *      création, déjà committée en base.
  *
  * Le manager s'appuie sur le kernel HLK partagé :
  *   - HlkSheetsService  : stream + skip-on-fail pagination
@@ -371,6 +375,16 @@ class HlkSheetImportManager
             $newId     = is_array($decoded) ? (int) ($decoded['id'] ?? 0) : 0;
             if ($newId > 0) {
                 $createdSheetIds[] = $newId;
+
+                // Notification "fiche à publier" (statut Brouillon) — envoyée
+                // immédiatement après la création réussie. Un échec d'envoi ne
+                // doit jamais faire remonter une erreur sur la création de la
+                // fiche elle-même (déjà committée) : capturé et logué en local.
+                try {
+                    (new HlkSheetCreationNotifier())->notify($newId, $label, (string) $achatId);
+                } catch (\Throwable $e) {
+                    error_log("[hlk-sheet-import] ⚠ notification création fiche sheet_id={$newId} échouée : " . $e->getMessage());
+                }
             } else {
                 error_log("[hlk-sheet-import] ⚠ CREATE achat_id_cockpit={$achatId} : impossible de récupérer l'id (SheetManager::add retour inattendu)");
             }
