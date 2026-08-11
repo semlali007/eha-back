@@ -1,24 +1,40 @@
 <html>
     <head>
-        <title>Nouvelle fiche marché créée automatiquement</title>
+        <title>Nouvelles fiches marché créées automatiquement</title>
         <style type="text/css">
             body { font-family: Arial, sans-serif; font-size: 14px; }
+            .tg { border-collapse: collapse; border-spacing: 0; width: 100%; margin: 10px 0; }
+            .tg td, .tg th { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
+            .tg th { background-color: #3166ff; color: #ffffff; font-weight: bold; }
         </style>
     </head>
     <body>
         <p>Bonjour,</p>
         <p>&nbsp;</p>
-        <p>Une fiche marché a été créée automatiquement à partir des données HLK.</p>
+        <p>{{ sheets|length }} fiche{{ sheets|length > 1 ? 's' : '' }} marché {{ sheets|length > 1 ? 'ont été créées' : 'a été créée' }} automatiquement à partir des données HLK.</p>
         <p>&nbsp;</p>
-        <p>Cette fiche est actuellement au statut &laquo;&nbsp;Brouillon&nbsp;&raquo; et nécessite votre vérification avant publication.</p>
+        <p>{{ sheets|length > 1 ? 'Elles sont' : 'Elle est' }} actuellement au statut &laquo;&nbsp;Brouillon&nbsp;&raquo; et {{ sheets|length > 1 ? 'nécessitent' : 'nécessite' }} votre vérification avant publication.</p>
         <p>&nbsp;</p>
-        <p>Nom du marché : {{ label }}</p>
+        <table class="tg">
+            <thead>
+                <tr>
+                    <th>Nom du marché</th>
+                    <th>Référence marché</th>
+                    <th>Lien vers la fiche Achatpédia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sheet in sheets %}
+                <tr>
+                    <td>{{ sheet.label }}</td>
+                    <td>{{ sheet.achat_id_cockpit }}</td>
+                    <td><a href="https://{{ config_domain }}/app/fiches/details/{{ sheet.id }}">https://{{ config_domain }}/app/fiches/details/{{ sheet.id }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         <p>&nbsp;</p>
-        <p>Référence marché : {{ achat_id_cockpit }}</p>
-        <p>&nbsp;</p>
-        <p>Lien vers la fiche Achatpédia : <a href="https://{{ config_domain }}/app/fiches/details/{{ id }}">https://{{ config_domain }}/app/fiches/details/{{ id }}</a></p>
-        <p>&nbsp;</p>
-        <p>Merci de vérifier les informations préremplies, de compléter les données manquantes si nécessaire puis de procéder à sa publication.</p>
+        <p>Merci de vérifier les informations préremplies, de compléter les données manquantes si nécessaire puis de procéder à {{ sheets|length > 1 ? 'leur' : 'sa' }} publication.</p>
         <p>&nbsp;</p>
         <p><strong>Cordialement,</strong><br>Achatpédia</p>
     </body>
