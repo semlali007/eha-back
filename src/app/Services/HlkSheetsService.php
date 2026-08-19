@@ -20,6 +20,11 @@ use Core\Util\Json;
  * boucle continue avec la suivante. Le consommateur récupère la liste des
  * pages skippées via getLastFetchInfo() pour la remonter au métier.
  *
+ * Format de réponse HLK :
+ *   - normal   : { "page":N, "total_pages":P, "fiches_marches":[...] }
+ *   - vide     : [] directement (aucun résultat pour la requête) — traité
+ *     comme une fin de stream propre, PAS comme une page invalide/skippée.
+ *
  * L'API renvoie un produit cartésien contrat × option × bénéficiaire :
  *   - contrat_numero          : code du contrat (clé de rattachement côté EHA)
  *   - contrat_beneficiaire    : nom de la filiale bénéficiaire (nullable)
@@ -98,6 +103,21 @@ class HlkSheetsService
                 error_log("[hlk-benef-sync:fetch] ⚠ SKIP page={$page} : {$e->getMessage()}");
                 $page++;
                 continue;
+            }
+
+            // HLK renvoie [] directement (pas d'enveloppe {page,total_pages,
+            // fiches_marches}) quand la requête ne matche aucun résultat — ce
+            // n'est PAS une erreur, juste "rien à cette page". À distinguer du
+            // cas "réponse invalide" ci-dessous (qui, lui, reste une anomalie
+            // à signaler). On arrête proprement la pagination ici.
+            if ($envelope === []) {
+                error_log("[hlk-benef-sync:fetch] page={$page} : 0 résultat (réponse HLK vide []), fin du stream");
+                // total_pages_hlk doit refléter qu'il n'y avait réellement
+                // aucune page à couvrir (pas rester à sa valeur initiale 1),
+                // sinon coverage_ratio = 0/1 déclenche à tort le warning
+                // "pages HLK ignorées" alors que pages_skipped est vide.
+                $totalPagesHlk = $page - 1;
+                break;
             }
 
             if (!is_array($envelope) || !isset($envelope['fiches_marches'])) {

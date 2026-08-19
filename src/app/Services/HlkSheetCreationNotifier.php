@@ -5,9 +5,12 @@ namespace App\Services;
 use Core\Mailer\{Builder as Mailer, Exception};
 
 /**
- * Notifie par email la BAL fonctionnelle Achatpédia lorsqu'une fiche marché
- * est créée automatiquement depuis HLK (statut Brouillon, à vérifier avant
- * publication).
+ * Notifie par email la BAL fonctionnelle Achatpédia des fiches marché créées
+ * automatiquement depuis HLK (statut Brouillon, à vérifier avant publication).
+ *
+ * Un seul mail par lancement du batch, listant toutes les fiches créées lors
+ * de ce run — pas un mail par fiche (trop de bruit quand un run en crée
+ * plusieurs, cf. HlkSheetImportManager::run()).
  *
  * Il n'existe aucun moyen fiable de résoudre l'email personnel de l'acheteur
  * (le champ `acheteur` d'une fiche est un texte libre venant de HLK, sans lien
@@ -17,12 +20,15 @@ use Core\Mailer\{Builder as Mailer, Exception};
 class HlkSheetCreationNotifier
 {
     /**
-     * @param int    $sheetId        Id de la fiche EHA nouvellement créée
-     * @param string $label          Libellé de la fiche marché
-     * @param string $achatIdCockpit Référence Cockpit du marché
+     * @param array<int, array{id:int, label:string, achat_id_cockpit:string}> $sheets
+     *   Fiches créées lors du run. Ne fait rien si vide (rien à notifier).
      */
-    public function notify(int $sheetId, string $label, string $achatIdCockpit): void
+    public function notifyBatch(array $sheets): void
     {
+        if (empty($sheets)) {
+            return;
+        }
+
         // BAL_ACHATPEDIA_FICHES_A_PUBLIER accepte un ou plusieurs destinataires
         // séparés par des virgules (ex: "a@edf.fr,b@edf.fr"). Builder::setRecepients()
         // ne découpe pas une string sur les virgules — elle la passerait telle
@@ -39,17 +45,18 @@ class HlkSheetCreationNotifier
 
         try {
             (new Mailer())
-                ->setSubject("[Achatpédia] Nouvelle fiche marché créée automatiquement : {$label}")
+                ->setSubject('[Achatpédia] Nouvelles fiches marchés créées automatiquement')
                 ->setRecepients(array_fill_keys($recipients, ''))
                 ->html('mail/hlk_sheet_auto_created.html.twig', [
-                    'label'            => $label,
-                    'achat_id_cockpit' => $achatIdCockpit,
-                    'id'               => $sheetId,
-                    'config_domain'    => getenv('CONFIG_DOMAINE'),
+                    'sheets'        => $sheets,
+                    'config_domain' => getenv('CONFIG_DOMAINE'),
                 ])
                 ->send();
         } catch (Exception $e) {
-            error_log("[hlk-sheet-import] ⚠ échec envoi notification création fiche sheet_id={$sheetId} : " . $e->getMessage());
+            error_log(sprintf(
+                '[hlk-sheet-import] ⚠ échec envoi notification création (%d fiche(s)) : %s',
+                count($sheets), $e->getMessage()
+            ));
         }
     }
 }

@@ -25,10 +25,13 @@ use Throwable;
  *   3. Si trouvée par l'un ou l'autre : **SKIP** — la spec est "création only",
  *      on ne touche jamais une fiche existante (ni merge, ni backfill).
  *   4. Si absente : création complète en brouillon via `SheetManager::add()`
- *      avec `auto_created = true`, puis notification email (BAL fonctionnelle
- *      configurée via `BAL_ACHATPEDIA_FICHES_A_PUBLIER`) via
- *      `HlkSheetCreationNotifier` — un échec d'envoi n'invalide jamais la
- *      création, déjà committée en base.
+ *      avec `auto_created = true`.
+ *
+ * Notification email : UN SEUL mail en fin de run (pas un par fiche), listant
+ * toutes les fiches créées lors de ce run — envoyé à la BAL fonctionnelle
+ * configurée via `BAL_ACHATPEDIA_FICHES_A_PUBLIER`, via
+ * `HlkSheetCreationNotifier::notifyBatch()`. Un échec d'envoi n'invalide
+ * jamais les créations, déjà committées en base.
  *
  * Le manager s'appuie sur le kernel HLK partagé :
  *   - HlkSheetsService  : stream + skip-on-fail pagination
@@ -132,6 +135,11 @@ class HlkSheetImportManager
         // pour le drill-down UI ("voir les N fiches créées ce run").
         $createdSheetIds = [];
 
+        // Fiches créées par ce run (id, label, achat_id_cockpit) — accumulées
+        // pour un unique mail de notification en fin de run (cf. plus bas),
+        // plutôt qu'un mail par fiche.
+        $createdSheetsInfo = [];
+
         $service = new HlkSheetsService();
         $allRows = [];
 
@@ -225,7 +233,7 @@ class HlkSheetImportManager
                 $this->ingestSheet(
                     $sheetData, $dryRun,
                     $sheetModel, $sheetManager, $batchUser,
-                    $stats, $createdSheetIds
+                    $stats, $createdSheetIds, $createdSheetsInfo
                 );
             } catch (Throwable $e) {
                 $stats['errors'][] = [
@@ -249,6 +257,18 @@ class HlkSheetImportManager
                     'created'  => $stats['created'],
                     'skipped'  => $stats['skipped_existing'],
                 ]);
+            }
+        }
+
+        // Notification "fiches à publier" (statut Brouillon) — UN SEUL mail
+        // pour tout le run, listant toutes les fiches créées (pas un mail par
+        // fiche). Un échec d'envoi n'invalide jamais les créations, déjà
+        // committées en base.
+        if (!$dryRun && !empty($createdSheetsInfo)) {
+            try {
+                (new HlkSheetCreationNotifier())->notifyBatch($createdSheetsInfo);
+            } catch (Throwable $e) {
+                error_log('[hlk-sheet-import] ⚠ notification création (batch) échouée : ' . $e->getMessage());
             }
         }
 
@@ -361,7 +381,8 @@ class HlkSheetImportManager
         SheetManager $sheetManager,
         User $batchUser,
         array &$stats,
-        array &$createdSheetIds
+        array &$createdSheetIds,
+        array &$createdSheetsInfo
     ): void {
         $achatId     = $sheetData['achat_id_cockpit'];
         $label       = (string) ($sheetData['label'] ?? '');
@@ -420,16 +441,13 @@ class HlkSheetImportManager
             $newId     = is_array($decoded) ? (int) ($decoded['id'] ?? 0) : 0;
             if ($newId > 0) {
                 $createdSheetIds[] = $newId;
-
-                // Notification "fiche à publier" (statut Brouillon) — envoyée
-                // immédiatement après la création réussie. Un échec d'envoi ne
-                // doit jamais faire remonter une erreur sur la création de la
-                // fiche elle-même (déjà committée) : capturé et logué en local.
-                try {
-                    (new HlkSheetCreationNotifier())->notify($newId, $label, (string) $achatId);
-                } catch (\Throwable $e) {
-                    error_log("[hlk-sheet-import] ⚠ notification création fiche sheet_id={$newId} échouée : " . $e->getMessage());
-                }
+                // Accumulée pour le mail de notification unique en fin de run
+                // (cf. run()) — pas d'envoi ici, un par fiche serait trop bruyant.
+                $createdSheetsInfo[] = [
+                    'id'               => $newId,
+                    'label'            => $label,
+                    'achat_id_cockpit' => (string) $achatId,
+                ];
             } else {
                 error_log("[hlk-sheet-import] ⚠ CREATE achat_id_cockpit={$achatId} : impossible de récupérer l'id (SheetManager::add retour inattendu)");
             }
