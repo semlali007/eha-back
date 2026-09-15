@@ -227,6 +227,10 @@ class HlkSheetsMapper
 
             // Gestion
             'acheteur'         => HlkTextCleaner::clean($first['achat_acheteur']         ?? ''),
+            // Champs HLK récents — utilisés pour router la notification de
+            // création automatique vers l'acheteur réel (cf. HlkSheetCreationNotifier).
+            'acheteur_mail'    => HlkTextCleaner::clean($first['acheteur_mail'] ?? ''),
+            'acheteur_nni'     => HlkTextCleaner::clean($first['acheteur_nni']  ?? ''),
             'contract_manager' => HlkTextCleaner::clean($first['achat_contract_manager'] ?? ''),
 
             // Non fournis par HLK (valeurs par défaut)

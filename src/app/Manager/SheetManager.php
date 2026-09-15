@@ -72,6 +72,8 @@ class SheetManager extends AbstractManager
             $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
             $data['geographic_detail'] = $sheetData['geographic_detail'] ?? null;
             $data['acheteur'] = $sheetData['acheteur'] ?? null;
+            $data['acheteur_mail'] = $sheetData['acheteur_mail'] ?? null;
+            $data['acheteur_nni'] = $sheetData['acheteur_nni'] ?? null;
             $data['status'] = $sheetData['status'] ?? '0';
 
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
@@ -700,6 +702,8 @@ class SheetManager extends AbstractManager
             $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
             $data['geographic_detail'] = $sheetData['geographic_detail'] ?? null;
             $data['acheteur'] = $sheetData['acheteur'] ?? null;
+            $data['acheteur_mail'] = $sheetData['acheteur_mail'] ?? null;
+            $data['acheteur_nni'] = $sheetData['acheteur_nni'] ?? null;
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];

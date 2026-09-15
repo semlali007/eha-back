@@ -27,11 +27,15 @@ use Throwable;
  *   4. Si absente : création complète en brouillon via `SheetManager::add()`
  *      avec `auto_created = true`.
  *
- * Notification email : UN SEUL mail en fin de run (pas un par fiche), listant
- * toutes les fiches créées lors de ce run — envoyé à la BAL fonctionnelle
- * configurée via `BAL_ACHATPEDIA_FICHES_A_PUBLIER`, via
- * `HlkSheetCreationNotifier::notifyBatch()`. Un échec d'envoi n'invalide
- * jamais les créations, déjà committées en base.
+ * Notification email : les fiches créées lors du run sont regroupées par
+ * acheteur (`acheteur_nni`), UN mail par acheteur listant ses fiches (gabarit
+ * mono-fiche si une seule, multi-fiches sinon) — cf.
+ * `HlkSheetCreationNotifier::notifyGroup()`. Résolution du destinataire :
+ *   1. `MAIL_HORSPROD_FICHES_A_PUBLIER` si configurée (environnements non-prod
+ *      uniquement — redirige tout, quel que soit l'acheteur réel)
+ *   2. l'email réel de l'acheteur (`acheteur_nni`/`acheteur_mail`, fournis par HLK)
+ *   3. `BAL_ACHATPEDIA_FICHES_A_PUBLIER` en dernier recours (aucun email acheteur connu)
+ * Un échec d'envoi n'invalide jamais les créations, déjà committées en base.
  *
  * Le manager s'appuie sur le kernel HLK partagé :
  *   - HlkSheetsService  : stream + skip-on-fail pagination
@@ -260,15 +264,51 @@ class HlkSheetImportManager
             }
         }
 
-        // Notification "fiches à publier" (statut Brouillon) — UN SEUL mail
-        // pour tout le run, listant toutes les fiches créées (pas un mail par
-        // fiche). Un échec d'envoi n'invalide jamais les créations, déjà
-        // committées en base.
+        // Notification "fiches à publier" (statut Brouillon) — UN mail PAR
+        // ACHETEUR (regroupées par acheteur_nni), listant les fiches créées
+        // pour cet acheteur lors de ce run. Un échec d'envoi n'invalide
+        // jamais les créations, déjà committées en base.
         if (!$dryRun && !empty($createdSheetsInfo)) {
-            try {
-                (new HlkSheetCreationNotifier())->notifyBatch($createdSheetsInfo);
-            } catch (Throwable $e) {
-                error_log('[hlk-sheet-import] ⚠ notification création (batch) échouée : ' . $e->getMessage());
+            $groupsByAcheteur = [];
+            foreach ($createdSheetsInfo as $sheetInfo) {
+                $nni = $sheetInfo['acheteur_nni'] !== '' ? $sheetInfo['acheteur_nni'] : '(sans_nni)';
+                if (!isset($groupsByAcheteur[$nni])) {
+                    $groupsByAcheteur[$nni] = [
+                        'acheteur_nni'  => $sheetInfo['acheteur_nni'],
+                        'acheteur'      => $sheetInfo['acheteur'],
+                        'acheteur_mail' => $sheetInfo['acheteur_mail'],
+                        'sheets'        => [],
+                    ];
+                }
+                // Garde le premier nom/email non vide rencontré pour ce groupe
+                // (toutes les fiches d'un même acheteur_nni sont censées
+                // partager le même acheteur/acheteur_mail, mais on reste
+                // défensif si une des fiches a un champ vide).
+                if ($groupsByAcheteur[$nni]['acheteur'] === '' && $sheetInfo['acheteur'] !== '') {
+                    $groupsByAcheteur[$nni]['acheteur'] = $sheetInfo['acheteur'];
+                }
+                if ($groupsByAcheteur[$nni]['acheteur_mail'] === '' && $sheetInfo['acheteur_mail'] !== '') {
+                    $groupsByAcheteur[$nni]['acheteur_mail'] = $sheetInfo['acheteur_mail'];
+                }
+                $groupsByAcheteur[$nni]['sheets'][] = [
+                    'id'               => $sheetInfo['id'],
+                    'label'            => $sheetInfo['label'],
+                    'achat_id_cockpit' => $sheetInfo['achat_id_cockpit'],
+                ];
+            }
+
+            $notifier = new HlkSheetCreationNotifier();
+            foreach ($groupsByAcheteur as $group) {
+                try {
+                    $notifier->notifyGroup($group);
+                } catch (Throwable $e) {
+                    error_log(sprintf(
+                        '[hlk-sheet-import] ⚠ notification création (acheteur=%s, %d fiche(s)) échouée : %s',
+                        $group['acheteur'] !== '' ? $group['acheteur'] : '?',
+                        count($group['sheets']),
+                        $e->getMessage()
+                    ));
+                }
             }
         }
 
@@ -441,12 +481,16 @@ class HlkSheetImportManager
             $newId     = is_array($decoded) ? (int) ($decoded['id'] ?? 0) : 0;
             if ($newId > 0) {
                 $createdSheetIds[] = $newId;
-                // Accumulée pour le mail de notification unique en fin de run
-                // (cf. run()) — pas d'envoi ici, un par fiche serait trop bruyant.
+                // Accumulée pour être groupée par acheteur (acheteur_nni) en
+                // fin de run (cf. run()) — pas d'envoi ici, un par fiche
+                // serait trop bruyant.
                 $createdSheetsInfo[] = [
                     'id'               => $newId,
                     'label'            => $label,
                     'achat_id_cockpit' => (string) $achatId,
+                    'acheteur'         => (string) ($sheetData['acheteur']      ?? ''),
+                    'acheteur_nni'     => (string) ($sheetData['acheteur_nni']  ?? ''),
+                    'acheteur_mail'    => (string) ($sheetData['acheteur_mail'] ?? ''),
                 ];
             } else {
                 error_log("[hlk-sheet-import] ⚠ CREATE achat_id_cockpit={$achatId} : impossible de récupérer l'id (SheetManager::add retour inattendu)");
