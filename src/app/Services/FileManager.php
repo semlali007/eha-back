@@ -55,6 +55,19 @@ class FileManager
         }
         else if(in_array($ext,$this->extensions))
         {
+            // Limite applicative — jamais vérifiée avant (setMaxSize() était
+            // appelée mais $this->maxSize n'était lu nulle part). À distinguer
+            // de la limite PHP (upload_max_filesize/post_max_size), qui, elle,
+            // s'applique AVANT que le fichier n'arrive jusqu'ici.
+            if ($this->maxSize !== null && $size > $this->maxSize) {
+                $this->setMessage(sprintf(
+                    'File too large (%.1f MB, max %.1f MB) !',
+                    $size / (1024 * 1024),
+                    $this->maxSize / (1024 * 1024)
+                ));
+                return false;
+            }
+
             if(!is_dir($this->destinationPath))
                 mkdir($this->destinationPath, 0755, true);
         

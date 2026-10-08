@@ -95,7 +95,10 @@ class SheetManager extends AbstractManager
             $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
-                'size' => 21000000
+                // setMaxSize() attend des Mo, pas des octets — 21000000 donnait
+                // une limite de ~22 To (jamais vérifiée de toute façon avant,
+                // cf. FileManager::uploadFile()).
+                'size' => 21
             ]);
 
             $data['lots'] = $sheetData['lots'] ?? [];
@@ -774,7 +777,10 @@ class SheetManager extends AbstractManager
             $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
-                'size' => 21000000
+                // setMaxSize() attend des Mo, pas des octets — 21000000 donnait
+                // une limite de ~22 To (jamais vérifiée de toute façon avant,
+                // cf. FileManager::uploadFile()).
+                'size' => 21
             ]);
 
 
