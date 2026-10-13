@@ -15,17 +15,22 @@ USER root
 
 ENV SIMPLESAMLPHP_VERSION=2.2.2
 
-# Credentials for the EDF raw repository holding the simplesamlphp tarball.
-ARG NEXUS_USERNAME=""
-ARG NEXUS_PASSWORD=""
+# Artifact deposit (myproject-deposit, Artifactory) token. It arrives **base64
+# encoded** in the GitLab variable DVS_DEPOSIT_PROJECT_TOKEN and is decoded here
+# before use - same shape as hpd/redis. Earlier revisions of this file used a
+# NEXUS_USERNAME/NEXUS_PASSWORD pair against si-devops-repository.edf.fr, which
+# is the wrong host and the wrong auth scheme; that is why the OpenBao nexus
+# secret it depended on is gone.
+ARG DVS_DEPOSIT_PROJECT_TOKEN=""
 
 COPY ./src /opt/app-root/src/
 
 RUN $DNF_CMD -y update --nobest && \
     $DNF_CMD -y install zlib-devel bzip2 && \
     $DNF_CMD -y clean all && \
-    curl -fsSL --user "$NEXUS_USERNAME:$NEXUS_PASSWORD" \
-      "https://si-devops-repository.edf.fr/repository/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz" \
+    DEPOSIT_TOKEN=$(base64 -d <<< "${DVS_DEPOSIT_PROJECT_TOKEN}") && \
+    curl -fSLk -H "Authorization: Bearer ${DEPOSIT_TOKEN}" \
+      "https://myproject-deposit.edf.fr/artifactory/eha-web-achat-raw/simplesamlphp/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz" \
       -o /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz && \
     tar xzf /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz -C /opt/app-root/src && \
     mv /opt/app-root/src/simplesamlphp-${SIMPLESAMLPHP_VERSION} /opt/app-root/src/simplesamlphp && \

@@ -85,19 +85,6 @@ variables:
   LOCAL_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
   NAMESPACE_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
 
-  # --- OpenBao (secret manager) -----------------------------------------------
-  # Namespace == the DevSecOps subscription name, which is the top-level GitLab
-  # group. Authentication is by GitLab JWT, so there is no token to configure.
-  VAULT_SERVER_URL: "https://si-devops-secrets.edf.fr"
-  VAULT_NAMESPACE: "eha-web-achat"
-  VAULT_KV2: "dvs-project"
-  # Use "jwt-ee" instead when the project is hosted on si-devops-gitlab-ee.edf.fr
-  VAULT_JWT_NAME: "jwt"
-  # The secret must hold two keys: "username" and "password".
-  # Path = <GitLab branch>/<Secret Path as entered in MyDevOps>. MyDevOps
-  # prepends the branch, so the value below is branch-scoped: a pipeline on a
-  # branch other than poc-caas cannot read it.
-  VAULT_NEXUS_SECRET_PATH: "poc-caas/eha-web-achat/eha-back/preprod/nexus"
 
 include:
   # ---------------------------------------------------------------------------
@@ -146,16 +133,18 @@ include:
   # build_auto_generate: true makes the component generate the BuildConfig with
   # `oc new-build`, so no build-template.yml is maintained in this repository.
   #
-  # The Nexus credentials come from OpenBao via the get-secret job below and
-  # reach this job as dotenv variables.
+  # The image downloads simplesamlphp from the artifact deposit, authenticated
+  # with DVS_DEPOSIT_PROJECT_TOKEN - a GitLab variable from the DevSecOps
+  # subscription, holding a base64-encoded token that the Dockerfile decodes.
+  # No OpenBao secret is involved; the earlier NEXUS_USERNAME/NEXUS_PASSWORD
+  # pair pointed at the wrong host entirely.
   #
   # Caveat worth knowing: an auto-generated BuildConfig cannot reference a
-  # secretKeyRef the way the old hand-written template did, so the values are
-  # passed as build arguments and their literal text lands in the BuildConfig
-  # object in the build namespace, readable by anyone with access to it.
-  # OpenBao removes them from GitLab, not from the cluster. If that residual
-  # exposure is not acceptable, switch this job to build_auto_generate: false
-  # with a committed build template that uses secretKeyRef.
+  # secretKeyRef the way the old hand-written template did, so the token is
+  # passed as a build argument and its literal text lands in the BuildConfig
+  # object in the build namespace, readable by anyone with access to it. If that
+  # residual exposure is not acceptable, switch this job to
+  # build_auto_generate: false with a committed build template using secretKeyRef.
   # ---------------------------------------------------------------------------
   - component: $CI_SERVER_FQDN/dvs-components/openshift-build-image/build@0.3.1
     rules:
@@ -174,8 +163,9 @@ include:
       build_dockerfile_path: "Dockerfile_openshift"
       build_source_image: "openshift/dck_php-fpm-ubi8:8.2"
       build_args:
-        - "NEXUS_USERNAME=${NEXUS_USERNAME}"
-        - "NEXUS_PASSWORD=${NEXUS_PASSWORD}"
+        # Base64-encoded deposit token, decoded inside the Dockerfile. Provided
+        # as a GitLab variable by the DevSecOps subscription, not by OpenBao.
+        - "DVS_DEPOSIT_PROJECT_TOKEN=${DVS_DEPOSIT_PROJECT_TOKEN}"
         - "APP_COMMIT=${CI_COMMIT_SHA}"
         - "APP_COMMIT_DATE=${CI_COMMIT_TIMESTAMP}"
       build_cpu_request: "1"
@@ -220,63 +210,6 @@ include:
       template_file: "deploy-backend.yml"
       deployment_name: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
       integ_application_url: "https://${SERVER_NAME}"
-
-# =============================================================================
-# Fetch the Nexus credentials from OpenBao.
-#
-# Exposed to later stages as a dotenv artifact. Both values are single-line, so
-# dotenv carries them safely - do not use this mechanism for multi-line secrets
-# such as PEM certificates.
-#
-# Prerequisite: create the secret path from MyDevOps (Settings > Secrets) so
-# the matching OpenBao policy is generated. A path created by hand directly in
-# OpenBao has no policy and the pipeline gets "permission denied".
-# =============================================================================
-get-secret:
-  stage: prepare
-  image: $NAMESPACE_REGISTRY/edf-infra-dvs-catalog/agt_deploy_cloud:latest
-  tags:
-    - gitlab-runner-dvs-srv-int-p
-  rules:
-    - if: '"$[[ inputs.enable_build ]]" == "true"'
-  id_tokens:
-    VAULT_ID_TOKEN:
-      aud: "https://si-devops-secrets.edf.fr"
-  script:
-    # 1. Exchange the GitLab JWT for an OpenBao token.
-    - |
-      REQUEST_TOKEN=$(curl -sS --request POST \
-        --data "{\"jwt\":\"${VAULT_ID_TOKEN}\"}" \
-        "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/auth/${VAULT_JWT_NAME}/login")
-      JWT_TOKEN=$(echo "${REQUEST_TOKEN}" | jq -r '.auth.client_token // empty')
-      if [ -z "${JWT_TOKEN}" ]; then
-        echo "ERROR: OpenBao login failed."
-        echo "${REQUEST_TOKEN}" | jq -r '.errors // .' 2>/dev/null || true
-        exit 1
-      fi
-
-    # 2. Read the credentials.
-    - |
-      SECRET_REQUEST=$(curl -sS --header "X-Vault-Token: ${JWT_TOKEN}" \
-        "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/${VAULT_KV2}/data/${VAULT_NEXUS_SECRET_PATH}")
-      NEXUS_USERNAME=$(echo "${SECRET_REQUEST}" | jq -r '.data.data.username // empty')
-      NEXUS_PASSWORD=$(echo "${SECRET_REQUEST}" | jq -r '.data.data.password // empty')
-      if [ -z "${NEXUS_USERNAME}" ] || [ -z "${NEXUS_PASSWORD}" ]; then
-        echo "ERROR: could not read 'username'/'password' at ${VAULT_KV2}/${VAULT_NEXUS_SECRET_PATH}"
-        echo "${SECRET_REQUEST}" | jq -r '.errors // "no errors field - check the path and the key names"'
-        exit 1
-      fi
-
-    # 3. Hand them to the downstream build job. Never echoed.
-    - |
-      {
-        echo "NEXUS_USERNAME=${NEXUS_USERNAME}"
-        echo "NEXUS_PASSWORD=${NEXUS_PASSWORD}"
-      } > openbao.env
-  artifacts:
-    reports:
-      dotenv: openbao.env
-    expire_in: 5 mins
 
 # =============================================================================
 # Deploy job override, following hpd/redis.
