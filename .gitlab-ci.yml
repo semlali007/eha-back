@@ -284,17 +284,34 @@ get-secret:
 # Supplies KUBE_URL / KUBE_TOKEN from the destination credentials loaded above;
 # the deploy-kubernetes component cannot derive them by itself here.
 #
-# NOTE ON THE JOB NAME: `dvs-<job>:branch` is the shape redis overrides
-# (`dvs-deploy-redis:branch`). The component also generates `:integ` and `:tag`
-# variants and the mapping is not documented, so check the job name in the first
-# pipeline run - if the override lands on a name the component did not generate,
-# GitLab creates a standalone job with no script instead of patching the real one.
+# JOB NAME: the component generates one variant per ref type. On `poc-caas`,
+# which matches integ_ref, the job is `dvs-deploy-achatpedia-backend:integration`
+# - confirmed against the expanded pipeline, not guessed:
+#
+#   python plugins/gitlab/scripts/ci_lint.py \
+#     --project eha-web-achat/eha-back --ref poc-caas --jobs
+#
+# hpd/redis overrides `:branch`, the variant for a ref that does NOT match
+# integ_ref. Copying that name here would have been silent: `:branch` exists but
+# is ruled out on this ref, so these exports would never have run. Both variants
+# are overridden so the pipeline behaves on any branch.
 # =============================================================================
-dvs-deploy-achatpedia-backend:branch:
+.deploy-overrides: &deploy_overrides
   needs:
     - job: load-caas-credentials-dest
       artifacts: true
+    # `needs` replaces stage ordering: without this the deploy could start
+    # before the image has been promoted to the runtime cluster.
+    - job: copy-backend-image
+      optional: true
+      artifacts: false
   before_script:
     - export KUBE_URL="${DEST_CAAS_DVS_CAAS_API_URL}"
     - export KUBE_TOKEN="${DEST_CAAS_DVS_CAAS_TOKEN}"
     - !reference [.os-deploy-base, before_script]
+
+dvs-deploy-achatpedia-backend:integration:
+  <<: *deploy_overrides
+
+dvs-deploy-achatpedia-backend:branch:
+  <<: *deploy_overrides
