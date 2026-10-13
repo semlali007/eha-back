@@ -161,7 +161,7 @@ include:
       build_context_dir: "."
       build_strategy: "docker"
       build_dockerfile_path: "Dockerfile_openshift"
-      build_source_image: "openshift/dck_php-fpm-ubi8:8.2"
+      build_source_image: "openshift/dck_php-fpm-ubi8:8.2.29"
       build_args:
         # Base64-encoded deposit token, decoded inside the Dockerfile. Provided
         # as a GitLab variable by the DevSecOps subscription, not by OpenBao.
