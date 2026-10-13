@@ -1,23 +1,71 @@
-####
-#
-# Openshift template.
-#
-# Use it with oc process, passing parameters using '-p' options, it will generate a ConfigMap that you can apply.
-#
-# Parameters are listed at the end of this file.
-#
-####
----
-apiVersion: template.openshift.io/v1
 kind: Template
-message: "Simple ConfigMap template"
+apiVersion: template.openshift.io/v1
 metadata:
+  name: achatpedia-backend-deploy-template
   annotations:
-    description: "Simple ConfigMap template"
-  creationTimestamp: null
-  name: configmap-template
+    description: >-
+      Backend (PHP-FPM + nginx + haproxy) deployment for Achatpedia on CaaS.
+      Declares the ConfigMap, Deployment, Service and Route as a single unit so
+      the whole runtime shape is versioned alongside the application code.
+parameters:
+  - name: APPLICATION_NAME
+    value: "achatpedia"
+    required: true
+  - name: IMAGE_NAME
+    description: "ImageStream holding the backend image"
+    value: "dck_achatpedia-back"
+    required: true
+  - name: IMAGE_TAG
+    description: "Image tag, set by the pipeline from CI_COMMIT_REF_SLUG"
+    required: true
+  - name: ENV
+    description: "Deployment environment, selects the *-${ENV} secrets"
+    value: "recette"
+    required: true
+  - name: NAMESPACE_DEPLOY_BACKEND
+    value: "eha-achatpedia-ext-ns-be-p"
+    required: true
+  - name: SERVICE_ACCOUNT_NAME
+    value: "achatpedia-caas-eha"
+    required: true
+  - name: SERVER_NAME
+    description: "Public hostname served by this route"
+    value: "achatpedia-preprod-back.ext-ns-be-p.caas-ext-p.automation.edf.fr"
+    required: true
+  - name: ELASTICSEARCH_HOST
+    value: "padaone-preprod.edf.fr:29443"
+    required: true
+  - name: ROUTE_TIMEOUT
+    value: "10m"
+    required: true
+  - name: CPU_REQUEST
+    value: "500m"
+  - name: CPU_LIMIT
+    value: "1"
+  - name: MEMORY_REQUEST
+    value: "2Gi"
+  - name: MEMORY_LIMIT
+    value: "2Gi"
+  - name: LOCAL_REGISTRY
+    value: "image-registry.openshift-image-registry.svc:5000"
+    required: true
+  - name: IMAGE_RELEASE_DATE
+  - name: IMAGE_RELEASE_NUMBER
+
 objects:
+  # ---------------------------------------------------------------------------
+  # 1. Application configuration (php-fpm pool, php.ini, filebeat)
+  #
+  # The php-fpm pool and php.ini below are carried over unchanged from the
+  # previous deployment/openshift/configmap-template.yml.
+  # ---------------------------------------------------------------------------
   - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "cm-backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+      namespace: "${NAMESPACE_DEPLOY_BACKEND}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
     data:
       EHA.conf: |
         ;;;;;;;;;;;;;;;;;;;;;
@@ -769,18 +817,639 @@ objects:
           [opcache]
           [curl]
           [openssl]          
+
+  # ---------------------------------------------------------------------------
+  # 2. nginx reverse-proxy configuration
+  #
+  # Captured verbatim from the cluster-managed cm-rp-nginx ConfigMap in
+  # eha-achatpedia-ext-ns-be-p so the reverse-proxy config is versioned with the
+  # code instead of being edited by hand in the namespace.
+  # ---------------------------------------------------------------------------
+  - apiVersion: v1
     kind: ConfigMap
     metadata:
+      name: "cm-nginx-backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+      namespace: "${NAMESPACE_DEPLOY_BACKEND}"
       labels:
-        app: app-${APPLICATION_NAME}-${ENV}-${VERSION}
-      name: cm-app-${APPLICATION_NAME}-${ENV}-${VERSION}
-parameters:
-  - name: APPLICATION_NAME
-    required: true
-  - name: VERSION
-    required: true
-  - name: ENV
-    required: true    
-  - name: ELASTICSEARCH_HOST
-    required: true
-    value: "padaone-preprod.edf.fr:29443"
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+    data:
+      nginx.conf: |-
+        worker_processes  auto; worker_rlimit_nofile 100000; #user              webadm;
+        events {
+            worker_connections  768;
+            use epoll;
+            multi_accept on;
+        }
+        error_log   /dev/stdout info;
+        http {
+            server_tokens off;
+            include       mime.types;
+            default_type  application/octet-stream;
+
+            client_header_timeout           1m;
+            client_body_timeout             1m;
+            client_header_buffer_size       2k;
+            client_body_buffer_size         256k;
+            client_max_body_size            256m;
+            large_client_header_buffers     4   8k;
+            send_timeout                    30;
+            reset_timedout_connection       on;
+
+            open_file_cache max=200000 inactive=20s;
+            open_file_cache_valid 30s;
+            open_file_cache_min_uses 2;
+            open_file_cache_errors on;
+
+            sendfile        on;
+            tcp_nopush     on;
+            tcp_nodelay on;
+            keepalive_timeout 65;
+            types_hash_max_size 2048;
+            sendfile_max_chunk 512;
+
+            access_log    off;
+
+            gzip  on;
+            gzip_min_length 10240;
+            gzip_comp_level 1;
+            gzip_vary on;
+            gzip_disable msie6;
+            gzip_proxied expired no-cache no-store private auth;
+            gzip_types
+                # text/html is always compressed by HttpGzipModule
+                text/css
+                text/javascript
+                text/xml
+                text/plain
+                text/x-component
+                application/javascript
+                application/x-javascript
+                application/json
+                application/xml
+                application/rss+xml
+                application/atom+xml
+                font/truetype
+                font/opentype
+                application/vnd.ms-fontobject
+                image/svg+xml;
+
+
+                client_body_temp_path /var/projects/instance/nginx_1/run/nginx-client-body;
+
+
+                proxy_cache_path   /var/lib/nginx/cache/proxy_cache levels=1:2 keys_zone=instance_cache:10m max_size=10g inactive=24h;
+                proxy_cache_key "$host$request_uri $cookie_user";
+                #proxy_temp_path /var/projects/instance/nginx_1/run/nginx-proxy;
+                proxy_ignore_headers Expires Cache-Control;
+                proxy_cache_use_stale error timeout invalid_header http_502;
+                proxy_cache_valid any 3d;
+                include application.conf;
+                include proxy.conf;
+          }
+      application.conf: |-
+        server {
+          listen   8080;
+
+          server_name _;
+
+          root /opt/app-root/src;
+
+          open_file_cache max=5000 inactive=180;
+          open_file_cache_valid 2m;
+          open_file_cache_min_uses 2;
+          open_file_cache_errors on;
+
+          index           index.php;
+
+          add_header Content-Security-Policy "";
+
+          location / {
+                try_files $uri /index.php?$query_string;
+          }
+
+          location ~ \.php$ {
+                    include fastcgi_params;
+                    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                    fastcgi_pass 127.0.0.1:9000;
+                    fastcgi_index index.php;
+                    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            }
+
+
+
+
+            location ~ ^/(status|ping)$ {
+                allow 127.0.0.1;
+                #fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_index index.php;
+                include fastcgi_params;
+                fastcgi_pass 127.0.0.1:9000;
+            }
+
+            # return 404 for all other php files not matching the front controller
+            # this prevents access to other php files you don't want to be accessible.
+            location ~ \.php$ {
+                return 404;
+            }
+
+            location ~ .*\.(gif|jpg|jpeg|png|bmp|swf|flv|mp4|ico)$ {
+                expires 7d;
+                access_log off;
+            }
+
+            location ~ .*\.(js|css)?$ {
+                expires 7d;
+                access_log off;
+            }
+
+            # URL for health checks
+            location /nginx-health {
+              access_log off;
+              default_type text/plain;
+              return 200 "healthy\n";
+            }
+
+            client_max_body_size 100M;
+
+        }
+      proxy.conf: |-
+
+        proxy_set_header Host                   $host; 
+        proxy_set_header X-Real-IP              $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto      $scheme; 
+        proxy_connect_timeout 30; 
+        proxy_send_timeout 30;
+      fastcgi_params: |-
+
+        fastcgi_param  QUERY_STRING       $query_string;
+        fastcgi_param  REQUEST_METHOD     $request_method;
+        fastcgi_param  CONTENT_TYPE       $content_type;
+        fastcgi_param  CONTENT_LENGTH     $content_length;
+
+        fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+        fastcgi_param  REQUEST_URI        $request_uri;
+        fastcgi_param  DOCUMENT_URI       $document_uri;
+        fastcgi_param  DOCUMENT_ROOT      $document_root;
+        fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+        fastcgi_param  REQUEST_SCHEME     $scheme;
+        fastcgi_param  HTTPS              $https if_not_empty;
+
+        fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+        fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;
+
+        fastcgi_param  REMOTE_ADDR        $remote_addr;
+        fastcgi_param  REMOTE_PORT        $remote_port;
+        fastcgi_param  SERVER_ADDR        $server_addr;
+        fastcgi_param  SERVER_PORT        $server_port;
+        fastcgi_param  SERVER_NAME        $server_name;
+
+        # PHP only, required if PHP was built with --enable-force-cgi-redirect
+        fastcgi_param  REDIRECT_STATUS    200;
+
+        fastcgi_intercept_errors on;
+        fastcgi_ignore_client_abort off;
+        fastcgi_connect_timeout 60;
+        fastcgi_send_timeout 3600;
+        fastcgi_read_timeout 3600;
+        fastcgi_buffer_size 128k;
+        fastcgi_buffers 4 256k;
+        fastcgi_busy_buffers_size 256k;
+        fastcgi_temp_file_write_size 256k;
+
+          #fastcgi_intercept_errors on;
+        #fastcgi_ignore_client_abort off;
+      mime.types: |-
+        types {
+          text/html                                        html htm shtml;
+          text/css                                         css;
+          text/xml                                         xml;
+          image/gif                                        gif;
+          image/jpeg                                       jpeg jpg;
+          application/javascript                           js;
+          application/atom+xml                             atom;
+          application/rss+xml                              rss;
+
+          text/mathml                                      mml;
+          text/plain                                       txt;
+          text/vnd.sun.j2me.app-descriptor                 jad;
+          text/vnd.wap.wml                                 wml;
+          text/x-component                                 htc;
+
+          image/png                                        png;
+          image/svg+xml                                    svg svgz;
+          image/tiff                                       tif tiff;
+          image/vnd.wap.wbmp                               wbmp;
+          image/webp                                       webp;
+          image/x-icon                                     ico;
+          image/x-jng                                      jng;
+          image/x-ms-bmp                                   bmp;
+
+          application/font-woff                            woff;
+          application/java-archive                         jar war ear;
+          application/json                                 json;
+          application/mac-binhex40                         hqx;
+          application/msword                               doc;
+          application/pdf                                  pdf;
+          application/postscript                           ps eps ai;
+          application/rtf                                  rtf;
+          application/vnd.apple.mpegurl                    m3u8;
+          application/vnd.google-earth.kml+xml             kml;
+          application/vnd.google-earth.kmz                 kmz;
+          application/vnd.ms-excel                         xls;
+          application/vnd.ms-fontobject                    eot;
+          application/vnd.ms-powerpoint                    ppt;
+          application/vnd.oasis.opendocument.graphics      odg;
+          application/vnd.oasis.opendocument.presentation  odp;
+          application/vnd.oasis.opendocument.spreadsheet   ods;
+          application/vnd.oasis.opendocument.text          odt;
+          application/vnd.openxmlformats-officedocument.presentationml.presentation
+                                                          pptx;
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+                                                          xlsx;
+          application/vnd.openxmlformats-officedocument.wordprocessingml.document
+                                                          docx;
+
+          application/vnd.wap.wmlc                         wmlc;
+          application/x-7z-compressed                      7z;
+          application/x-cocoa                              cco;
+          application/x-java-archive-diff                  jardiff;
+          application/x-java-jnlp-file                     jnlp;
+          application/x-makeself                           run;
+          application/x-perl                               pl pm;
+          application/x-pilot                              prc pdb;
+          application/x-rar-compressed                     rar;
+          application/x-redhat-package-manager             rpm;
+          application/x-sea                                sea;
+          application/x-shockwave-flash                    swf;
+          application/x-stuffit                            sit;
+          application/x-tcl                                tcl tk;
+          application/x-x509-ca-cert                       der pem crt;
+          application/x-xpinstall                          xpi;
+          application/xhtml+xml                            xhtml;
+          application/xspf+xml                             xspf;
+          application/zip                                  zip;
+
+          application/octet-stream                         bin exe dll;
+          application/octet-stream                         deb;
+          application/octet-stream                         dmg;
+          application/octet-stream                         iso img;
+          application/octet-stream                         msi msp msm;
+
+          audio/midi                                       mid midi kar;
+          audio/mpeg                                       mp3;
+          audio/ogg                                        ogg;
+          audio/x-m4a                                      m4a;
+          audio/x-realaudio                                ra;
+
+          video/3gpp                                       3gpp 3gp;
+          video/mp2t                                       ts;
+          video/mp4                                        mp4;
+          video/mpeg                                       mpeg mpg;
+          video/quicktime                                  mov;
+          video/webm                                       webm;
+          video/x-flv                                      flv;
+          video/x-m4v                                      m4v;
+          video/x-mng                                      mng;
+          video/x-ms-asf                                   asx asf;
+          video/x-ms-wmv                                   wmv;
+          video/x-msvideo                                  avi;
+        }
+
+
+  # ---------------------------------------------------------------------------
+  # 3. Backend Deployment
+  # ---------------------------------------------------------------------------
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+        build-template: devops_openshift-simple-deploy-template-Deployment
+      annotations:
+        # The container name inside fieldPath MUST match a containers[].name
+        # below. When it does not, the trigger silently matches nothing and the
+        # application image is never injected into the pod.
+        image.openshift.io/triggers: |
+          [
+            {
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${IMAGE_NAME}:${IMAGE_TAG}"
+              },
+              "fieldPath": "spec.template.spec.containers[?(@.name==\"backend-${APPLICATION_NAME}\")].image"
+            }
+          ]
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 3
+      progressDeadlineSeconds: 600
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+      template:
+        metadata:
+          labels:
+            app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+        spec:
+          serviceAccountName: "${SERVICE_ACCOUNT_NAME}"
+          restartPolicy: Always
+          dnsPolicy: ClusterFirst
+          schedulerName: default-scheduler
+          terminationGracePeriodSeconds: 30
+          containers:
+            # -----------------------------------------------------------------
+            # nginx reverse proxy in front of PHP-FPM.
+            # Its configuration still comes from the cluster-managed cm-rp-nginx
+            # ConfigMap rather than from this repository.
+            # -----------------------------------------------------------------
+            - name: nginx-rp
+              image: "${LOCAL_REGISTRY}/openshift/dck_nginx-ubi8:1.26"
+              imagePullPolicy: Always
+              command:
+                - /usr/libexec/s2i/run
+              # application.conf declares a single `listen 8080;`. The previous
+              # Service also published 8181 and the Route did passthrough to it,
+              # but nothing ever listened there.
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - name: appli-sharing
+                  mountPath: /appli/projects/EHA/nginx_1.26/html
+                - name: test-app-nginx-volume-1
+                  mountPath: /var/projects/instance/nginx_1.26/cache/
+                - name: test-app-nginx-volume-2
+                  mountPath: /var/projects/instance/nginx_1.26/run/
+                - name: nginx-conf
+                  mountPath: /appli/projects/instance/nginx/conf
+                - name: app-nginx-crt
+                  mountPath: /var/lib/nginx/ssl
+                - name: client-body
+                  mountPath: /var/projects/instance/nginx_1/run/nginx-client-body
+                - name: client-cache
+                  mountPath: /var/lib/nginx/cache/proxy_cache
+                - name: proxy-temp
+                  mountPath: /opt/nginx/1.26/proxy_temp
+                - name: fastcgi-temp
+                  mountPath: /opt/nginx/1.26/fastcgi_temp
+                - name: uwsgi-temp
+                  mountPath: /opt/nginx/1.26/uwsgi_temp
+                - name: scgi-temp
+                  mountPath: /opt/nginx/1.26/scgi_temp
+                - name: pid-vol
+                  mountPath: /opt/nginx/1.26/logs/
+                  subPath: nginx.pid
+                - name: simple-saml-config
+                  mountPath: /opt/app-root/etc/simplesamlphp/config
+                - name: simplesaml-public
+                  mountPath: /opt/app-root/etc/simplesamlphp/public
+                - name: simplesaml-cache
+                  mountPath: /var/cache/simplesamlphp
+
+            # -----------------------------------------------------------------
+            # PHP-FPM application. Target of the image trigger above.
+            # -----------------------------------------------------------------
+            - name: "backend-${APPLICATION_NAME}"
+              image: "${LOCAL_REGISTRY}/${NAMESPACE_DEPLOY_BACKEND}/${IMAGE_NAME}:${IMAGE_TAG}"
+              imagePullPolicy: Always
+              ports:
+                - containerPort: 9000
+                  protocol: TCP
+              envFrom:
+                - secretRef:
+                    name: "eha-${ENV}-env"
+              env:
+                - name: COMPOSER_INSTALL
+                  value: "true"
+                - name: PHP_INSTANCE
+                  value: EHA
+                - name: PHP_PORT
+                  value: "9000"
+                - name: PHP_EXTENSIONS
+                  value: pdo,pdo_pgsql,apcu,openssl,opcache,intl,zip,sodium,curl
+                - name: PHP_FILE_DIR
+                  value: /opt/app-root/src
+                - name: DEBUG
+                  value: "1"
+              resources:
+                requests:
+                  cpu: "${CPU_REQUEST}"
+                  memory: "${MEMORY_REQUEST}"
+                limits:
+                  cpu: "${CPU_LIMIT}"
+                  memory: "${MEMORY_LIMIT}"
+              securityContext:
+                readOnlyRootFilesystem: false
+              startupProbe:
+                tcpSocket:
+                  port: 9000
+                initialDelaySeconds: 10
+                timeoutSeconds: 1
+                periodSeconds: 5
+                successThreshold: 1
+                failureThreshold: 30
+              readinessProbe:
+                tcpSocket:
+                  port: 9000
+                timeoutSeconds: 3
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - name: log-dir
+                  mountPath: /var/projects/EHA/php-fpm_8.2/log/
+                - name: appli-sharing
+                  mountPath: /appli/projects/EHA/nginx_1.26/html
+                - name: simplesaml-public
+                  mountPath: /opt/app-root/etc/simplesamlphp/src
+                - name: backend-config
+                  mountPath: /appli/projects/EHA/php-fpm_8.2/conf
+                - name: simplesaml-cache
+                  mountPath: /var/cache/simplesamlphp
+                - name: simple-saml-config
+                  mountPath: /opt/app-root/etc/simplesamlphp/config
+
+            # -----------------------------------------------------------------
+            # Log shipping to PADAONE.
+            # -----------------------------------------------------------------
+            - name: filebeat-container
+              image: "${LOCAL_REGISTRY}/openshift/dck_filebeat-ubi:7.9.3"
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: SECRETS_PADAONE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      key: PUSERNAME
+                      name: "padaone-credentials-${ENV}"
+                - name: SECRETS_PADAONE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: PPASSWORD
+                      name: "padaone-credentials-${ENV}"
+              ports:
+                - containerPort: 80
+                  protocol: TCP
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - name: log-dir
+                  mountPath: /var/projects/EHA/php-fpm_8.2/log/
+                - name: filebeat-config-volume
+                  mountPath: /opt/filebeat/config/
+                  readOnly: true
+                - name: filebeat-data-volume
+                  mountPath: /opt/filebeat/data/
+
+            # -----------------------------------------------------------------
+            # haproxy sidecar used for database access.
+            # -----------------------------------------------------------------
+            - name: haproxy-container
+              image: "${LOCAL_REGISTRY}/${NAMESPACE_DEPLOY_BACKEND}/dck_haproxy:2.8.2"
+              imagePullPolicy: Always
+              command:
+                - haproxy
+                - '-f'
+                - /etc/haproxy/haproxy.cfg
+              ports:
+                - containerPort: 5433
+                  protocol: TCP
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - name: haproxy-secret-volume
+                  mountPath: /etc/haproxy/
+                  readOnly: true
+          volumes:
+            - name: appli-tmp
+              emptyDir: {}
+            - name: appli-sharing
+              emptyDir: {}
+            - name: simplesaml-public
+              emptyDir: {}
+            - name: simplesaml-cache
+              emptyDir: {}
+            - name: log-dir
+              emptyDir: {}
+            - name: test-app-nginx-volume-1
+              emptyDir: {}
+            - name: test-app-nginx-volume-2
+              emptyDir: {}
+            - name: client-body
+              emptyDir: {}
+            - name: client-cache
+              emptyDir: {}
+            - name: proxy-temp
+              emptyDir: {}
+            - name: fastcgi-temp
+              emptyDir: {}
+            - name: scgi-temp
+              emptyDir: {}
+            - name: uwsgi-temp
+              emptyDir: {}
+            - name: pid-vol
+              emptyDir: {}
+            - name: filebeat-data-volume
+              emptyDir: {}
+            - name: nginx-conf
+              configMap:
+                name: "cm-nginx-backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+                defaultMode: 420
+            - name: simple-saml-config
+              configMap:
+                name: simple-saml-config
+                defaultMode: 420
+            - name: backend-config
+              configMap:
+                name: "cm-backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+                defaultMode: 420
+            - name: filebeat-config-volume
+              configMap:
+                name: "cm-backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+                defaultMode: 420
+            - name: app-nginx-crt
+              secret:
+                secretName: app-nginx-crt
+                defaultMode: 420
+            - name: haproxy-secret-volume
+              secret:
+                secretName: "eha-${ENV}-haproxy"
+                defaultMode: 440
+
+  # ---------------------------------------------------------------------------
+  # 4. Backend Service
+  # ---------------------------------------------------------------------------
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: "backend-${APPLICATION_NAME}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+    spec:
+      type: ClusterIP
+      sessionAffinity: None
+      ports:
+        - name: http
+          port: 8080
+          targetPort: 8080
+          protocol: TCP
+      selector:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+
+  # ---------------------------------------------------------------------------
+  # 5. Route
+  #
+  # Edge termination: the pod's nginx serves plain HTTP on 8080 only, so
+  # passthrough cannot work. This matches how the live eha-v3-preprod-api.edf.fr
+  # route is configured. The host is a *.caas-ext-p.automation.edf.fr name
+  # covered by the router's default wildcard certificate, so no certificate
+  # material is needed here.
+  # ---------------------------------------------------------------------------
+  - kind: Route
+    apiVersion: route.openshift.io/v1
+    metadata:
+      name: "backend-${APPLICATION_NAME}-${ENV}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+      annotations:
+        haproxy.router.openshift.io/timeout: "${ROUTE_TIMEOUT}"
+    spec:
+      host: "${SERVER_NAME}"
+      to:
+        kind: Service
+        name: "backend-${APPLICATION_NAME}"
+        weight: 100
+      port:
+        targetPort: http
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+      wildcardPolicy: None
