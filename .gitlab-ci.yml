@@ -140,11 +140,23 @@ include:
   # pair pointed at the wrong host entirely.
   #
   # Caveat worth knowing: an auto-generated BuildConfig cannot reference a
-  # secretKeyRef the way the old hand-written template did, so the token is
-  # passed as a build argument and its literal text lands in the BuildConfig
-  # object in the build namespace, readable by anyone with access to it. If that
-  # residual exposure is not acceptable, switch this job to
-  # build_auto_generate: false with a committed build template using secretKeyRef.
+  # secretKeyRef, so the deposit token is passed through build_env and its
+  # literal text lands in the BuildConfig object in the build namespace,
+  # readable by anyone with access to it. If that residual exposure is not
+  # acceptable, switch to build_auto_generate: false with a committed build
+  # template using secretKeyRef.
+  #
+  # STRATEGY: "source", not "docker". The s2i-readme's reference application
+  # (_3b-esa/publique/test-app-php) has no Dockerfile at all; a Dockerfile is
+  # sanctioned only to `dnf install` a missing RPM and must never invoke
+  # /usr/libexec/s2i/assemble itself. Doing so is what produced
+  # "Aucune version majeure n'est specifiee" from phpman. Build steps this
+  # application needs live in .s2i/bin/assemble, which delegates to the image's
+  # own assemble.
+  #
+  # IMAGE: alma8 on PHP 8.4.25, the version the s2i-readme recommends. The ubi8
+  # 8.2 line cannot be used: cyber forbids anything below 8.2.33 and ubi8
+  # publishes no such tag.
   # ---------------------------------------------------------------------------
   - component: $CI_SERVER_FQDN/dvs-components/openshift-build-image/build@0.3.1
     rules:
@@ -159,15 +171,19 @@ include:
       build_auto_generate: true
       build_output_image: "${IMAGE_NAME}:${IMAGE_TAG}"
       build_context_dir: "."
-      build_strategy: "docker"
-      build_dockerfile_path: "Dockerfile_openshift"
-      build_source_image: "openshift/dck_php-fpm-ubi8:8.2.29"
-      build_args:
-        # Base64-encoded deposit token, decoded inside the Dockerfile. Provided
-        # as a GitLab variable by the DevSecOps subscription, not by OpenBao.
-        - "DVS_DEPOSIT_PROJECT_TOKEN=${DVS_DEPOSIT_PROJECT_TOKEN}"
-        - "APP_COMMIT=${CI_COMMIT_SHA}"
-        - "APP_COMMIT_DATE=${CI_COMMIT_TIMESTAMP}"
+      build_strategy: "source"
+      build_source_image: "openshift/dck_php-fpm-alma8:8.4.25-202601"
+      # phpman creates and configures the instance *during* assemble, so these
+      # have to be build-time. The legacy template set them as container env on
+      # the Deployment, which is far too late. PHP_INSTANCE must match the value
+      # in deploy-backend.yml, because it is also used at run time.
+      #
+      # PHP_EXTENSIONS is deliberately absent: build_env is comma-separated, and
+      # the extension list is itself comma-separated, so it cannot be expressed
+      # here without being split into junk variables. The extensions are loaded
+      # by the php.ini at the repository root instead, which the image adopts in
+      # place of its default.
+      build_env: "PHP_INSTANCE=EHA,PHP_PORT=9000,PHP_FILE_DIR=/opt/app-root/src,COMPOSER_INSTALL=true,DVS_DEPOSIT_PROJECT_TOKEN=${DVS_DEPOSIT_PROJECT_TOKEN},APP_COMMIT=${CI_COMMIT_SHA},APP_COMMIT_DATE=${CI_COMMIT_TIMESTAMP}"
       build_cpu_request: "1"
       build_cpu_limit: "2"
       build_memory_request: "2Gi"

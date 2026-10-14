@@ -1,0 +1,10 @@
+# Shell scripts must keep LF endings whatever the checkout platform does.
+# A CRLF shebang makes the kernel look for an interpreter named "/bin/bash\r",
+# which fails in the container with a bare "no such file or directory" -
+# and this workstation has core.autocrlf=true.
+.s2i/bin/* text eol=lf
+*.sh       text eol=lf
+
+# php-fpm reads these; keep them stable across platforms too.
+php.ini    text eol=lf
+EHA.conf   text eol=lf

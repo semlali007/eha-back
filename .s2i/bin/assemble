@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# S2I assemble override for the Achatpedia backend.
+#
+# S2I runs this instead of the image's own assemble when it is present in the
+# application repository. It is the sanctioned place for build steps the image
+# does not provide: the s2i-readme allows extending an image with a Dockerfile
+# only to `dnf install` a missing RPM, and a Dockerfile must never call
+# /usr/libexec/s2i/assemble itself -- doing so is what produced
+# "Aucune version majeure n'est specifiee" from phpman.
+#
+# Everything here runs *before* delegating to the image's assemble, which is
+# what creates and configures the PHP-FPM instance from PHP_INSTANCE,
+# PHP_EXTENSIONS, COMPOSER_INSTALL and friends.
+
+set -euo pipefail
+
+SIMPLESAMLPHP_VERSION="${SIMPLESAMLPHP_VERSION:-2.2.2}"
+DEPOSIT_URL="https://myproject-deposit.edf.fr/artifactory/eha-web-achat-raw/simplesamlphp"
+TARBALL="simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz"
+
+echo "---> Achatpedia backend: custom assemble"
+
+# ---------------------------------------------------------------------------
+# simplesamlphp
+#
+# Installed from the artifact deposit rather than composer: the Deployment
+# mounts /opt/app-root/etc/simplesamlphp/{config,public,src}, which assumes the
+# tarball's layout. composer.json therefore does NOT require simplesamlphp.
+#
+# The deposit is Artifactory and authenticates with a bearer token;
+# DVS_DEPOSIT_PROJECT_TOKEN carries it base64-encoded, so decode first.
+# ---------------------------------------------------------------------------
+if [ -z "${DVS_DEPOSIT_PROJECT_TOKEN:-}" ]; then
+    echo "ERROR: DVS_DEPOSIT_PROJECT_TOKEN is not set."
+    echo "       It is a GitLab variable from the DevSecOps subscription and must"
+    echo "       reach the build via build_env in .gitlab-ci.yml."
+    exit 1
+fi
+
+echo "---> Fetching ${TARBALL} from the deposit"
+DEPOSIT_TOKEN="$(base64 -d <<< "${DVS_DEPOSIT_PROJECT_TOKEN}")"
+curl -fSLk -H "Authorization: Bearer ${DEPOSIT_TOKEN}" \
+     "${DEPOSIT_URL}/${TARBALL}" -o "/tmp/${TARBALL}"
+unset DEPOSIT_TOKEN
+
+DEST="/opt/app-root/src"
+mkdir -p "${DEST}"
+tar xzf "/tmp/${TARBALL}" -C "${DEST}"
+rm -f "/tmp/${TARBALL}"
+mv "${DEST}/simplesamlphp-${SIMPLESAMLPHP_VERSION}" "${DEST}/simplesamlphp"
+
+# OpenShift runs the container with an arbitrary UID in the root group.
+chgrp -R 0 "${DEST}/simplesamlphp"
+chmod -R ug+rwX "${DEST}/simplesamlphp"
+echo "---> simplesamlphp ${SIMPLESAMLPHP_VERSION} installed"
+
+# ---------------------------------------------------------------------------
+# Build metadata, read at runtime by the health endpoint.
+#
+# Written to a file rather than exported as an environment variable: an empty
+# ENV baked into the image would shadow a value supplied later by a ConfigMap.
+# ---------------------------------------------------------------------------
+printf '{"commit":"%s","commit_date":"%s","build_date":"%s"}\n' \
+    "${APP_COMMIT:-${OPENSHIFT_BUILD_COMMIT:-}}" \
+    "${APP_COMMIT_DATE:-}" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > "${DEST}/version.json"
+chgrp 0 "${DEST}/version.json"
+chmod g+rw "${DEST}/version.json"
+
+# ---------------------------------------------------------------------------
+# Hand over to the image. This is what runs phpman, applies the repo-root
+# php.ini and ${PHP_INSTANCE}.conf, and installs the composer dependencies.
+# ---------------------------------------------------------------------------
+echo "---> Delegating to the image assemble"
+exec /usr/libexec/s2i/assemble

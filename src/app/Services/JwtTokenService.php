@@ -55,7 +55,12 @@ class JwtTokenService {
                 cache::storeItemInCache($certObject);
             }
 
-            return JWT::decode($token, JWK::parseKeySet(json_decode($certificate, true)), [self::ALGORITHM]);
+            // firebase/php-jwt v6 removed the third $allowed_algs argument of
+            // JWT::decode(): the Key objects returned by JWK::parseKeySet()
+            // carry their own algorithm. Passing ALGORITHM as parseKeySet()'s
+            // $defaultAlg keeps the RS256 intent explicit and still works when
+            // a JWKS entry omits "alg".
+            return JWT::decode($token, JWK::parseKeySet(json_decode($certificate, true), self::ALGORITHM));
 
             // Catch Exceptions  
         } catch (SignatureInvalidException $e) {
