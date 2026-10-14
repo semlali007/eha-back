@@ -75,7 +75,16 @@ variables:
   # ---------------------------------------------------------------------------
   ENV: "recette"
   SERVICE_ACCOUNT_NAME: "achatpedia-caas-eha"
-  SERVER_NAME: "achatpedia-preprod-back.ext-ns-be-p.caas-ext-p.automation.edf.fr"
+  # The public hostname of the backend. A CNAME points it at
+  # vipcluster.ext-ns-be-p.caas-ext-p.automation.edf.fr (the be-p router VIP),
+  # so the Route below is what makes the router answer for it - until this
+  # Route claimed the host, the router replied 503 "Application is not
+  # available", which is what the frontend logged as
+  #   "GET /api/saml/login/... HTTP/1.1" 503 2515
+  #
+  # Reachable from the frontend pod only: the backend sits behind a firewall
+  # and must never be called directly from a browser.
+  SERVER_NAME: "eha-v2-preprod-api-caas.edf.fr"
   ELASTICSEARCH_HOST: "padaone-preprod.edf.fr:29443"
   ROUTE_TIMEOUT: "10m"
   # Sized to the namespace quota, not to appetite. gabarit-compute allows
@@ -90,6 +99,26 @@ variables:
   MEMORY_LIMIT: "1536Mi"
   LOCAL_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
   NAMESPACE_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
+
+  # --- OpenBao (secret manager) -----------------------------------------------
+  # Namespace == the DevSecOps subscription name, which is the top-level GitLab
+  # group. Authentication is by GitLab JWT, so there is no token to configure.
+  VAULT_SERVER_URL: "https://si-devops-secrets.edf.fr"
+  VAULT_NAMESPACE: "eha-web-achat"
+  VAULT_KV2: "dvs-project"
+  # Use "jwt-ee" instead when the project is hosted on si-devops-gitlab-ee.edf.fr
+  VAULT_JWT_NAME: "jwt"
+  # The secret holds two keys: "certificate" and "key" (PEM).
+  # Path = <GitLab branch>/<Secret Path as entered in MyDevOps>. MyDevOps
+  # prepends the branch, so the value below is branch-scoped: a pipeline on a
+  # branch other than poc-caas cannot read it.
+  #
+  # DISTINCT FROM THE FRONTEND'S. eha-front reads
+  # poc-caas/eha-web-achat/eha-front/preprod/tls, which carries the certificate
+  # for eha-v2-preprod-caas.edf.fr. This one carries the certificate for
+  # eha-v2-preprod-api-caas.edf.fr. They are two different certificates for two
+  # different hostnames and must not be pointed at the same path.
+  VAULT_TLS_SECRET_PATH: "poc-caas/eha-web-achat/eha-back/preprod/tls"
 
 
 include:
@@ -251,6 +280,95 @@ include:
       integ_application_url: "https://${SERVER_NAME}"
 
 # =============================================================================
+# Fetch the backend TLS certificate from OpenBao.
+#
+# Identical in shape to the job in eha-front, reading a different path: this is
+# the certificate for eha-v2-preprod-api-caas.edf.fr, the host the frontend's
+# nginx proxies /api to. Nothing is committed and no CI/CD variable holds the
+# key.
+#
+# Values are base64 on the way out, because a dotenv artifact carries only
+# single-line values and a PEM is multi-line. The deploy job decodes them back
+# into ordinary environment variables, which have no such limit.
+#
+# PREREQUISITE - create the secret in MyDevOps first, otherwise this job fails
+# and the deploy is skipped:
+#     GitLab Path   : eha-web-achat/eha-back
+#     GitLab Branch : poc-caas
+#     Secret Path   : eha-web-achat/eha-back/preprod/tls
+#     Keys          : certificate, key   (PEM)
+# Creating it from MyDevOps rather than the OpenBao UI is what generates the
+# matching policy; a path created by hand returns "permission denied" here.
+# =============================================================================
+get-secret:
+  stage: prepare
+  image: $NAMESPACE_REGISTRY/edf-infra-dvs-catalog/agt_deploy_cloud:latest
+  tags:
+    - gitlab-runner-dvs-srv-int-p
+  rules:
+    - if: '"$[[ inputs.enable_deploy ]]" == "true"'
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: "https://si-devops-secrets.edf.fr"
+  script:
+    # 1. Exchange the GitLab JWT for an OpenBao token.
+    - |
+      REQUEST_TOKEN=$(curl -sS --request POST \
+        --data "{\"jwt\":\"${VAULT_ID_TOKEN}\"}" \
+        "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/auth/${VAULT_JWT_NAME}/login")
+      JWT_TOKEN=$(echo "${REQUEST_TOKEN}" | jq -r '.auth.client_token // empty')
+      if [ -z "${JWT_TOKEN}" ]; then
+        echo "ERROR: OpenBao login failed."
+        echo "${REQUEST_TOKEN}" | jq -r '.errors // .' 2>/dev/null || true
+        exit 1
+      fi
+
+    # 2. Read the certificate and key straight to files - never into a shell
+    #    variable, never echoed.
+    - |
+      umask 077
+      SECRET_REQUEST=$(curl -sS --header "X-Vault-Token: ${JWT_TOKEN}" \
+        "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/${VAULT_KV2}/data/${VAULT_TLS_SECRET_PATH}")
+      echo "${SECRET_REQUEST}" | jq -r '.data.data.certificate // empty' > tls.crt
+      echo "${SECRET_REQUEST}" | jq -r '.data.data.key         // empty' > tls.key
+      if [ ! -s tls.crt ] || [ ! -s tls.key ]; then
+        echo "ERROR: could not read 'certificate'/'key' at ${VAULT_KV2}/${VAULT_TLS_SECRET_PATH}"
+        echo "${SECRET_REQUEST}" | jq -r '.errors // "no errors field - check the path and the key names"'
+        exit 1
+      fi
+      echo "Certificate read from OpenBao:"
+      openssl x509 -in tls.crt -noout -subject -enddate
+
+    # 3. Fail here rather than publishing a certificate that does not match the
+    #    hostname the Route claims. A mismatch would not be a browser warning in
+    #    this case - the frontend's nginx would refuse the upstream handshake
+    #    and every /api call would fail.
+    - |
+      if ! openssl x509 -in tls.crt -noout -checkhost "${SERVER_NAME}" >/dev/null 2>&1; then
+        echo "ERROR: certificate does not match ${SERVER_NAME}"
+        openssl x509 -in tls.crt -noout -subject -ext subjectAltName || true
+        exit 1
+      fi
+      if ! openssl x509 -in tls.crt -noout -checkend 0 >/dev/null 2>&1; then
+        echo "ERROR: certificate has expired"
+        openssl x509 -in tls.crt -noout -enddate
+        exit 1
+      fi
+
+    # 4. Hand them on as base64.
+    - |
+      {
+        echo "TLS_CERTIFICATE_B64=$(base64 -w0 < tls.crt)"
+        echo "TLS_KEY_B64=$(base64 -w0 < tls.key)"
+      } > openbao.env
+  after_script:
+    - shred -u tls.crt tls.key 2>/dev/null || true
+  artifacts:
+    reports:
+      dotenv: openbao.env
+    expire_in: 5 mins
+
+# =============================================================================
 # Deploy job override, following hpd/redis.
 #
 # Supplies KUBE_URL / KUBE_TOKEN from the destination credentials loaded above;
@@ -270,6 +388,8 @@ include:
 # =============================================================================
 .deploy-overrides: &deploy_overrides
   needs:
+    - job: get-secret
+      artifacts: true
     - job: load-caas-credentials-dest
       artifacts: true
     # `needs` replaces stage ordering: without this the deploy could start
@@ -280,6 +400,8 @@ include:
   before_script:
     - export KUBE_URL="${DEST_CAAS_DVS_CAAS_API_URL}"
     - export KUBE_TOKEN="${DEST_CAAS_DVS_CAAS_TOKEN}"
+    - export TLS_CERTIFICATE="$(echo "${TLS_CERTIFICATE_B64}" | base64 -d)"
+    - export TLS_KEY="$(echo "${TLS_KEY_B64}" | base64 -d)"
     - !reference [.os-deploy-base, before_script]
 
 dvs-deploy-achatpedia-backend:integration:

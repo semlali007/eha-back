@@ -49,6 +49,18 @@ parameters:
   - name: LOCAL_REGISTRY
     value: "image-registry.openshift-image-registry.svc:5000"
     required: true
+  - name: TLS_CERTIFICATE
+    description: >-
+      PEM certificate chain for SERVER_NAME. Exported by the deploy job's
+      before_script from the base64 the get-secret job read out of OpenBao -
+      never stored in git and never in a CI/CD variable. This is the *backend*
+      certificate (eha-v2-preprod-api-caas.edf.fr); it is a different
+      certificate from the frontend's and lives at a different OpenBao path.
+    required: true
+  - name: TLS_KEY
+    description: >-
+      PEM private key for SERVER_NAME. Same path as TLS_CERTIFICATE.
+    required: true
   - name: IMAGE_RELEASE_DATE
   - name: IMAGE_RELEASE_NUMBER
 
@@ -725,4 +737,14 @@ objects:
       tls:
         termination: edge
         insecureEdgeTerminationPolicy: Redirect
+        # Inline, from parameters the deploy job exports out of OpenBao, exactly
+        # as the frontend Route does.
+        #
+        # Required here because SERVER_NAME is no longer under
+        # *.ext-ns-be-p.caas-ext-p.automation.edf.fr, so the router's default
+        # wildcard certificate does not cover it. Without a matching
+        # certificate the frontend's nginx refuses the upstream TLS handshake
+        # and /api fails - which is the whole point of this hop.
+        certificate: "${TLS_CERTIFICATE}"
+        key: "${TLS_KEY}"
       wildcardPolicy: None
