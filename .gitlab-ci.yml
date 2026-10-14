@@ -78,10 +78,16 @@ variables:
   SERVER_NAME: "achatpedia-preprod-back.ext-ns-be-p.caas-ext-p.automation.edf.fr"
   ELASTICSEARCH_HOST: "padaone-preprod.edf.fr:29443"
   ROUTE_TIMEOUT: "10m"
-  CPU_REQUEST: "500m"
-  CPU_LIMIT: "1"
-  MEMORY_REQUEST: "2Gi"
-  MEMORY_LIMIT: "2Gi"
+  # Sized to the namespace quota, not to appetite. gabarit-compute allows
+  # limits.cpu=2 for the whole namespace and api-achatpedia-master already holds
+  # 1000m of it, so the whole pod - four containers - must fit inside the
+  # remaining 1000m. Totals: limits.cpu 900m, limits.memory 2112Mi,
+  # requests.cpu 500m. Raise these only after checking `oc describe quota
+  # gabarit-compute`.
+  CPU_REQUEST: "300m"
+  CPU_LIMIT: "500m"
+  MEMORY_REQUEST: "1Gi"
+  MEMORY_LIMIT: "1536Mi"
   LOCAL_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
   NAMESPACE_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
 
