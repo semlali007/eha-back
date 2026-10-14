@@ -2,9 +2,14 @@
 # A CRLF shebang makes the kernel look for an interpreter named "/bin/bash\r",
 # which fails in the container with a bare "no such file or directory" -
 # and this workstation has core.autocrlf=true.
-.s2i/bin/* text eol=lf
-*.sh       text eol=lf
+#
+# A pattern containing a slash is anchored to this file's directory, so this one
+# has to name the real location: the S2I build context is src/, not the
+# repository root.
+src/.s2i/bin/* text eol=lf
+*.sh           text eol=lf
 
-# php-fpm reads these; keep them stable across platforms too.
-php.ini    text eol=lf
-EHA.conf   text eol=lf
+# php-fpm reads these; keep them stable across platforms too. No slash, so these
+# two match at any depth and follow the files if they ever move again.
+php.ini        text eol=lf
+EHA.conf       text eol=lf

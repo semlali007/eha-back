@@ -179,11 +179,11 @@ objects:
 
           server_name _;
 
-          # S2I stages the whole repository into /opt/app-root/src, so the
-          # front controller is at src/public/index.php - hence "src/src".
-          # The old Dockerfile did `COPY ./src /opt/app-root/src/`, which
-          # produced a different layout; this root follows the S2I one.
-          root /opt/app-root/src/src/public;
+          # The S2I build context is src/ (build_context_dir in .gitlab-ci.yml),
+          # so the staged application root is the contents of src/ and the front
+          # controller is at public/index.php. Same layout the old Dockerfile
+          # produced with `COPY ./src /opt/app-root/src/`.
+          root /opt/app-root/src/public;
 
           open_file_cache max=5000 inactive=180;
           open_file_cache_valid 2m;

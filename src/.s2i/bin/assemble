@@ -70,38 +70,15 @@ chgrp 0 "${DEST}/version.json"
 chmod g+rw "${DEST}/version.json"
 
 # ---------------------------------------------------------------------------
-# Hand over to the image. This is what runs phpman, applies the repo-root
-# php.ini and ${PHP_INSTANCE}.conf, and installs the composer dependencies.
+# Hand over to the image. This is what runs phpman, applies the php.ini and
+# ${PHP_INSTANCE}.conf sitting next to this directory, and installs the composer
+# dependencies.
 #
-# Run it rather than exec it: there is one fix-up to apply afterwards that
-# depends on what composer produces.
+# The build context is src/ (see build_context_dir in .gitlab-ci.yml), so the
+# staged application root is src/ itself: composer.json, public/, core/, app/
+# and the vendor/ composer creates are all direct children of ${DEST}. That is
+# the layout `require '../vendor/autoload.php'` and the psr-4 map "core/" were
+# written against, so nothing needs relocating afterwards and this can exec.
 # ---------------------------------------------------------------------------
 echo "---> Running the image assemble"
-/usr/libexec/s2i/assemble
-
-# ---------------------------------------------------------------------------
-# vendor/ shim
-#
-# src/public/index.php does `require '../vendor/autoload.php'`, i.e. it expects
-# vendor/ as a sibling of public/ inside src/. That held under the old
-# Dockerfile, which did `COPY ./src /opt/app-root/src/` and so hoisted the
-# contents of src/ to the application root.
-#
-# S2I stages the *whole repository*, so composer.json - and therefore vendor/ -
-# sits at /opt/app-root/src/vendor while index.php looks in
-# /opt/app-root/src/src/vendor. Without this the application dies on its first
-# line with "Failed opening required '../vendor/autoload.php'".
-#
-# A symlink rather than a move: composer's autoloader records absolute paths at
-# install time, so relocating vendor/ afterwards breaks it. The other relative
-# includes in index.php (../app/Config/...) already resolve correctly, because
-# they point inside src/ which is staged intact.
-# ---------------------------------------------------------------------------
-if [ -d "${DEST}/vendor" ] && [ -d "${DEST}/src" ]; then
-    ln -sfn ../vendor "${DEST}/src/vendor"
-    echo "---> linked ${DEST}/src/vendor -> ../vendor"
-else
-    echo "ERROR: expected ${DEST}/vendor and ${DEST}/src after assemble."
-    ls -la "${DEST}" || true
-    exit 1
-fi
+exec /usr/libexec/s2i/assemble

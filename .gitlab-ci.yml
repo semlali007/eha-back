@@ -176,7 +176,24 @@ include:
       build_name: "dck-achatpedia-back"
       build_auto_generate: true
       build_output_image: "${IMAGE_NAME}:${IMAGE_TAG}"
-      build_context_dir: "."
+      # CONTEXT DIR: "src", not ".". src/ is the PHP project root and always has
+      # been -- composer.json, phpunit.xml and the three entry points
+      # (public/index.php, bin/console, tests/bootstrap.php) all live there and
+      # all resolve vendor/ as a sibling of public/. The old Dockerfile matched
+      # that with `COPY ./src /opt/app-root/src/`, which hoisted the contents of
+      # src/ to the application root.
+      #
+      # Staging the repository root instead put every one of those paths off by
+      # one directory: composer's psr-4 map pointed at a core/ that did not
+      # exist, so the application died with
+      #   Uncaught Error: Class "Core\Util\DotEnv" not found
+      # after an earlier identical failure on ../vendor/autoload.php. Pointing
+      # the context at src/ reproduces the layout the application expects
+      # instead of patching the paths one pipeline run at a time.
+      #
+      # Consequences: .s2i/bin/assemble, php.ini and ${PHP_INSTANCE}.conf are all
+      # resolved relative to the context dir, so they live in src/ too.
+      build_context_dir: "src"
       build_strategy: "source"
       build_source_image: "openshift/dck_php-fpm-alma8:8.4.25-202601"
       # phpman creates and configures the instance *during* assemble, so these
