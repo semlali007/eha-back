@@ -393,7 +393,7 @@ get-secret:
       for k in DB_HOST DB_PORT DB_NAME DB_SCHEMA DB_USER DB_PWD \
                SAML_BASE_URL SAML_BASE_URL_PATH SAML_ENTITY_ID \
                SAML_IDP IDP_NUMBER SAML_IDP_BASE_URL \
-               SAML_SP_META_ID SAML_SP_BASE_URL SAML_KEYS SAML_SECRET_SALT \
+               SAML_KEYS SAML_SECRET_SALT \
                SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
         if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
           MISSING="${MISSING} ${k}"
@@ -402,10 +402,30 @@ get-secret:
       if [ -n "${MISSING}" ]; then
         echo "ERROR: missing or empty at ${VAULT_APP_SECRET_PATH}:"
         for k in ${MISSING}; do echo "  - ${k}"; done
-        echo "Compare against the list printed above - a key present but empty fails the same way."
+        echo
+        echo "Keys are named after the APPLICATION's environment variables, not"
+        echo "after the Ansible variables the values come from - the whole secret"
+        echo "is consumed as container environment. Compare with the list above;"
+        echo "a key present but empty fails the same way as one that is absent."
         exit 1
       fi
-      echo "All 19 required keys present."
+      echo "All 17 required keys present."
+
+      # SAML_SP_META_ID and SAML_SP_BASE_URL are optional on purpose. They feed
+      # only saml20-sp-remote.php, which describes a *remote SP* and is read
+      # solely when simplesamlphp acts as an IdP - and config.php sets
+      # 'enable.saml20-idp' => false, so this deployment never consults it.
+      #
+      # They also describe the Gardian websso *proxy*, which this project
+      # should not use: the proxy cannot do MFA over the internet, which is
+      # why the live path goes to the non-proxy IdP via IDP_NUMBER=idp11-*.
+      # Requiring them would mean maintaining configuration that is both
+      # unused and pointed at the wrong front door.
+      for k in SAML_SP_META_ID SAML_SP_BASE_URL; do
+        if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
+          echo "note: optional key '$k' not set - unused while enable.saml20-idp is false"
+        fi
+      done
 
     # 5. The SAML base URLs must be the *frontend* origin: the browser only
     #    ever talks to the frontend, which proxies /api to this backend, so
@@ -470,7 +490,10 @@ get-secret:
     - |
       set +x
       APP_JSON=$(echo "${APP_REQUEST}" | jq -c --arg k "${SAML_KEYS_DER}" '
-        .data.data | .SAML_KEYS = $k')
+        .data.data
+        | .SAML_KEYS = $k
+        | .SAML_SP_META_ID //= ""
+        | .SAML_SP_BASE_URL //= ""')
       {
         echo "TLS_CERTIFICATE_B64=$(base64 -w0 < tls.crt)"
         echo "TLS_KEY_B64=$(base64 -w0 < tls.key)"

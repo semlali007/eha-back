@@ -96,12 +96,21 @@ parameters:
   - name: SAML_IDP_BASE_URL
     description: "Gardian webSSO base URL"
     required: true
+  # Optional, and deliberately so. These feed only saml20-sp-remote.php, which
+  # describes a *remote SP* and is read solely when simplesamlphp acts as an
+  # IdP - config.php sets 'enable.saml20-idp' => false, so this deployment
+  # never consults it.
+  #
+  # They also describe the Gardian websso *proxy*, which this project should
+  # not use: the proxy cannot do MFA over the internet. The live path goes to
+  # the non-proxy IdP (SAML_IDP / SAML_IDP_BASE_URL) with IDP_NUMBER=idp11-*,
+  # which is what makes MFA work.
   - name: SAML_SP_META_ID
-    description: "Gardian proxy SP entity ID"
-    required: true
+    description: "Gardian proxy SP entity ID. Unused while enable.saml20-idp is false."
+    value: ""
   - name: SAML_SP_BASE_URL
-    description: "Gardian proxy webSSO base URL"
-    required: true
+    description: "Gardian proxy webSSO base URL. Unused while enable.saml20-idp is false."
+    value: ""
   - name: SAML_KEYS
     description: >-
       The IdP's signing certificate, base64 DER on a single line (no PEM
