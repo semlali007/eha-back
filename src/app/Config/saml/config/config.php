@@ -2,12 +2,6 @@
 require_once(__DIR__ . '/../../../../app/Config/saml/include.php');
 $metadataDir = __DIR__ . '/../../../../app/Config/saml/metadata';
 
-// simplesamlphp 2.x made the Utils\* classes instantiable; in 1.x they were
-// static. Calling canSetSameSiteNone() statically now fails with
-// "Non-static method ... cannot be called statically". Built once here rather
-// than inline at each use, so there is a single place to adjust.
-$httpUtils = new \SimpleSAML\Utils\HTTP();
-
 $config = [
 	'baseurlpath' => getenv('SAML_BASE_URL_PATH'),
     'baseURL' => getenv('SAML_BASE_URL'),
@@ -67,7 +61,21 @@ $config = [
     'session.cookie.path' => '/',
     'session.cookie.domain' => null,
     'session.cookie.secure' => true,
-    'session.cookie.samesite' => $httpUtils->canSetSameSiteNone() ? 'None' : null,
+    // Literal 'None', not a call to simplesamlphp's canSetSameSiteNone().
+    //
+    // This file is loaded *by* SimpleSAML\Configuration, so calling into
+    // simplesamlphp while it is being read re-enters Configuration and the
+    // worker dies of stack exhaustion - nginx reports 502 and PHP never gets
+    // to render an error. The 1.x code called it statically, which 2.x
+    // rejects outright; converting that to an instance call turned a visible
+    // exception into a silent crash.
+    //
+    // The helper only ever existed to avoid emitting SameSite=None to the
+    // browsers that mishandled it (Chrome 51-66, iOS 12 / macOS 10.14 Safari,
+    // older UC Browser). All are long retired. The cookies are Secure and the
+    // IdP POSTs its response cross-site, which is exactly the case SameSite
+    // =None is for, so the answer is unconditionally 'None'.
+    'session.cookie.samesite' => 'None',
     'session.phpsession.cookiename' => 'SimpleSAML',
     'session.phpsession.savepath' => null,
     'session.phpsession.httponly' => true,
@@ -109,7 +117,7 @@ $config = [
     'language.cookie.secure' => true,
     'language.cookie.httponly' => false,
     'language.cookie.lifetime' => (60 * 60 * 24 * 900),
-    'language.cookie.samesite' => $httpUtils->canSetSameSiteNone() ? 'None' : null,
+    'language.cookie.samesite' => 'None',
     'attributes.extradictionary' => null,
     'theme.use' => 'default',
     'template.auto_reload' => false,
