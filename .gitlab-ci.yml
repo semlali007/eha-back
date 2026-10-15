@@ -385,11 +385,20 @@ get-secret:
       for k in DB_HOST DB_PORT DB_NAME DB_SCHEMA DB_USER DB_PWD \
                SAML_BASE_URL SAML_BASE_URL_PATH SAML_ENTITY_ID \
                SAML_IDP IDP_NUMBER SAML_IDP_BASE_URL \
-               SAML_SP_META_ID SAML_SP_BASE_URL SAML_KEYS SAML_SECRET_SALT \
-               SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
+               SAML_SP_META_ID SAML_SP_BASE_URL SAML_KEYS SAML_SECRET_SALT; do
         if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
           echo "ERROR: key '$k' missing or empty at ${VAULT_APP_SECRET_PATH}"
           exit 1
+        fi
+      done
+      # Not yet provisioned, and nothing in the login path needs them: SMTP is
+      # inert in preprod (SMTP_HOST is the string "NULL", ENABLE_CUSTOM_CONF is
+      # false) and the HLK calls fail on their own without a password either
+      # way. Warn rather than fail, and default to empty so the Secret always
+      # has the key.
+      for k in SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
+        if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
+          echo "WARNING: optional key '$k' not set at ${VAULT_APP_SECRET_PATH} - deploying empty"
         fi
       done
       echo "Application secrets read from OpenBao:"
@@ -418,21 +427,57 @@ get-secret:
             exit 1 ;;
         esac
       done
-      # A PEM header here is the common paste mistake: the metadata files use
-      # the value verbatim as X509Certificate, which must be bare base64 DER.
-      if echo "${APP_REQUEST}" | jq -r '.data.data.SAML_KEYS' | grep -q "BEGIN CERTIFICATE"; then
-        echo "ERROR: SAML_KEYS must be bare base64 (no -----BEGIN CERTIFICATE----- header)"
-        exit 1
-      fi
       echo "SAML base URLs verified against ${FRONTEND_DNS_NAME}"
 
-    # 6. Hand them on as base64.
+    # 5b. Normalise SAML_KEYS.
+    #
+    #    simplesamlphp's metadata files use the value verbatim as
+    #    X509Certificate, which must be bare base64 DER on one line. The secret
+    #    is held in PEM instead, because PEM is what every tool emits and what
+    #    a human can paste back without reformatting - so strip the armour here
+    #    rather than make the stored value awkward to maintain.
+    #
+    #    Accepts either form: stripping a value that is already bare base64 is
+    #    a no-op.
     - |
       set +x
+      SAML_KEYS_DER=$(echo "${APP_REQUEST}" | jq -r '.data.data.SAML_KEYS' \
+        | sed -e '/-----BEGIN/d' -e '/-----END/d' | tr -d ' \t\r\n')
+      if [ -z "${SAML_KEYS_DER}" ]; then
+        echo "ERROR: SAML_KEYS is empty after stripping the PEM armour"
+        exit 1
+      fi
+      # Prove it is a certificate before shipping it: a truncated paste would
+      # otherwise surface as an opaque signature-validation failure at login.
+      printf -- '-----BEGIN CERTIFICATE-----\n%s\n-----END CERTIFICATE-----\n' \
+        "$(echo "${SAML_KEYS_DER}" | fold -w 64)" > idp.crt
+      if ! openssl x509 -in idp.crt -noout -subject -enddate; then
+        echo "ERROR: SAML_KEYS is not a parseable X.509 certificate"
+        exit 1
+      fi
+      if ! openssl x509 -in idp.crt -noout -checkend 0 >/dev/null 2>&1; then
+        echo "WARNING: the IdP certificate in SAML_KEYS has expired - SSO will fail"
+      fi
+      rm -f idp.crt
+      echo "SAML_KEYS normalised to bare base64 (${#SAML_KEYS_DER} chars)"
+
+    # 6. Hand them on as base64.
+    #
+    #    SAML_KEYS is replaced with the normalised form, and the three
+    #    not-yet-provisioned keys are defaulted to empty so the Secret always
+    #    carries every key the template references.
+    - |
+      set +x
+      APP_JSON=$(echo "${APP_REQUEST}" | jq -c --arg k "${SAML_KEYS_DER}" '
+        .data.data
+        | .SAML_KEYS = $k
+        | .SMTP_PWD //= ""
+        | .HLK_API_PASS //= ""
+        | .HLK_API_PASS_V2 //= ""')
       {
         echo "TLS_CERTIFICATE_B64=$(base64 -w0 < tls.crt)"
         echo "TLS_KEY_B64=$(base64 -w0 < tls.key)"
-        echo "APP_SECRETS_B64=$(echo "${APP_REQUEST}" | jq -c '.data.data' | base64 -w0)"
+        echo "APP_SECRETS_B64=$(printf '%s' "${APP_JSON}" | base64 -w0)"
       } > openbao.env
   after_script:
     - shred -u tls.crt tls.key 2>/dev/null || true

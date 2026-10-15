@@ -112,12 +112,17 @@ parameters:
       simplesamlphp's secretsalt. Not optional: simplesamlphp refuses to start
       while it is left at the stock 'defaultsecretsalt' value.
     required: true
+  # Not yet provisioned in OpenBao, and nothing in the login path needs them:
+  # SMTP is inert in preprod (SMTP_HOST is the string "NULL",
+  # ENABLE_CUSTOM_CONF is false) and the HLK calls fail without a password
+  # either way. get-secret warns when they are absent and defaults them to
+  # empty. Make them required once they exist.
   - name: SMTP_PWD
-    required: true
+    value: ""
   - name: HLK_API_PASS
-    required: true
+    value: ""
   - name: HLK_API_PASS_V2
-    required: true
+    value: ""
 
   - name: TLS_CERTIFICATE
     description: >-
