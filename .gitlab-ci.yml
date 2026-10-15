@@ -383,7 +383,10 @@ get-secret:
       # Fail loudly on a missing key rather than deploying an empty value that
       # only shows up later as a database connection refused.
       for k in DB_HOST DB_PORT DB_NAME DB_SCHEMA DB_USER DB_PWD \
-               SAML_SECRET_SALT SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
+               SAML_BASE_URL SAML_BASE_URL_PATH SAML_ENTITY_ID \
+               SAML_IDP IDP_NUMBER SAML_IDP_BASE_URL \
+               SAML_SP_META_ID SAML_SP_BASE_URL SAML_KEYS SAML_SECRET_SALT \
+               SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
         if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
           echo "ERROR: key '$k' missing or empty at ${VAULT_APP_SECRET_PATH}"
           exit 1
@@ -392,7 +395,38 @@ get-secret:
       echo "Application secrets read from OpenBao:"
       echo "${APP_REQUEST}" | jq -r '.data.data | keys[] | "  - \(.)"'
 
-    # 5. Hand them on as base64.
+    # 5. The SAML base URLs must be the *frontend* origin: the browser only
+    #    ever talks to the frontend, which proxies /api to this backend, so
+    #    every URL the IdP redirects it to has to be a frontend URL. Pointing
+    #    any of them at the backend host produces a login loop that looks like
+    #    an IdP fault.
+    #
+    #    Checked here because these values moved from the committed template
+    #    into OpenBao: that buys per-environment control, but it also takes
+    #    them out of code review, so the invariant has to be enforced rather
+    #    than assumed.
+    - |
+      set +x
+      for k in SAML_BASE_URL SAML_BASE_URL_PATH SAML_ENTITY_ID; do
+        v=$(echo "${APP_REQUEST}" | jq -r --arg k "$k" '.data.data[$k]')
+        case "$v" in
+          "https://${FRONTEND_DNS_NAME}"|"https://${FRONTEND_DNS_NAME}/"*) ;;
+          *)
+            echo "ERROR: $k is '$v'"
+            echo "       It must start with https://${FRONTEND_DNS_NAME} (the frontend)."
+            echo "       The backend is firewalled and is never addressed by the browser."
+            exit 1 ;;
+        esac
+      done
+      # A PEM header here is the common paste mistake: the metadata files use
+      # the value verbatim as X509Certificate, which must be bare base64 DER.
+      if echo "${APP_REQUEST}" | jq -r '.data.data.SAML_KEYS' | grep -q "BEGIN CERTIFICATE"; then
+        echo "ERROR: SAML_KEYS must be bare base64 (no -----BEGIN CERTIFICATE----- header)"
+        exit 1
+      fi
+      echo "SAML base URLs verified against ${FRONTEND_DNS_NAME}"
+
+    # 6. Hand them on as base64.
     - |
       set +x
       {

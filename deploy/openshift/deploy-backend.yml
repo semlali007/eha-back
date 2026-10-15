@@ -71,6 +71,42 @@ parameters:
     required: true
   - name: DB_PWD
     required: true
+  # The SAML federation, held in OpenBao as one unit. Not all of these are
+  # secret - entity IDs, endpoints and the IdP's public certificate appear in
+  # published metadata - but keeping them together means the federation is
+  # described in one place and repointed per environment without a commit.
+  - name: SAML_BASE_URL
+    description: "Frontend origin, e.g. https://eha-v2-preprod-caas.edf.fr"
+    required: true
+  - name: SAML_BASE_URL_PATH
+    description: "simplesamlphp baseurlpath, under the frontend's /api proxy"
+    required: true
+  - name: SAML_ENTITY_ID
+    description: "This SP's entity ID"
+    required: true
+  - name: SAML_IDP
+    description: "IdP entity ID, e.g. idp://REC-STANDARD.MULTIAUTH-SECURINTERNET/20290701"
+    required: true
+  - name: IDP_NUMBER
+    description: >-
+      Gardian metaAlias suffix, e.g. idp11-20290701. Unset, the application
+      falls back to the retired 'idp3-20240420' and every SSO endpoint URL is
+      wrong - which is silent until login fails.
+    required: true
+  - name: SAML_IDP_BASE_URL
+    description: "Gardian webSSO base URL"
+    required: true
+  - name: SAML_SP_META_ID
+    description: "Gardian proxy SP entity ID"
+    required: true
+  - name: SAML_SP_BASE_URL
+    description: "Gardian proxy webSSO base URL"
+    required: true
+  - name: SAML_KEYS
+    description: >-
+      The IdP's signing certificate, base64 DER on a single line (no PEM
+      header). Used as X509Certificate in both metadata files.
+    required: true
   - name: SAML_SECRET_SALT
     description: >-
       simplesamlphp's secretsalt. Not optional: simplesamlphp refuses to start
@@ -799,36 +835,18 @@ objects:
       SHOW_PRIVATE_DOC: "1"
 
       # --- webSSO / SAML ----------------------------------------------------
-      # From group_vars/all.yml (GARDIAN_*) on branch ft_preprod_config.
-      # SAML_BASE_URL* are the *frontend* origin: the browser only ever talks to
-      # the frontend, which proxies /api to this backend, so every URL the IdP
-      # redirects the browser to must be a frontend URL.
-      SAML_BASE_URL: "https://${FRONTEND_DNS_NAME}"
-      SAML_BASE_URL_PATH: "https://${FRONTEND_DNS_NAME}/api/simplesaml/"
-      SAML_ENTITY_ID: "https://${FRONTEND_DNS_NAME}/api/simplesaml/module.php/saml/sp/metadata.php/default-sp"
-
-      # IdP (GARDIAN_SAML_IDP / GARDIAN_IDP_NUMBER / GARDIAN_WEBSSO_BASE_URL).
-      # IDP_NUMBER had no .env entry at all, and saml20-idp-remote.php falls
-      # back to 'idp3-20240420' when it is unset - a retired IdP, so every
-      # SingleSignOnService URL pointed at the wrong endpoint.
-      SAML_IDP: "idp://REC-STANDARD.MULTIAUTH-SECURINTERNET/20290701"
-      IDP_NUMBER: "idp11-20290701"
-      SAML_IDP_BASE_URL: "https://rec-websso-gardian.myelectricnetwork.com:443"
-
-      # Gardian's proxy SP (GARDIAN_SAML_IDP_PROXY / GARDIAN_WEBSSO_BASE_URL_PROXY).
-      SAML_SP_META_ID: "idp://REC-IDPPROXY.GARDIAN/20290701"
-      SAML_SP_BASE_URL: "https://rec-proxywebsso-gardian.myelectricnetwork.com:443"
-
-      # The IdP's signing certificate (GARDIAN_CERTIFICATE), used as
-      # X509Certificate in both metadata files. A public certificate, not a
-      # secret: CN=recette-idp-gardian.edf.fr, expires 2029-07-01.
-      SAML_KEYS: "MIIFlzCCA3+gAwIBAgIDAKCbMA0GCSqGSIb3DQEBCwUAMGkxCzAJBgNVBAYTAkZSMR4wHAYDVQQKDBVFTEVDVFJJQ0lURSBERSBGUkFOQ0UxFzAVBgNVBAsMDjAwMDIgNTUyMDgxMzE3MSEwHwYDVQQDDBhBQyBJTkZSQVNUUlVDVFVSRSBFREYgRzIwHhcNMjYwNzA4MTMzMDAwWhcNMjkwNzAxMTEzNDQyWjBrMQswCQYDVQQGEwJGUjEeMBwGA1UECgwVRUxFQ1RSSUNJVEUgREUgRlJBTkNFMRcwFQYDVQQLDA4wMDAyIDU1MjA4MTMxNzEjMCEGA1UEAwwacmVjZXR0ZS1pZHAtZ2FyZGlhbi5lZGYuZnIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDDa8hYWbw0MpKqgUgFhgZI3Vhry5Y/CPtFMAURR4y9pim6EUDLxGpV6+qWHvz9oBNmG/xGQPJ6cuBkVjeAdxXbaWofj4+mA56KfX13g9nZxjuB2YTcAXFqkw65aMgTWkbWMNBKPLYmDCnRVM+NwrUo3Fdp6WTzFVqI0F89uIQ0hp17+gSNRFWYnX3ONAsd2/tMx1+sCuyvqkW7vDJ5qXhnYOoj+Tp5fkNMJtcSfbd0ooT6+lyLedXgjwfT3eTeb8o15W2IjPoM+5fAEtFMHCEXbU/7JoDZj6KT+Ypec05Jlqta2nnhMCfA/dKT4YcXB1kaadburEyYZOaw9XTvHlhVAgMBAAGjggFEMIIBQDAdBgNVHQ4EFgQUyZ91HZF9yrNLNAEEXwYml0bWryYwHwYDVR0jBBgwFoAUiRNuEs1LbUt+mq4edVGgGjchqywwXwYDVR0gBFgwVjBUBg4qgXoBgXAAAQECARsBATBCMEAGCCsGAQUFBwIBFjRodHRwOi8vcGMtZWRmLmVkZi5mci9wYy9hY19pbmZyYXN0cnVjdHVyZV9lZGZfZzIucGRmMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDATAOBgNVHQ8BAf8EBAMCBaAwJQYDVR0RBB4wHIIacmVjZXR0ZS1pZHAtZ2FyZGlhbi5lZGYuZnIwRwYDVR0fBEAwPjA8oDqgOIY2aHR0cDovL2NybC1lZGYuZWRmLmZyL2NybC9hY19pbmZyYXN0cnVjdHVyZV9lZGZfZzIuY3JsMA0GCSqGSIb3DQEBCwUAA4ICAQCxoqkKBYdh/VTN6cyFZed2Kyn200KGc7p7RapqNnDzagYup4hL+bt+1kB3yooyW8nB1qTaXhVesswzC9Ya3q1RzLxwLiqc1rFXAheH5eG+FFFFhuSlaTCE5P2Mb67XS8X0WkwzOimCwgiq7V75wax7B2vlPHlGZOKBleoVNa/U714vW44BSl9lMajDHv3CtBP7a8SYCuMoWe9oDocxBo/+YjVV3yK3Pi5O14gVm9gnr7nBfiN6sSjm+8DPOvrqPqAuXT03nH5WH6yUzAuEZXH8m3iUzcPaw3x9EutOcQcD/YwqGGvgwfFLdwPNcUc4po7RPA2HzSqlh6h6yamylBY3LkZZ3HHI9vwrXDJogm0bulFHNNDKrfG+PBeAxc+FckwYSXCxCzI+w70yCjwGuFpZwNjd8dWD10UZj08IeuDU0xgy8NjexIgxP6NIunZQCnR7Egk7oGxdOJexKTke/KYDykpcPIdeFUrxEGwsijzfybF44plZiDgXyzEU855DMLbTKOGGK/RBM0G9aqfH4aYGtoypz0YBpbc8DmOv8oaWDHoSw4ZIR6z6GKC8225zaf4qT067aIGsGzcZyBYyft4Ns59Oq/tpYIHUutPyDLqGsgtuQydKIUNyIl772kfsggmJ8Hp7j6svwt8//xft2oUd57SJQXBWxP4mCSGyurxiJQ=="
-
-      # simplesamlphp loads its configuration from this directory. The app ships
-      # its own env-driven config under src/app/Config/saml/config; left unset,
-      # simplesamlphp silently used the stock example config bundled in the
-      # tarball instead - the one whose entityID is https://myapp.example.org/
-      # and whose idp is null.
+      # The federation configuration itself now lives in OpenBao with the salt,
+      # so it is held in one place and changed per environment without a commit
+      # (SAML_BASE_URL, SAML_BASE_URL_PATH, SAML_ENTITY_ID, SAML_IDP,
+      # IDP_NUMBER, SAML_IDP_BASE_URL, SAML_SP_META_ID, SAML_SP_BASE_URL,
+      # SAML_KEYS). See the Secret below.
+      #
+      # SIMPLESAMLPHP_CONFIG_DIR stays here deliberately: it is a path inside
+      # the image, not a property of the environment, so it tracks the image
+      # layout rather than the federation. Left unset, simplesamlphp silently
+      # loads the stock example config bundled in its tarball - the one whose
+      # entityID is https://myapp.example.org/ and whose idp is null - instead
+      # of the app's own env-driven config.
       SIMPLESAMLPHP_CONFIG_DIR: "/opt/app-root/src/app/Config/saml/config"
 
       # --- webSSO / OIDC ----------------------------------------------------
@@ -878,13 +896,38 @@ objects:
       labels:
         app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
     stringData:
+      # --- database ---------------------------------------------------------
       DB_HOST: "${DB_HOST}"
       DB_PORT: "${DB_PORT}"
       DB_NAME: "${DB_NAME}"
       DB_SCHEMA: "${DB_SCHEMA}"
       DB_USER: "${DB_USER}"
       DB_PWD: "${DB_PWD}"
+
+      # --- webSSO / SAML ----------------------------------------------------
+      # The whole federation configuration, not only the salt. Several of these
+      # are not secrets in themselves - entity IDs, endpoint URLs and the IdP's
+      # public certificate are all published in SAML metadata - but they are
+      # held together so the federation is described in exactly one place and
+      # can be repointed per environment without a commit.
+      #
+      # SAML_BASE_URL* are the *frontend* origin: the browser only ever talks
+      # to the frontend, which proxies /api here, so every URL the IdP
+      # redirects the browser to must be a frontend URL. get-secret enforces
+      # that against FRONTEND_DNS_NAME, because moving these out of git also
+      # moved them out of review.
+      SAML_BASE_URL: "${SAML_BASE_URL}"
+      SAML_BASE_URL_PATH: "${SAML_BASE_URL_PATH}"
+      SAML_ENTITY_ID: "${SAML_ENTITY_ID}"
+      SAML_IDP: "${SAML_IDP}"
+      IDP_NUMBER: "${IDP_NUMBER}"
+      SAML_IDP_BASE_URL: "${SAML_IDP_BASE_URL}"
+      SAML_SP_META_ID: "${SAML_SP_META_ID}"
+      SAML_SP_BASE_URL: "${SAML_SP_BASE_URL}"
+      SAML_KEYS: "${SAML_KEYS}"
       SAML_SECRET_SALT: "${SAML_SECRET_SALT}"
+
+      # --- mail and HLK -----------------------------------------------------
       SMTP_PWD: "${SMTP_PWD}"
       HLK_API_PASS: "${HLK_API_PASS}"
       HLK_API_PASS_V2: "${HLK_API_PASS_V2}"
