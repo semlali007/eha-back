@@ -721,7 +721,27 @@ objects:
   - kind: Route
     apiVersion: route.openshift.io/v1
     metadata:
-      name: "backend-${APPLICATION_NAME}-${ENV}"
+      # Named after IMAGE_TAG like every other object in this template. The
+      # Route was the one exception, carrying ENV ("recette") while the
+      # Deployment and the ConfigMaps all carry the branch slug.
+      #
+      # Not cosmetic: spec.host is effectively immutable. The `custom-host`
+      # authorizer grants the right to *create* a Route with a chosen host, but
+      # an update that changes the host of an existing Route is refused:
+      #
+      #   The Route "backend-achatpedia-recette" is invalid: spec.host:
+      #   Invalid value: "eha-v2-preprod-api-caas.edf.fr":
+      #   you do not have permission to set the host field of the route
+      #
+      # That is not an RBAC gap - `oc auth can-i update routes/custom-host`
+      # answers yes, and a dry-run *create* of the same host succeeds. So
+      # `oc apply` can never move a Route to a new hostname, and the deploy
+      # fails every run until the object is recreated.
+      #
+      # Renaming makes this run create a new Route instead of patching the old
+      # one, which is allowed. The previous Route keeps serving the old host
+      # until it is deleted by hand, so /api has no downtime during the switch.
+      name: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
       labels:
         app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
       annotations:
