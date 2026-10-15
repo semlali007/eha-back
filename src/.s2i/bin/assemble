@@ -15,7 +15,10 @@
 
 set -euo pipefail
 
-SIMPLESAMLPHP_VERSION="${SIMPLESAMLPHP_VERSION:-2.2.2}"
+# 2.5.3.1, not 2.2.2. The image is PHP 8.4 (the version the CSR requires) and
+# 2.2.x predates it - 2.2.2 targets 8.0 to 8.3. 2.3 is the first release to
+# support 8.4.
+SIMPLESAMLPHP_VERSION="${SIMPLESAMLPHP_VERSION:-2.5.3.1}"
 DEPOSIT_URL="https://myproject-deposit.edf.fr/artifactory/eha-web-achat-raw/simplesamlphp"
 TARBALL="simplesamlphp-${SIMPLESAMLPHP_VERSION}-full.tar.gz"
 
@@ -48,7 +51,31 @@ DEST="/opt/app-root/src"
 mkdir -p "${DEST}"
 tar xzf "/tmp/${TARBALL}" -C "${DEST}"
 rm -f "/tmp/${TARBALL}"
-mv "${DEST}/simplesamlphp-${SIMPLESAMLPHP_VERSION}" "${DEST}/simplesamlphp"
+
+# The top-level directory is normally simplesamlphp-<version>, but the version
+# in the filename and the one in the directory need not agree - 2.5.3.1 is a
+# four-component version, which upstream does not use - so fall back to
+# whatever single simplesamlphp-* directory appeared rather than assuming.
+INNER="${DEST}/simplesamlphp-${SIMPLESAMLPHP_VERSION}"
+if [ ! -d "${INNER}" ]; then
+    INNER=$(find "${DEST}" -mindepth 1 -maxdepth 1 -type d -name 'simplesamlphp-*' | head -1)
+fi
+if [ ! -d "${INNER}" ]; then
+    echo "ERROR: ${TARBALL} did not unpack to a simplesamlphp-* directory under ${DEST}"
+    ls -la "${DEST}" | head -20
+    exit 1
+fi
+mv "${INNER}" "${DEST}/simplesamlphp"
+
+# Fail here rather than at the first login: app/Config/simplesamlphp_autoload.php
+# looks for exactly these, and a tarball without one autoloads nothing, which
+# surfaces far away as Class "SimpleSAML\Auth\Simple" not found.
+if [ ! -f "${DEST}/simplesamlphp/src/_autoload.php" ] \
+   && [ ! -f "${DEST}/simplesamlphp/lib/_autoload.php" ]; then
+    echo "ERROR: no src/_autoload.php or lib/_autoload.php in the unpacked simplesamlphp"
+    ls -la "${DEST}/simplesamlphp" | head -20
+    exit 1
+fi
 
 # OpenShift runs the container with an arbitrary UID in the root group.
 chgrp -R 0 "${DEST}/simplesamlphp"
