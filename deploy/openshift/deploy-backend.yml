@@ -284,7 +284,24 @@ objects:
           }
       application.conf: |-
         server {
+          # 8443 terminates TLS for the passthrough Route; the certificate is
+          # the one the pipeline reads from OpenBao, mounted from
+          # sec-backend-<tag>-tls.
+          #
+          # 8080 stays for in-cluster plain HTTP. It is not published by the
+          # Route, so nothing external can reach it; it keeps debugging from
+          # inside the pod and any future HTTP probe working. A request
+          # arriving there is correctly seen as insecure by PHP, because the
+          # X-Forwarded-Proto map falls back to nginx's own $https.
           listen   8080;
+          listen   8443 ssl;
+
+          ssl_certificate      /var/lib/nginx/ssl/tls.crt;
+          ssl_certificate_key  /var/lib/nginx/ssl/tls.key;
+          ssl_protocols        TLSv1.2 TLSv1.3;
+          ssl_prefer_server_ciphers off;
+          ssl_session_cache    shared:SSL:10m;
+          ssl_session_timeout  10m;
 
           server_name _;
 
@@ -559,6 +576,9 @@ objects:
               ports:
                 - containerPort: 8080
                   protocol: TCP
+                # Terminates TLS for the passthrough Route.
+                - containerPort: 8443
+                  protocol: TCP
               resources:
                 requests:
                   cpu: 100m
@@ -792,8 +812,17 @@ objects:
                 defaultMode: 420
             - name: app-nginx-crt
               secret:
-                secretName: app-nginx-crt
-                defaultMode: 420
+                # Was the standing `app-nginx-crt` secret in this namespace: a
+                # CN=EHA certificate with no SANs that expired in 2024. It was
+                # harmless while the Route terminated TLS at the edge and
+                # nothing read it; under passthrough it is what clients would
+                # actually be offered, so point at the certificate the pipeline
+                # reads from OpenBao instead.
+                secretName: "sec-backend-${APPLICATION_NAME}-${IMAGE_TAG}-tls"
+                # 0440: readable by the root group, which is the group an
+                # arbitrary OpenShift UID runs in. A private key has no reason
+                # to be world-readable even inside the container.
+                defaultMode: 288
             - name: haproxy-secret-volume
               secret:
                 secretName: "eha-${ENV}-haproxy"
@@ -815,6 +844,12 @@ objects:
         - name: http
           port: 8080
           targetPort: 8080
+          protocol: TCP
+        # The Route targets this port. Named "https" because the pod, not the
+        # router, terminates TLS on it.
+        - name: https
+          port: 8443
+          targetPort: 8443
           protocol: TCP
       selector:
         app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
@@ -962,6 +997,29 @@ objects:
       HLK_API_PASS_V2: "${HLK_API_PASS_V2}"
 
   # ---------------------------------------------------------------------------
+  # 4d. Server certificate for the pod's nginx
+  #
+  # The Route is passthrough, so TLS is terminated here rather than at the
+  # router and the traffic between the router and this pod is encrypted too.
+  # That means the pod needs the certificate for SERVER_NAME itself.
+  #
+  # Same certificate and the same OpenBao path the Route used while it was an
+  # edge route - it is the certificate for the hostname, and which hop
+  # terminates it does not change that.
+  # ---------------------------------------------------------------------------
+  - apiVersion: v1
+    kind: Secret
+    type: kubernetes.io/tls
+    metadata:
+      name: "sec-backend-${APPLICATION_NAME}-${IMAGE_TAG}-tls"
+      namespace: "${NAMESPACE_DEPLOY_BACKEND}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+    stringData:
+      tls.crt: "${TLS_CERTIFICATE}"
+      tls.key: "${TLS_KEY}"
+
+  # ---------------------------------------------------------------------------
   # 5. Route
   #
   # Edge termination: the pod's nginx serves plain HTTP on 8080 only, so
@@ -1005,18 +1063,24 @@ objects:
         name: "backend-${APPLICATION_NAME}"
         weight: 100
       port:
-        targetPort: http
+        # The pod's TLS listener, not 8080. With passthrough the router does no
+        # TLS of its own - it forwards the encrypted stream to this port, so
+        # pointing it at the plain-HTTP port would hand TLS bytes to a plain
+        # HTTP listener.
+        targetPort: https
       tls:
-        termination: edge
-        insecureEdgeTerminationPolicy: Redirect
-        # Inline, from parameters the deploy job exports out of OpenBao, exactly
-        # as the frontend Route does.
+        # Passthrough, not edge: the connection stays encrypted from the client
+        # all the way to the pod's nginx, so the router-to-pod hop inside the
+        # cluster is no longer in the clear.
         #
-        # Required here because SERVER_NAME is no longer under
-        # *.ext-ns-be-p.caas-ext-p.automation.edf.fr, so the router's default
-        # wildcard certificate does not cover it. Without a matching
-        # certificate the frontend's nginx refuses the upstream TLS handshake
-        # and /api fails - which is the whole point of this hop.
-        certificate: "${TLS_CERTIFICATE}"
-        key: "${TLS_KEY}"
+        # No certificate or key here, by definition - the router never
+        # terminates, so it has nothing to present. The certificate now lives
+        # in sec-backend-<tag>-tls and is mounted into the nginx-rp container,
+        # which serves it on 8443.
+        #
+        # insecureEdgeTerminationPolicy is None rather than Redirect: a
+        # passthrough route cannot answer plain HTTP in order to redirect it,
+        # because it does not terminate TLS and so cannot read the request.
+        termination: passthrough
+        insecureEdgeTerminationPolicy: None
       wildcardPolicy: None
