@@ -2,6 +2,12 @@
 require_once(__DIR__ . '/../../../../app/Config/saml/include.php');
 $metadataDir = __DIR__ . '/../../../../app/Config/saml/metadata';
 
+// simplesamlphp 2.x made the Utils\* classes instantiable; in 1.x they were
+// static. Calling canSetSameSiteNone() statically now fails with
+// "Non-static method ... cannot be called statically". Built once here rather
+// than inline at each use, so there is a single place to adjust.
+$httpUtils = new \SimpleSAML\Utils\HTTP();
+
 $config = [
 	'baseurlpath' => getenv('SAML_BASE_URL_PATH'),
     'baseURL' => getenv('SAML_BASE_URL'),
@@ -61,7 +67,7 @@ $config = [
     'session.cookie.path' => '/',
     'session.cookie.domain' => null,
     'session.cookie.secure' => true,
-    'session.cookie.samesite' => \SimpleSAML\Utils\HTTP::canSetSameSiteNone() ? 'None' : null,
+    'session.cookie.samesite' => $httpUtils->canSetSameSiteNone() ? 'None' : null,
     'session.phpsession.cookiename' => 'SimpleSAML',
     'session.phpsession.savepath' => null,
     'session.phpsession.httponly' => true,
@@ -103,7 +109,7 @@ $config = [
     'language.cookie.secure' => true,
     'language.cookie.httponly' => false,
     'language.cookie.lifetime' => (60 * 60 * 24 * 900),
-    'language.cookie.samesite' => \SimpleSAML\Utils\HTTP::canSetSameSiteNone() ? 'None' : null,
+    'language.cookie.samesite' => $httpUtils->canSetSameSiteNone() ? 'None' : null,
     'attributes.extradictionary' => null,
     'theme.use' => 'default',
     'template.auto_reload' => false,

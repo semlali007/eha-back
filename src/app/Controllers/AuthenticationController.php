@@ -74,6 +74,8 @@ class AuthenticationController extends Controller
             'ReturnTo' => '/app/accueil',
         ]);
 
-        SimpleSAML_Session::getSessionFromRequest()->cleanup();
+        // simplesamlphp 2.x dropped the 1.x underscore class aliases, so
+        // SimpleSAML_Session no longer exists. Same call, namespaced class.
+        \SimpleSAML\Session::getSessionFromRequest()->cleanup();
     }
 }
