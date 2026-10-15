@@ -700,6 +700,15 @@ objects:
                 # php.ini puts sessions in /tmp/session; keep /tmp writable.
                 - name: tmp
                   mountPath: /tmp
+                # A second emptyDir nested inside /tmp, purely so the directory
+                # exists. session.save_path is /tmp/session and PHP does not
+                # create it: session_start() fails with "No such file or
+                # directory" and simplesamlphp cannot open a session at all.
+                # Creating it at build time does not help - /tmp is an emptyDir
+                # and is replaced at runtime - and a mount is declarative,
+                # where a startup script would be one more thing to keep alive.
+                - name: session
+                  mountPath: /tmp/session
 
             # -----------------------------------------------------------------
             # Log shipping to PADAONE.
@@ -775,6 +784,11 @@ objects:
             - name: simplesaml-cache
               emptyDir: {}
             - name: tmp
+              emptyDir: {}
+            # Sessions do not survive a pod restart, which logs users out. That
+            # is acceptable at one replica; scaling out needs a shared store
+            # (simplesamlphp supports sql and redis via store.type).
+            - name: session
               emptyDir: {}
             - name: log-dir
               emptyDir: {}
