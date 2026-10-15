@@ -380,29 +380,32 @@ get-secret:
         echo "${APP_REQUEST}" | jq -r '.errors // "no errors field - check the path"'
         exit 1
       fi
-      # Fail loudly on a missing key rather than deploying an empty value that
-      # only shows up later as a database connection refused.
+      # Show what the path actually holds *before* validating it. Printing this
+      # only on success is what makes a missing-key failure hard to act on:
+      # you learn one name that is absent and nothing about what is present,
+      # so a typo looks identical to an omission.
+      echo "Keys present at ${VAULT_APP_SECRET_PATH}:"
+      echo "${APP_REQUEST}" | jq -r '.data.data | keys[] | "  - \(.)"'
+
+      # Report every missing key in one pass rather than failing on the first:
+      # each round trip here costs a pipeline run.
+      MISSING=""
       for k in DB_HOST DB_PORT DB_NAME DB_SCHEMA DB_USER DB_PWD \
                SAML_BASE_URL SAML_BASE_URL_PATH SAML_ENTITY_ID \
                SAML_IDP IDP_NUMBER SAML_IDP_BASE_URL \
-               SAML_SP_META_ID SAML_SP_BASE_URL SAML_KEYS SAML_SECRET_SALT; do
+               SAML_SP_META_ID SAML_SP_BASE_URL SAML_KEYS SAML_SECRET_SALT \
+               SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
         if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
-          echo "ERROR: key '$k' missing or empty at ${VAULT_APP_SECRET_PATH}"
-          exit 1
+          MISSING="${MISSING} ${k}"
         fi
       done
-      # Not yet provisioned, and nothing in the login path needs them: SMTP is
-      # inert in preprod (SMTP_HOST is the string "NULL", ENABLE_CUSTOM_CONF is
-      # false) and the HLK calls fail on their own without a password either
-      # way. Warn rather than fail, and default to empty so the Secret always
-      # has the key.
-      for k in SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
-        if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
-          echo "WARNING: optional key '$k' not set at ${VAULT_APP_SECRET_PATH} - deploying empty"
-        fi
-      done
-      echo "Application secrets read from OpenBao:"
-      echo "${APP_REQUEST}" | jq -r '.data.data | keys[] | "  - \(.)"'
+      if [ -n "${MISSING}" ]; then
+        echo "ERROR: missing or empty at ${VAULT_APP_SECRET_PATH}:"
+        for k in ${MISSING}; do echo "  - ${k}"; done
+        echo "Compare against the list printed above - a key present but empty fails the same way."
+        exit 1
+      fi
+      echo "All 19 required keys present."
 
     # 5. The SAML base URLs must be the *frontend* origin: the browser only
     #    ever talks to the frontend, which proxies /api to this backend, so
@@ -463,17 +466,11 @@ get-secret:
 
     # 6. Hand them on as base64.
     #
-    #    SAML_KEYS is replaced with the normalised form, and the three
-    #    not-yet-provisioned keys are defaulted to empty so the Secret always
-    #    carries every key the template references.
+    #    SAML_KEYS is replaced with the normalised, de-armoured form.
     - |
       set +x
       APP_JSON=$(echo "${APP_REQUEST}" | jq -c --arg k "${SAML_KEYS_DER}" '
-        .data.data
-        | .SAML_KEYS = $k
-        | .SMTP_PWD //= ""
-        | .HLK_API_PASS //= ""
-        | .HLK_API_PASS_V2 //= ""')
+        .data.data | .SAML_KEYS = $k')
       {
         echo "TLS_CERTIFICATE_B64=$(base64 -w0 < tls.crt)"
         echo "TLS_KEY_B64=$(base64 -w0 < tls.key)"
