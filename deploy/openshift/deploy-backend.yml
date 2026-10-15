@@ -49,6 +49,40 @@ parameters:
   - name: LOCAL_REGISTRY
     value: "image-registry.openshift-image-registry.svc:5000"
     required: true
+  # --- Application configuration ---------------------------------------------
+  - name: FRONTEND_DNS_NAME
+    description: >-
+      Public hostname of the *frontend*. Every SAML URL the IdP redirects the
+      browser to must be a frontend URL: the backend is firewalled and is only
+      ever reached through the frontend's /api proxy.
+    required: true
+
+  # --- Application secrets, from OpenBao via the get-secret job ---------------
+  - name: DB_HOST
+    required: true
+  - name: DB_PORT
+    value: "5432"
+    required: true
+  - name: DB_NAME
+    required: true
+  - name: DB_SCHEMA
+    required: true
+  - name: DB_USER
+    required: true
+  - name: DB_PWD
+    required: true
+  - name: SAML_SECRET_SALT
+    description: >-
+      simplesamlphp's secretsalt. Not optional: simplesamlphp refuses to start
+      while it is left at the stock 'defaultsecretsalt' value.
+    required: true
+  - name: SMTP_PWD
+    required: true
+  - name: HLK_API_PASS
+    required: true
+  - name: HLK_API_PASS_V2
+    required: true
+
   - name: TLS_CERTIFICATE
     description: >-
       PEM certificate chain for SERVER_NAME. Exported by the deploy job's
@@ -512,8 +546,19 @@ objects:
                 - containerPort: 9000
                   protocol: TCP
               envFrom:
+                # Order matters only for duplicate keys; there are none.
+                # These supply the application's .env values as real
+                # environment variables - see ConfigMap 4b for why that works
+                # and why .env itself is left alone.
+                - configMapRef:
+                    name: "cm-backend-${APPLICATION_NAME}-${IMAGE_TAG}-app"
                 - secretRef:
-                    name: "eha-${ENV}-env"
+                    name: "sec-backend-${APPLICATION_NAME}-${IMAGE_TAG}-app"
+                # Dropped: secretRef eha-${ENV}-env. It carries POSTGRES_DB,
+                # POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_POOLSIZE,
+                # POSTGRES_PORT and POSTGRES_USER - none of which this
+                # application reads. It reads DB_HOST/DB_PORT/DB_NAME/
+                # DB_SCHEMA/DB_USER/DB_PWD, now supplied by the Secret above.
               env:
                 # Only PHP_INSTANCE matters at run time - it selects the
                 # instance to start - and it must match the value the image was
@@ -708,6 +753,141 @@ objects:
           protocol: TCP
       selector:
         app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+
+  # ---------------------------------------------------------------------------
+  # 4b. Application configuration (non-secret)
+  #
+  # The committed src/.env ships every value as the literal string "null" - it
+  # is a template that, on the VM, Ansible rewrote at deploy time from
+  # eha-web-achat/exploitation (inventories/group_vars/EHA/config_back.yml and
+  # group_vars/all.yml). Nothing rewrote it on CaaS, so the application ran
+  # entirely unconfigured. The values below are those inventories, translated
+  # to this namespace.
+  #
+  # These reach the application as container environment variables rather than
+  # by rewriting .env: php-fpm passes the environment through (clear_env = no)
+  # and php.ini now sets variables_order = "EGPCS", so Core\Util\DotEnv finds
+  # each key already present in $_ENV and leaves it alone. .env stays as the
+  # defaults file; anything set here wins.
+  #
+  # Secrets are NOT here - see the Secret below.
+  # ---------------------------------------------------------------------------
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "cm-backend-${APPLICATION_NAME}-${IMAGE_TAG}-app"
+      namespace: "${NAMESPACE_DEPLOY_BACKEND}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+    data:
+      # --- environment identity ---------------------------------------------
+      # Compared case-sensitively against 'PROD' / 'PREPROD' in the Hotline
+      # managers, which pick the mail subject prefix and the recipients.
+      ENV: "PREPROD"
+      INSTALL_ENV: "PREPROD"
+
+      # --- logging ----------------------------------------------------------
+      # DEFAULT_LOGS_PATH is the log-dir emptyDir, shared with filebeat.
+      # MAX_FILE is monolog's RotatingFileHandler $maxFiles (MAX_BACKUP_INDEX).
+      DEFAULT_LOGS_PATH: "/var/projects/EHA/php-fpm_8.4/log"
+      MAX_FILE: "5"
+
+      # --- application ------------------------------------------------------
+      CONFIG_DOMAINE: "${FRONTEND_DNS_NAME}"
+      CACHE_TTL: "300"
+      EXPIRE_AFTER: "7200"
+      SHOW_PRIVATE_DOC: "1"
+
+      # --- webSSO / SAML ----------------------------------------------------
+      # From group_vars/all.yml (GARDIAN_*) on branch ft_preprod_config.
+      # SAML_BASE_URL* are the *frontend* origin: the browser only ever talks to
+      # the frontend, which proxies /api to this backend, so every URL the IdP
+      # redirects the browser to must be a frontend URL.
+      SAML_BASE_URL: "https://${FRONTEND_DNS_NAME}"
+      SAML_BASE_URL_PATH: "https://${FRONTEND_DNS_NAME}/api/simplesaml/"
+      SAML_ENTITY_ID: "https://${FRONTEND_DNS_NAME}/api/simplesaml/module.php/saml/sp/metadata.php/default-sp"
+
+      # IdP (GARDIAN_SAML_IDP / GARDIAN_IDP_NUMBER / GARDIAN_WEBSSO_BASE_URL).
+      # IDP_NUMBER had no .env entry at all, and saml20-idp-remote.php falls
+      # back to 'idp3-20240420' when it is unset - a retired IdP, so every
+      # SingleSignOnService URL pointed at the wrong endpoint.
+      SAML_IDP: "idp://REC-STANDARD.MULTIAUTH-SECURINTERNET/20290701"
+      IDP_NUMBER: "idp11-20290701"
+      SAML_IDP_BASE_URL: "https://rec-websso-gardian.myelectricnetwork.com:443"
+
+      # Gardian's proxy SP (GARDIAN_SAML_IDP_PROXY / GARDIAN_WEBSSO_BASE_URL_PROXY).
+      SAML_SP_META_ID: "idp://REC-IDPPROXY.GARDIAN/20290701"
+      SAML_SP_BASE_URL: "https://rec-proxywebsso-gardian.myelectricnetwork.com:443"
+
+      # The IdP's signing certificate (GARDIAN_CERTIFICATE), used as
+      # X509Certificate in both metadata files. A public certificate, not a
+      # secret: CN=recette-idp-gardian.edf.fr, expires 2029-07-01.
+      SAML_KEYS: "MIIFlzCCA3+gAwIBAgIDAKCbMA0GCSqGSIb3DQEBCwUAMGkxCzAJBgNVBAYTAkZSMR4wHAYDVQQKDBVFTEVDVFJJQ0lURSBERSBGUkFOQ0UxFzAVBgNVBAsMDjAwMDIgNTUyMDgxMzE3MSEwHwYDVQQDDBhBQyBJTkZSQVNUUlVDVFVSRSBFREYgRzIwHhcNMjYwNzA4MTMzMDAwWhcNMjkwNzAxMTEzNDQyWjBrMQswCQYDVQQGEwJGUjEeMBwGA1UECgwVRUxFQ1RSSUNJVEUgREUgRlJBTkNFMRcwFQYDVQQLDA4wMDAyIDU1MjA4MTMxNzEjMCEGA1UEAwwacmVjZXR0ZS1pZHAtZ2FyZGlhbi5lZGYuZnIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDDa8hYWbw0MpKqgUgFhgZI3Vhry5Y/CPtFMAURR4y9pim6EUDLxGpV6+qWHvz9oBNmG/xGQPJ6cuBkVjeAdxXbaWofj4+mA56KfX13g9nZxjuB2YTcAXFqkw65aMgTWkbWMNBKPLYmDCnRVM+NwrUo3Fdp6WTzFVqI0F89uIQ0hp17+gSNRFWYnX3ONAsd2/tMx1+sCuyvqkW7vDJ5qXhnYOoj+Tp5fkNMJtcSfbd0ooT6+lyLedXgjwfT3eTeb8o15W2IjPoM+5fAEtFMHCEXbU/7JoDZj6KT+Ypec05Jlqta2nnhMCfA/dKT4YcXB1kaadburEyYZOaw9XTvHlhVAgMBAAGjggFEMIIBQDAdBgNVHQ4EFgQUyZ91HZF9yrNLNAEEXwYml0bWryYwHwYDVR0jBBgwFoAUiRNuEs1LbUt+mq4edVGgGjchqywwXwYDVR0gBFgwVjBUBg4qgXoBgXAAAQECARsBATBCMEAGCCsGAQUFBwIBFjRodHRwOi8vcGMtZWRmLmVkZi5mci9wYy9hY19pbmZyYXN0cnVjdHVyZV9lZGZfZzIucGRmMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDATAOBgNVHQ8BAf8EBAMCBaAwJQYDVR0RBB4wHIIacmVjZXR0ZS1pZHAtZ2FyZGlhbi5lZGYuZnIwRwYDVR0fBEAwPjA8oDqgOIY2aHR0cDovL2NybC1lZGYuZWRmLmZyL2NybC9hY19pbmZyYXN0cnVjdHVyZV9lZGZfZzIuY3JsMA0GCSqGSIb3DQEBCwUAA4ICAQCxoqkKBYdh/VTN6cyFZed2Kyn200KGc7p7RapqNnDzagYup4hL+bt+1kB3yooyW8nB1qTaXhVesswzC9Ya3q1RzLxwLiqc1rFXAheH5eG+FFFFhuSlaTCE5P2Mb67XS8X0WkwzOimCwgiq7V75wax7B2vlPHlGZOKBleoVNa/U714vW44BSl9lMajDHv3CtBP7a8SYCuMoWe9oDocxBo/+YjVV3yK3Pi5O14gVm9gnr7nBfiN6sSjm+8DPOvrqPqAuXT03nH5WH6yUzAuEZXH8m3iUzcPaw3x9EutOcQcD/YwqGGvgwfFLdwPNcUc4po7RPA2HzSqlh6h6yamylBY3LkZZ3HHI9vwrXDJogm0bulFHNNDKrfG+PBeAxc+FckwYSXCxCzI+w70yCjwGuFpZwNjd8dWD10UZj08IeuDU0xgy8NjexIgxP6NIunZQCnR7Egk7oGxdOJexKTke/KYDykpcPIdeFUrxEGwsijzfybF44plZiDgXyzEU855DMLbTKOGGK/RBM0G9aqfH4aYGtoypz0YBpbc8DmOv8oaWDHoSw4ZIR6z6GKC8225zaf4qT067aIGsGzcZyBYyft4Ns59Oq/tpYIHUutPyDLqGsgtuQydKIUNyIl772kfsggmJ8Hp7j6svwt8//xft2oUd57SJQXBWxP4mCSGyurxiJQ=="
+
+      # simplesamlphp loads its configuration from this directory. The app ships
+      # its own env-driven config under src/app/Config/saml/config; left unset,
+      # simplesamlphp silently used the stock example config bundled in the
+      # tarball instead - the one whose entityID is https://myapp.example.org/
+      # and whose idp is null.
+      SIMPLESAMLPHP_CONFIG_DIR: "/opt/app-root/src/app/Config/saml/config"
+
+      # --- webSSO / OIDC ----------------------------------------------------
+      # Legacy: the application authenticates with SAML only. Kept because the
+      # code still reads these, so leaving them unset is a null value in a
+      # request URL rather than a cleanly disabled feature.
+      URL_GARDIAN_WEBSSO: "https://rec-websso-gardian.myelectricnetwork.com:443/gardianwebsso/oauth2/multiauth"
+      PATH_USERINFO: "/userinfo"
+      PATH_JWKS: "/connect/jwk_uri"
+
+      # --- HLK (Achatlake) --------------------------------------------------
+      HLK_API_URL: "https://hlk-etl-api-preprod.edf.fr/eha"
+      HLK_API_URL_V2: "https://hlk-etl-api-preprod.edf.fr/api"
+
+      # --- mail -------------------------------------------------------------
+      # SMTP is deliberately inert in preprod: the inventory sets SMTP_HOST to
+      # the string "NULL" and ENABLE_CUSTOM_CONF to false.
+      #
+      # DEFAULT_SEND_EMAIL and BAL_FICHE_MARCHE are intentionally NOT set.
+      # DEFAULT_SEND_EMAIL replaces each user's own address, so it is the guard
+      # that stops preprod mailing real buyers; unset yields an empty recipient,
+      # which fails safe, whereas a guessed address does not.
+      ENABLE_CUSTOM_CONF: "false"
+      SMTP_HOST: "NULL"
+      SMTP_AUTH: "true"
+      SMTP_USERNAME: "NULL"
+      SMTP_PORT: "465"
+      EMAIL_NO_REPLAY: "noreply@edf.fr"
+      EMAIL_NO_REPLY_NAME: "Achatpedia"
+
+  # ---------------------------------------------------------------------------
+  # 4c. Application secrets
+  #
+  # Read from OpenBao by the get-secret job and passed in as template
+  # parameters, the same path the TLS certificate takes. Nothing is committed
+  # and no CI/CD variable holds any of it.
+  #
+  # DB_HOST/PORT/NAME/SCHEMA are not strictly secret, but they live beside the
+  # credential in OpenBao so the whole connection is rotated in one place.
+  # ---------------------------------------------------------------------------
+  - apiVersion: v1
+    kind: Secret
+    type: Opaque
+    metadata:
+      name: "sec-backend-${APPLICATION_NAME}-${IMAGE_TAG}-app"
+      namespace: "${NAMESPACE_DEPLOY_BACKEND}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+    stringData:
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_NAME: "${DB_NAME}"
+      DB_SCHEMA: "${DB_SCHEMA}"
+      DB_USER: "${DB_USER}"
+      DB_PWD: "${DB_PWD}"
+      SAML_SECRET_SALT: "${SAML_SECRET_SALT}"
+      SMTP_PWD: "${SMTP_PWD}"
+      HLK_API_PASS: "${HLK_API_PASS}"
+      HLK_API_PASS_V2: "${HLK_API_PASS_V2}"
 
   # ---------------------------------------------------------------------------
   # 5. Route

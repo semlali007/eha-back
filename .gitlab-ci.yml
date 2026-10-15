@@ -119,6 +119,14 @@ variables:
   # eha-v2-preprod-api-caas.edf.fr. They are two different certificates for two
   # different hostnames and must not be pointed at the same path.
   VAULT_TLS_SECRET_PATH: "poc-caas/eha-web-achat/eha-back/preprod/tls"
+  # Application secrets (DB connection, SAML salt, SMTP and HLK passwords).
+  # Same namespace and mount as the TLS secret, different path.
+  VAULT_APP_SECRET_PATH: "poc-caas/eha-web-achat/eha-back/preprod/app"
+
+  # Public hostname of the frontend. Every SAML URL the IdP redirects the
+  # browser to must be a frontend URL - the backend is firewalled. Must match
+  # SERVER_NAME in eha-front/.gitlab-ci.yml.
+  FRONTEND_DNS_NAME: "eha-v2-preprod-caas.edf.fr"
 
 
 include:
@@ -355,11 +363,42 @@ get-secret:
         exit 1
       fi
 
-    # 4. Hand them on as base64.
+    # 4. Read the application secrets (DB connection, SAML salt, SMTP and HLK
+    #    passwords) from the second path.
+    #
+    #    Carried as one base64 blob of the raw JSON object rather than one
+    #    variable per key: a dotenv artifact cannot quote, so a value
+    #    containing a space, a quote or a '#' would be silently truncated.
+    #    The deploy job turns the blob back into individual exports with
+    #    jq's @sh, which quotes each value correctly.
     - |
+      set +x
+      APP_REQUEST=$(curl -sS --header "X-Vault-Token: ${JWT_TOKEN}" \
+        "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/${VAULT_KV2}/data/${VAULT_APP_SECRET_PATH}")
+      if ! echo "${APP_REQUEST}" | jq -e '.data.data' >/dev/null 2>&1; then
+        echo "ERROR: could not read ${VAULT_KV2}/${VAULT_APP_SECRET_PATH}"
+        echo "${APP_REQUEST}" | jq -r '.errors // "no errors field - check the path"'
+        exit 1
+      fi
+      # Fail loudly on a missing key rather than deploying an empty value that
+      # only shows up later as a database connection refused.
+      for k in DB_HOST DB_PORT DB_NAME DB_SCHEMA DB_USER DB_PWD \
+               SAML_SECRET_SALT SMTP_PWD HLK_API_PASS HLK_API_PASS_V2; do
+        if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
+          echo "ERROR: key '$k' missing or empty at ${VAULT_APP_SECRET_PATH}"
+          exit 1
+        fi
+      done
+      echo "Application secrets read from OpenBao:"
+      echo "${APP_REQUEST}" | jq -r '.data.data | keys[] | "  - \(.)"'
+
+    # 5. Hand them on as base64.
+    - |
+      set +x
       {
         echo "TLS_CERTIFICATE_B64=$(base64 -w0 < tls.crt)"
         echo "TLS_KEY_B64=$(base64 -w0 < tls.key)"
+        echo "APP_SECRETS_B64=$(echo "${APP_REQUEST}" | jq -c '.data.data' | base64 -w0)"
       } > openbao.env
   after_script:
     - shred -u tls.crt tls.key 2>/dev/null || true
@@ -402,6 +441,12 @@ get-secret:
     - export KUBE_TOKEN="${DEST_CAAS_DVS_CAAS_TOKEN}"
     - export TLS_CERTIFICATE="$(echo "${TLS_CERTIFICATE_B64}" | base64 -d)"
     - export TLS_KEY="$(echo "${TLS_KEY_B64}" | base64 -d)"
+    # Turn the JSON blob back into one export per key. @sh quotes each value,
+    # so spaces and shell metacharacters in a password survive intact.
+    - |
+      set +x
+      eval "$(echo "${APP_SECRETS_B64}" | base64 -d \
+        | jq -r 'to_entries[] | "export \(.key)=\(.value|@sh)"')"
     - !reference [.os-deploy-base, before_script]
 
 dvs-deploy-achatpedia-backend:integration:
