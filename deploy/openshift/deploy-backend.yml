@@ -204,6 +204,24 @@ objects:
             include       mime.types;
             default_type  application/octet-stream;
 
+            # TLS terminates at the OpenShift edge Route, so this nginx only
+            # ever sees plain HTTP on 8080 and nginx's own $https is empty.
+            # PHP therefore believed every request was insecure, and
+            # simplesamlphp refused to start a session at all:
+            #
+            #   CriticalConfigurationError: The configuration is invalid:
+            #   Setting secure cookie on plain HTTP (except on localhost)
+            #   is not allowed.
+            #
+            # The router sets X-Forwarded-Proto on an edge route, so trust that
+            # and fall back to the real connection scheme when it is absent -
+            # rather than hard-coding "on", which would lie to the application
+            # about any genuinely plain-HTTP request reaching the pod.
+            map $http_x_forwarded_proto $forwarded_https {
+                https     on;
+                default   $https;
+            }
+
             client_header_timeout           1m;
             client_body_timeout             1m;
             client_header_buffer_size       2k;
@@ -355,7 +373,9 @@ objects:
         fastcgi_param  DOCUMENT_ROOT      $document_root;
         fastcgi_param  SERVER_PROTOCOL    $server_protocol;
         fastcgi_param  REQUEST_SCHEME     $scheme;
-        fastcgi_param  HTTPS              $https if_not_empty;
+        # $forwarded_https, not $https: TLS ends at the edge Route, so $https is
+        # always empty here. See the map in nginx.conf.
+        fastcgi_param  HTTPS              $forwarded_https if_not_empty;
 
         fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
         fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;
