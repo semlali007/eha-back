@@ -288,39 +288,37 @@ include:
       integ_application_url: "https://${SERVER_NAME}"
 
 # =============================================================================
-# Fetch the backend TLS certificate from OpenBao.
+# OpenBao access, shared by the validation gate and the deploy job.
 #
-# Identical in shape to the job in eha-front, reading a different path: this is
-# the certificate for eha-v2-preprod-api-caas.edf.fr, the host the frontend's
-# nginx proxies /api to. Nothing is committed and no CI/CD variable holds the
-# key.
+# Reads two paths in the eha-web-achat namespace:
+#   <branch>/eha-web-achat/eha-back/preprod/tls  - certificate, key (PEM)
+#   <branch>/eha-web-achat/eha-back/preprod/app  - the application secrets
+# and exports the values as environment variables, which is what `oc process`
+# resolves template parameters from.
 #
-# Values are base64 on the way out, because a dotenv artifact carries only
-# single-line values and a PEM is multi-line. The deploy job decodes them back
-# into ordinary environment variables, which have no such limit.
+# NOT carried between jobs as a dotenv artifact, which is how the frontend and
+# hpd/redis do it. Two reasons:
 #
-# PREREQUISITE - create the secret in MyDevOps first, otherwise this job fails
-# and the deploy is skipped:
-#     GitLab Path   : eha-web-achat/eha-back
-#     GitLab Branch : poc-caas
-#     Secret Path   : eha-web-achat/eha-back/preprod/tls
-#     Keys          : certificate, key   (PEM)
-# Creating it from MyDevOps rather than the OpenBao UI is what generates the
-# matching policy; a path created by hand returns "permission denied" here.
+#   * GitLab caps a dotenv artifact at 5120 bytes. A TLS certificate, its key
+#     and seventeen application secrets do not fit - the upload fails with
+#     "Dotenv Artifact Too Big" *after* the job has otherwise succeeded, so the
+#     job goes green and the deploy fails later on unset variables.
+#   * A job artifact is downloadable by anyone who can see the pipeline. Not
+#     passing secrets through one keeps the private key out of GitLab's
+#     artifact storage entirely.
+#
+# Each job that needs the values reads them itself. The cost is a second
+# round trip to OpenBao; the benefit is no size ceiling and no secret at rest.
+#
+# PREREQUISITE - both paths created from MyDevOps, which is what generates the
+# matching policy. A path created by hand in the OpenBao UI returns
+# "permission denied" here.
 # =============================================================================
-get-secret:
-  stage: prepare
-  image: $NAMESPACE_REGISTRY/edf-infra-dvs-catalog/agt_deploy_cloud:latest
-  tags:
-    - gitlab-runner-dvs-srv-int-p
-  rules:
-    - if: '"$[[ inputs.enable_deploy ]]" == "true"'
-  id_tokens:
-    VAULT_ID_TOKEN:
-      aud: "https://si-devops-secrets.edf.fr"
+.openbao:
   script:
     # 1. Exchange the GitLab JWT for an OpenBao token.
     - |
+      set +x
       REQUEST_TOKEN=$(curl -sS --request POST \
         --data "{\"jwt\":\"${VAULT_ID_TOKEN}\"}" \
         "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/auth/${VAULT_JWT_NAME}/login")
@@ -331,9 +329,10 @@ get-secret:
         exit 1
       fi
 
-    # 2. Read the certificate and key straight to files - never into a shell
-    #    variable, never echoed.
+    # 2. TLS certificate and key. Written to files rather than through a shell
+    #    variable so openssl can check them, then exported and shredded.
     - |
+      set +x
       umask 077
       SECRET_REQUEST=$(curl -sS --header "X-Vault-Token: ${JWT_TOKEN}" \
         "${VAULT_SERVER_URL}/v1/${VAULT_NAMESPACE}/${VAULT_KV2}/data/${VAULT_TLS_SECRET_PATH}")
@@ -344,14 +343,14 @@ get-secret:
         echo "${SECRET_REQUEST}" | jq -r '.errors // "no errors field - check the path and the key names"'
         exit 1
       fi
-      echo "Certificate read from OpenBao:"
+      echo "TLS certificate read from OpenBao:"
       openssl x509 -in tls.crt -noout -subject -enddate
 
-    # 3. Fail here rather than publishing a certificate that does not match the
-    #    hostname the Route claims. A mismatch would not be a browser warning in
-    #    this case - the frontend's nginx would refuse the upstream handshake
-    #    and every /api call would fail.
+    # 3. Fail rather than publish a certificate that does not match the host
+    #    the Route claims. Not a browser warning in this case: the frontend's
+    #    nginx would refuse the upstream handshake and every /api call fails.
     - |
+      set +x
       if ! openssl x509 -in tls.crt -noout -checkhost "${SERVER_NAME}" >/dev/null 2>&1; then
         echo "ERROR: certificate does not match ${SERVER_NAME}"
         openssl x509 -in tls.crt -noout -subject -ext subjectAltName || true
@@ -362,15 +361,11 @@ get-secret:
         openssl x509 -in tls.crt -noout -enddate
         exit 1
       fi
+      export TLS_CERTIFICATE="$(cat tls.crt)"
+      export TLS_KEY="$(cat tls.key)"
+      shred -u tls.crt tls.key 2>/dev/null || rm -f tls.crt tls.key
 
-    # 4. Read the application secrets (DB connection, SAML salt, SMTP and HLK
-    #    passwords) from the second path.
-    #
-    #    Carried as one base64 blob of the raw JSON object rather than one
-    #    variable per key: a dotenv artifact cannot quote, so a value
-    #    containing a space, a quote or a '#' would be silently truncated.
-    #    The deploy job turns the blob back into individual exports with
-    #    jq's @sh, which quotes each value correctly.
+    # 4. The application secrets.
     - |
       set +x
       APP_REQUEST=$(curl -sS --header "X-Vault-Token: ${JWT_TOKEN}" \
@@ -380,6 +375,7 @@ get-secret:
         echo "${APP_REQUEST}" | jq -r '.errors // "no errors field - check the path"'
         exit 1
       fi
+
       # Show what the path actually holds *before* validating it. Printing this
       # only on success is what makes a missing-key failure hard to act on:
       # you learn one name that is absent and nothing about what is present,
@@ -419,8 +415,6 @@ get-secret:
       # They also describe the Gardian websso *proxy*, which this project
       # should not use: the proxy cannot do MFA over the internet, which is
       # why the live path goes to the non-proxy IdP via IDP_NUMBER=idp11-*.
-      # Requiring them would mean maintaining configuration that is both
-      # unused and pointed at the wrong front door.
       for k in SAML_SP_META_ID SAML_SP_BASE_URL; do
         if ! echo "${APP_REQUEST}" | jq -e --arg k "$k" '.data.data[$k] // empty' >/dev/null; then
           echo "note: optional key '$k' not set - unused while enable.saml20-idp is false"
@@ -433,10 +427,10 @@ get-secret:
     #    any of them at the backend host produces a login loop that looks like
     #    an IdP fault.
     #
-    #    Checked here because these values moved from the committed template
-    #    into OpenBao: that buys per-environment control, but it also takes
-    #    them out of code review, so the invariant has to be enforced rather
-    #    than assumed.
+    #    Checked here because these values live in OpenBao rather than in the
+    #    committed template: that buys per-environment control, but it also
+    #    takes them out of code review, so the invariant has to be enforced
+    #    rather than assumed.
     - |
       set +x
       for k in SAML_BASE_URL SAML_BASE_URL_PATH SAML_ENTITY_ID; do
@@ -452,16 +446,14 @@ get-secret:
       done
       echo "SAML base URLs verified against ${FRONTEND_DNS_NAME}"
 
-    # 5b. Normalise SAML_KEYS.
+    # 6. Normalise SAML_KEYS.
     #
     #    simplesamlphp's metadata files use the value verbatim as
     #    X509Certificate, which must be bare base64 DER on one line. The secret
     #    is held in PEM instead, because PEM is what every tool emits and what
     #    a human can paste back without reformatting - so strip the armour here
-    #    rather than make the stored value awkward to maintain.
-    #
-    #    Accepts either form: stripping a value that is already bare base64 is
-    #    a no-op.
+    #    rather than make the stored value awkward to maintain. Stripping a
+    #    value that is already bare is a no-op, so both forms are accepted.
     - |
       set +x
       SAML_KEYS_DER=$(echo "${APP_REQUEST}" | jq -r '.data.data.SAML_KEYS' \
@@ -471,12 +463,12 @@ get-secret:
         exit 1
       fi
       # Prove it is a certificate before shipping it: a truncated paste would
-      # otherwise surface as an opaque signature-validation failure at login.
+      # otherwise surface at login as an opaque signature-validation failure.
       printf -- '-----BEGIN CERTIFICATE-----\n%s\n-----END CERTIFICATE-----\n' \
         "$(echo "${SAML_KEYS_DER}" | fold -w 64)" > idp.crt
       if ! openssl x509 -in idp.crt -noout -subject -enddate; then
         echo "ERROR: SAML_KEYS is not a parseable X.509 certificate"
-        exit 1
+        rm -f idp.crt; exit 1
       fi
       if ! openssl x509 -in idp.crt -noout -checkend 0 >/dev/null 2>&1; then
         echo "WARNING: the IdP certificate in SAML_KEYS has expired - SSO will fail"
@@ -484,33 +476,50 @@ get-secret:
       rm -f idp.crt
       echo "SAML_KEYS normalised to bare base64 (${#SAML_KEYS_DER} chars)"
 
-    # 6. Hand them on as base64.
-    #
-    #    SAML_KEYS is replaced with the normalised, de-armoured form.
+    # 7. Export one variable per key, with the normalised certificate and empty
+    #    defaults for the optional pair. @sh quotes each value, so a password
+    #    containing a space, a quote or a '#' survives intact.
     - |
       set +x
-      APP_JSON=$(echo "${APP_REQUEST}" | jq -c --arg k "${SAML_KEYS_DER}" '
+      eval "$(echo "${APP_REQUEST}" | jq -r --arg k "${SAML_KEYS_DER}" '
         .data.data
         | .SAML_KEYS = $k
         | .SAML_SP_META_ID //= ""
-        | .SAML_SP_BASE_URL //= ""')
-      {
-        echo "TLS_CERTIFICATE_B64=$(base64 -w0 < tls.crt)"
-        echo "TLS_KEY_B64=$(base64 -w0 < tls.key)"
-        echo "APP_SECRETS_B64=$(printf '%s' "${APP_JSON}" | base64 -w0)"
-      } > openbao.env
-  after_script:
-    - shred -u tls.crt tls.key 2>/dev/null || true
-  artifacts:
-    reports:
-      dotenv: openbao.env
-    expire_in: 5 mins
+        | .SAML_SP_BASE_URL //= ""
+        | to_entries[] | "export \(.key)=\(.value|@sh)"')"
+      echo "Application configuration exported."
+
+# =============================================================================
+# Validation gate.
+#
+# Runs the whole OpenBao read in `prepare` and throws the values away. Its only
+# job is to fail the pipeline before the image is built when the secrets are
+# missing, malformed, or point at the wrong host - a build takes minutes, this
+# takes seconds.
+#
+# It publishes nothing: the deploy job does its own read (see above).
+# =============================================================================
+get-secret:
+  stage: prepare
+  image: $NAMESPACE_REGISTRY/edf-infra-dvs-catalog/agt_deploy_cloud:latest
+  tags:
+    - gitlab-runner-dvs-srv-int-p
+  rules:
+    - if: '"$[[ inputs.enable_deploy ]]" == "true"'
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: "https://si-devops-secrets.edf.fr"
+  script:
+    - !reference [.openbao, script]
+    - echo "Secrets validated. The deploy job reads them directly."
 
 # =============================================================================
 # Deploy job override, following hpd/redis.
 #
-# Supplies KUBE_URL / KUBE_TOKEN from the destination credentials loaded above;
-# the deploy-kubernetes component cannot derive them by itself here.
+# Supplies KUBE_URL / KUBE_TOKEN from the destination credentials loaded above,
+# and reads OpenBao itself - `oc process` resolves template parameters from the
+# environment, and an environment variable holds a multi-line PEM perfectly
+# well.
 #
 # JOB NAME: the component generates one variant per ref type. On `poc-caas`,
 # which matches integ_ref, the job is `dvs-deploy-achatpedia-backend:integration`
@@ -525,9 +534,12 @@ get-secret:
 # are overridden so the pipeline behaves on any branch.
 # =============================================================================
 .deploy-overrides: &deploy_overrides
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: "https://si-devops-secrets.edf.fr"
   needs:
     - job: get-secret
-      artifacts: true
+      artifacts: false
     - job: load-caas-credentials-dest
       artifacts: true
     # `needs` replaces stage ordering: without this the deploy could start
@@ -538,14 +550,7 @@ get-secret:
   before_script:
     - export KUBE_URL="${DEST_CAAS_DVS_CAAS_API_URL}"
     - export KUBE_TOKEN="${DEST_CAAS_DVS_CAAS_TOKEN}"
-    - export TLS_CERTIFICATE="$(echo "${TLS_CERTIFICATE_B64}" | base64 -d)"
-    - export TLS_KEY="$(echo "${TLS_KEY_B64}" | base64 -d)"
-    # Turn the JSON blob back into one export per key. @sh quotes each value,
-    # so spaces and shell metacharacters in a password survive intact.
-    - |
-      set +x
-      eval "$(echo "${APP_SECRETS_B64}" | base64 -d \
-        | jq -r 'to_entries[] | "export \(.key)=\(.value|@sh)"')"
+    - !reference [.openbao, script]
     - !reference [.os-deploy-base, before_script]
 
 dvs-deploy-achatpedia-backend:integration:
