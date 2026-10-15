@@ -21,7 +21,10 @@
             "Core\\": "core/",
             "App\\": "app/",
             "Test\\":"tests/"
-        }
+        },
+        "files": [
+            "app/Config/simplesamlphp_autoload.php"
+        ]
     },
     "require": {
         "php": "^8.4",
