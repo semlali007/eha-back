@@ -70,6 +70,15 @@ final class ProviderLabelNormalizer
     }
 
     /**
+     * Clé de tri alphabétique d'un libellé, insensible à la casse et aux
+     * accents (« Électricité » se range avec les « e »).
+     */
+    public static function sortKey(?string $label): string
+    {
+        return self::stripAccents(mb_strtolower(trim((string) $label), 'UTF-8'));
+    }
+
+    /**
      * Parmi deux fournisseurs similaires, indique si $candidate doit être
      * préféré à $current : 1) plus de champs renseignés, 2) provider_code le
      * plus ancien.

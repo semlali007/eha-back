@@ -41,6 +41,14 @@ class HlkSheetsMapper
     private array $providerCache = [];
 
     /**
+     * Libellé BDD de chaque fournisseur résolu (provider_code → provider_label),
+     * pour trier les TVA de la fiche dans le même ordre que l'affichage des
+     * fournisseurs (SheetProvider::getBySheet : ORDER BY provider_label).
+     * @var array<int,string>
+     */
+    private array $providerLabelByCode = [];
+
+    /**
      * Fournisseurs BDD indexés par libellé normalisé, TVA et SIREN
      * (Provider::getMatchingIndexes), chargés paresseusement au 1er
      * fournisseur rencontré.
@@ -223,7 +231,7 @@ class HlkSheetsMapper
 
             // Fournisseurs & bénéficiaires
             'providers'                        => $providers,
-            'supplier_vat_number'              => $this->aggregateVatNumbers($rows),
+            'supplier_vat_number'              => $this->aggregateVatNumbers($rows, $providers),
             'filiales'                         => $filiales,
             'filiales0'                        => $filiales0,
             'entites_beneficiaires_edf_enedis' => $ebLibelles,
@@ -363,6 +371,7 @@ class HlkSheetsMapper
             }
             if ($match !== null) {
                 $this->providerCache[$normalized] = (int) $match['provider_code'];
+                $this->providerLabelByCode[(int) $match['provider_code']] = (string) $match['provider_label'];
                 if ($matchedBy !== 'libellé') {
                     error_log("[import-hlk:map]     · fournisseur '{$name}' rattaché par {$matchedBy} à '{$match['provider_label']}' (code={$match['provider_code']})");
                 }
@@ -378,6 +387,7 @@ class HlkSheetsMapper
             ]);
             if ($newCode > 0) {
                 $this->providerCache[$normalized] = $newCode;
+                $this->providerLabelByCode[$newCode] = $name;
                 $this->registerCreatedProvider($newCode, $name, $normalized, $vat, $siren);
                 $this->newProvidersCount++;
                 error_log("[import-hlk:map]     · fournisseur '{$name}' CRÉÉ (code={$newCode}, tva=" . ($vat ?: '-') . ', siren=' . ($siren ?: '-') . ')');
@@ -387,6 +397,7 @@ class HlkSheetsMapper
             $found = $model->findByNormalizedLabel($name);
             if ($found !== null) {
                 $this->providerCache[$normalized] = (int) $found['provider_code'];
+                $this->providerLabelByCode[(int) $found['provider_code']] = (string) $found['provider_label'];
                 return $this->providerCache[$normalized];
             }
         } catch (\Throwable $e) {
@@ -472,21 +483,37 @@ class HlkSheetsMapper
 
     /**
      * Toutes les TVA fournisseurs distinctes de l'achat (une fiche peut avoir
-     * plusieurs fournisseurs), dans l'ordre d'apparition : "FR…, FR…".
+     * plusieurs fournisseurs) : "FR…, FR…".
+     *
+     * Ordre : celui des fournisseurs à l'affichage de la fiche, c.-à-d. par
+     * libellé BDD du fournisseur (SheetProvider::getBySheet : ORDER BY
+     * provider_label), pour que la n-ième TVA corresponde au n-ième fournisseur.
+     *
      * Dédoublonnage sur la valeur sans espaces/ponctuation, en majuscules ;
      * valeur conservée telle que HLK l'envoie (nettoyée) pour ne pas perdre un
      * éventuel DUNS (champ fiche « TVA / DUNS »).
+     *
+     * @param array<int,array{id:int,name:string}> $providers sortie de aggregateProviders()
      */
-    private function aggregateVatNumbers(array $rows): string
+    private function aggregateVatNumbers(array $rows, array $providers = []): string
     {
-        $seen = [];
+        $codeByName = [];
+        foreach ($providers as $p) {
+            $codeByName[(string) $p['name']] = (int) $p['id'];
+        }
+        $seen = []; // clé TVA → [clé de tri, TVA]
         foreach ($rows as $r) {
             $vat = HlkTextCleaner::clean($r['contrat_fournisseur_tva'] ?? '');
             $key = strtoupper(preg_replace('/[^0-9A-Za-z]+/', '', $vat) ?? '');
             if ($key === '' || isset($seen[$key])) continue;
-            $seen[$key] = $vat;
+            $name  = HlkTextCleaner::clean($r['contrat_fournisseur'] ?? '');
+            $code  = $codeByName[$name] ?? null;
+            $label = $code !== null ? ($this->providerLabelByCode[$code] ?? $name) : $name;
+            $seen[$key] = [ProviderLabelNormalizer::sortKey($label), $vat];
         }
-        return implode(', ', $seen);
+        // Tri stable (PHP 8) : à libellé égal, on garde l'ordre d'apparition
+        uasort($seen, static fn(array $a, array $b): int => strcmp($a[0], $b[0]));
+        return implode(', ', array_column($seen, 1));
     }
 
     private function aggregateOptions(array $rows): array
