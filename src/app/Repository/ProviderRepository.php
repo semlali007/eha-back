@@ -110,6 +110,20 @@ class ProviderRepository extends AbstractRepository {
                 throw new Exception('Le nom est obligatoire');
             }
             $provider = new Provider();
+
+            // Anti-doublon : si un fournisseur similaire existe déjà (casse,
+            // accents, ponctuation, suffixe légal près), on le renvoie au lieu
+            // d'en créer un nouveau.
+            $existing = $provider->findByNormalizedLabel($options['provider_label']);
+            if ($existing !== null) {
+                return [
+                    'status' => true,
+                    'already_exists' => true,
+                    'message' => sprintf('Le fournisseur "%s" existe déjà.', $existing['provider_label']),
+                    'element' => $provider->getByCode($existing['provider_code'])
+                ];
+            }
+
             $provider->add($options);
             return [
                 'status' => true,

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
+use App\Services\ProviderLabelNormalizer;
 use Exception;
 use PDO;
 
@@ -115,6 +116,51 @@ class Provider extends Model
             $sth->bindParam(':provider_label', $options['provider_label'], PDO::PARAM_STR);
             $sth->execute();
             return $sth->fetchall(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    /**
+     * Cherche un fournisseur existant dont le libellé est similaire (même forme
+     * normalisée : casse, accents, ponctuation, suffixes légaux ignorés).
+     * Retourne null si aucun.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function findByNormalizedLabel(?string $label): ?array
+    {
+        $target = ProviderLabelNormalizer::normalize($label);
+        if ($target === '') {
+            return null;
+        }
+        return $this->getNormalizedIndex()[$target] ?? null;
+    }
+
+    /**
+     * Index de tous les fournisseurs par libellé normalisé. Si plusieurs
+     * fournisseurs ont la même forme normalisée (doublons existants), on garde
+     * le plus complet (cf. ProviderLabelNormalizer::isBetterCandidate).
+     *
+     * @return array<string, array<string,mixed>>
+     */
+    public function getNormalizedIndex(): array
+    {
+        try {
+            $query = 'SELECT provider_code, provider_label, provider_siren, provider_numero_tva, provider_code_naf
+                      FROM ' . $this->table;
+            $sth = $this->db->getPDO()->query($query);
+            $index = [];
+            foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $norm = ProviderLabelNormalizer::normalize($row['provider_label']);
+                if ($norm === '') {
+                    continue;
+                }
+                if (!isset($index[$norm]) || ProviderLabelNormalizer::isBetterCandidate($row, $index[$norm])) {
+                    $index[$norm] = $row;
+                }
+            }
+            return $index;
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

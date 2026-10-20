@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Provider;
 use App\Services\BeneficiaryResolver;
 use App\Services\HlkTextCleaner;
+use App\Services\ProviderLabelNormalizer;
 
 /**
  * Transforme le payload brut HLK (produit cartésien contrat × option × bénéficiaire)
@@ -35,8 +36,15 @@ class HlkSheetsMapper
     /** @var array<string,int|null> Cache: label normalisé → category_code */
     private array $categoryCache = [];
 
-    /** @var array<string,int> Cache: label → provider_code */
+    /** @var array<string,int> Cache: label normalisé → provider_code */
     private array $providerCache = [];
+
+    /**
+     * Fournisseurs BDD indexés par label normalisé (Provider::getNormalizedIndex),
+     * chargé paresseusement au 1er fournisseur rencontré.
+     * @var array<string, array<string,mixed>>|null
+     */
+    private ?array $providerIndex = null;
 
     /**
      * Résolveur de bénéficiaires — partagé avec la sync bénéf.
@@ -300,8 +308,10 @@ class HlkSheetsMapper
     }
 
     /**
-     * Cherche le provider_code EHA correspondant au nom HLK (lookup exact via
-     * Provider::get). Crée l'entrée si absente via Provider::add.
+     * Cherche le provider_code EHA correspondant au nom HLK, par libellé
+     * normalisé (casse, accents, ponctuation, suffixe légal ignorés — cf.
+     * ProviderLabelNormalizer) pour ne pas recréer « CONSORT FRANCE » quand
+     * « CONSORT France » existe déjà. Crée l'entrée si absente via Provider::add.
      *
      * L'enrichissement (SIRET, NAF, TVA…) viendra plus tard via HLK V2. Pour
      * l'instant on se contente du provider_label pour ne pas bloquer la liaison
@@ -310,16 +320,22 @@ class HlkSheetsMapper
     private function resolveOrCreateProvider(string $name): ?int
     {
         if ($name === '') return null;
-        $normalized = mb_strtolower(trim($name));
+        $normalized = ProviderLabelNormalizer::normalize($name);
+        if ($normalized === '') {
+            // Libellé fait uniquement de ponctuation / suffixe légal : clé brute
+            $normalized = mb_strtolower(trim($name));
+        }
         if (isset($this->providerCache[$normalized])) {
             return $this->providerCache[$normalized];
         }
         try {
             $model = new Provider();
-            // Lookup exact
-            $found = $model->get(['provider_label' => $name]);
-            if (is_array($found) && count($found) > 0 && isset($found[0]['provider_code'])) {
-                $this->providerCache[$normalized] = (int) $found[0]['provider_code'];
+            // Index BDD chargé une seule fois par run (1 requête au lieu d'une par fournisseur)
+            if ($this->providerIndex === null) {
+                $this->providerIndex = $model->getNormalizedIndex();
+            }
+            if (isset($this->providerIndex[$normalized])) {
+                $this->providerCache[$normalized] = (int) $this->providerIndex[$normalized]['provider_code'];
                 return $this->providerCache[$normalized];
             }
             // Création via INSERT ... ON CONFLICT DO NOTHING (retourne lastInsertId
@@ -332,9 +348,9 @@ class HlkSheetsMapper
                 return $newCode;
             }
             // Fallback : re-lookup au cas où ON CONFLICT DO NOTHING ait retourné 0
-            $found = $model->get(['provider_label' => $name]);
-            if (is_array($found) && count($found) > 0 && isset($found[0]['provider_code'])) {
-                $this->providerCache[$normalized] = (int) $found[0]['provider_code'];
+            $found = $model->findByNormalizedLabel($name);
+            if ($found !== null) {
+                $this->providerCache[$normalized] = (int) $found['provider_code'];
                 return $this->providerCache[$normalized];
             }
         } catch (\Throwable $e) {
