@@ -4,14 +4,17 @@ namespace App\Command;
 
 use Symfony\Component\Console\Application;
 use App\Command\Command\{
+    ApplyProvidersMapping,
     ArchivageFicheMarche,
     AutoClotureDemandeHotline,
     AutoNotifArchivageFiche,
     SearchNoReplyHotline,
     RemoveExpiredNotifications,
+    DiagnoseUnmatchedProviders,
     Migration,
     DeleteMigration,
     MigrationDomain,
+    ProposeProvidersMapping,
     UpdateSheets,
     ImportSheetsFromHlk
 };
@@ -56,8 +59,7 @@ class Bootstrap {
             new Migration(),
             new DeleteMigration(),
             new MigrationDomain(),
-            new UpdateSheets(),
-            new ImportSheetsFromHlk()
+            new UpdateSheets()
         ] ;
     }
 
