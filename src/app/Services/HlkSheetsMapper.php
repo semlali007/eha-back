@@ -223,7 +223,7 @@ class HlkSheetsMapper
 
             // Fournisseurs & bénéficiaires
             'providers'                        => $providers,
-            'supplier_vat_number'              => HlkTextCleaner::clean($first['contrat_fournisseur_tva'] ?? ''),
+            'supplier_vat_number'              => $this->aggregateVatNumbers($rows),
             'filiales'                         => $filiales,
             'filiales0'                        => $filiales0,
             'entites_beneficiaires_edf_enedis' => $ebLibelles,
@@ -468,6 +468,25 @@ class HlkSheetsMapper
             $seen[$lb] = true;
         }
         return implode(' | ', array_keys($seen));
+    }
+
+    /**
+     * Toutes les TVA fournisseurs distinctes de l'achat (une fiche peut avoir
+     * plusieurs fournisseurs), dans l'ordre d'apparition : "FR…, FR…".
+     * Dédoublonnage sur la valeur sans espaces/ponctuation, en majuscules ;
+     * valeur conservée telle que HLK l'envoie (nettoyée) pour ne pas perdre un
+     * éventuel DUNS (champ fiche « TVA / DUNS »).
+     */
+    private function aggregateVatNumbers(array $rows): string
+    {
+        $seen = [];
+        foreach ($rows as $r) {
+            $vat = HlkTextCleaner::clean($r['contrat_fournisseur_tva'] ?? '');
+            $key = strtoupper(preg_replace('/[^0-9A-Za-z]+/', '', $vat) ?? '');
+            if ($key === '' || isset($seen[$key])) continue;
+            $seen[$key] = $vat;
+        }
+        return implode(', ', $seen);
     }
 
     private function aggregateOptions(array $rows): array
