@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Provider;
 use App\Services\BeneficiaryResolver;
 use App\Services\HlkTextCleaner;
+use App\Services\ProviderFiscalId;
 use App\Services\ProviderLabelNormalizer;
 
 /**
@@ -40,11 +41,12 @@ class HlkSheetsMapper
     private array $providerCache = [];
 
     /**
-     * Fournisseurs BDD indexés par label normalisé (Provider::getNormalizedIndex),
-     * chargé paresseusement au 1er fournisseur rencontré.
-     * @var array<string, array<string,mixed>>|null
+     * Fournisseurs BDD indexés par libellé normalisé, TVA et SIREN
+     * (Provider::getMatchingIndexes), chargés paresseusement au 1er
+     * fournisseur rencontré.
+     * @var array{label: array<string, array<string,mixed>>, vat: array<string, array<string,mixed>>, siren: array<string, array<string,mixed>>}|null
      */
-    private ?array $providerIndex = null;
+    private ?array $providerIndexes = null;
 
     /**
      * Résolveur de bénéficiaires — partagé avec la sync bénéf.
@@ -288,18 +290,23 @@ class HlkSheetsMapper
 
     private function aggregateProviders(array $rows): array
     {
+        // nom → TVA (1ère TVA valide rencontrée pour ce fournisseur, '' si aucune)
         $seen = [];
         foreach ($rows as $r) {
             $name = HlkTextCleaner::clean($r['contrat_fournisseur'] ?? '');
             if ($name === '') continue;
-            $seen[$name] = true;
+            $vat = ProviderFiscalId::normalizeVat($r['contrat_fournisseur_tva'] ?? '');
+            if (!isset($seen[$name]) || ($seen[$name] === '' && $vat !== '')) {
+                $seen[$name] = $vat;
+            }
         }
         // Format attendu par SheetManager::add() : [ ['id' => provider_code_int, ...] ]
         // Il faut donc convertir chaque nom HLK en provider_code réel (existant en base
         // ou créé à la volée). Un nom non résolu → on ne le remonte pas (pas de lien).
         $out = [];
-        foreach (array_keys($seen) as $name) {
-            $code = $this->resolveOrCreateProvider($name);
+        foreach ($seen as $name => $vat) {
+            $name = (string) $name; // clé numérique (ex. "3M") → int en PHP
+            $code = $this->resolveOrCreateProvider($name, $vat);
             if ($code !== null) {
                 $out[] = ['id' => $code, 'name' => $name];
             }
@@ -308,16 +315,18 @@ class HlkSheetsMapper
     }
 
     /**
-     * Cherche le provider_code EHA correspondant au nom HLK, par libellé
-     * normalisé (casse, accents, ponctuation, suffixe légal ignorés — cf.
-     * ProviderLabelNormalizer) pour ne pas recréer « CONSORT FRANCE » quand
-     * « CONSORT France » existe déjà. Crée l'entrée si absente via Provider::add.
+     * Cherche le provider_code EHA correspondant au fournisseur HLK, dans
+     * l'ordre (du plus fiable au moins fiable) :
+     *   1. n° de TVA (contrat_fournisseur_tva) = provider_numero_tva
+     *   2. SIREN déduit de la TVA française = provider_siren
+     *   3. libellé normalisé (casse, accents, ponctuation, suffixe légal
+     *      ignorés — cf. ProviderLabelNormalizer)
+     * Les fournisseurs existants ne sont jamais modifiés.
      *
-     * L'enrichissement (SIRET, NAF, TVA…) viendra plus tard via HLK V2. Pour
-     * l'instant on se contente du provider_label pour ne pas bloquer la liaison
-     * fiche ↔ fournisseur.
+     * Si absent : création avec le libellé, la TVA et le SIREN déduit (le code
+     * NAF n'est pas fourni par HLK).
      */
-    private function resolveOrCreateProvider(string $name): ?int
+    private function resolveOrCreateProvider(string $name, string $vat = ''): ?int
     {
         if ($name === '') return null;
         $normalized = ProviderLabelNormalizer::normalize($name);
@@ -328,23 +337,50 @@ class HlkSheetsMapper
         if (isset($this->providerCache[$normalized])) {
             return $this->providerCache[$normalized];
         }
+        $vat   = ProviderFiscalId::normalizeVat($vat);
+        $siren = ProviderFiscalId::sirenFromVat($vat);
         try {
             $model = new Provider();
-            // Index BDD chargé une seule fois par run (1 requête au lieu d'une par fournisseur)
-            if ($this->providerIndex === null) {
-                $this->providerIndex = $model->getNormalizedIndex();
+            // Index BDD chargés une seule fois par run (1 requête au lieu d'une par fournisseur)
+            if ($this->providerIndexes === null) {
+                $this->providerIndexes = $model->getMatchingIndexes();
             }
-            if (isset($this->providerIndex[$normalized])) {
-                $this->providerCache[$normalized] = (int) $this->providerIndex[$normalized]['provider_code'];
+            $match = null;
+            $matchedBy = '';
+            if ($vat !== '' && isset($this->providerIndexes['vat'][$vat])) {
+                $match = $this->providerIndexes['vat'][$vat];
+                $matchedBy = 'TVA';
+            } elseif ($siren !== '' && isset($this->providerIndexes['siren'][$siren])) {
+                $match = $this->providerIndexes['siren'][$siren];
+                $matchedBy = 'SIREN';
+            } elseif (isset($this->providerIndexes['label'][$normalized])) {
+                $match = $this->providerIndexes['label'][$normalized];
+                $matchedBy = 'libellé';
+                $matchVat = ProviderFiscalId::normalizeVat($match['provider_numero_tva'] ?? '');
+                if ($vat !== '' && $matchVat !== '' && $matchVat !== $vat) {
+                    error_log("[import-hlk:map]     ⚠ fournisseur '{$name}' (TVA {$vat}) rattaché par libellé à code={$match['provider_code']} qui a une autre TVA ({$matchVat})");
+                }
+            }
+            if ($match !== null) {
+                $this->providerCache[$normalized] = (int) $match['provider_code'];
+                if ($matchedBy !== 'libellé') {
+                    error_log("[import-hlk:map]     · fournisseur '{$name}' rattaché par {$matchedBy} à '{$match['provider_label']}' (code={$match['provider_code']})");
+                }
                 return $this->providerCache[$normalized];
             }
             // Création via INSERT ... ON CONFLICT DO NOTHING (retourne lastInsertId
-            // ou "0" si conflit). Si 0 → on re-lookup.
-            $newCode = (int) $model->add(['provider_label' => $name]);
+            // ou "0" si conflit). Si 0 → on re-lookup. Provider::add ignore les
+            // champs vides (→ NULL en BDD).
+            $newCode = (int) $model->add([
+                'provider_label'      => $name,
+                'provider_numero_tva' => $vat,
+                'provider_siren'      => $siren,
+            ]);
             if ($newCode > 0) {
                 $this->providerCache[$normalized] = $newCode;
+                $this->registerCreatedProvider($newCode, $name, $normalized, $vat, $siren);
                 $this->newProvidersCount++;
-                error_log("[import-hlk:map]     · fournisseur '{$name}' CRÉÉ (code={$newCode})");
+                error_log("[import-hlk:map]     · fournisseur '{$name}' CRÉÉ (code={$newCode}, tva=" . ($vat ?: '-') . ', siren=' . ($siren ?: '-') . ')');
                 return $newCode;
             }
             // Fallback : re-lookup au cas où ON CONFLICT DO NOTHING ait retourné 0
@@ -359,6 +395,29 @@ class HlkSheetsMapper
         $this->unknownProvidersCount++;
         error_log("[import-hlk:map]     · fournisseur '{$name}' NON RÉSOLU → pas de lien créé");
         return null;
+    }
+
+    /**
+     * Ajoute un fournisseur tout juste créé aux index en mémoire, pour qu'un
+     * même fournisseur écrit autrement plus loin dans le run (même TVA, autre
+     * libellé) soit rattaché au lieu d'être recréé.
+     */
+    private function registerCreatedProvider(int $code, string $name, string $normalized, string $vat, string $siren): void
+    {
+        $row = [
+            'provider_code'       => $code,
+            'provider_label'      => $name,
+            'provider_siren'      => $siren !== '' ? $siren : null,
+            'provider_numero_tva' => $vat !== '' ? $vat : null,
+            'provider_code_naf'   => null,
+        ];
+        $this->providerIndexes['label'][$normalized] ??= $row;
+        if ($vat !== '') {
+            $this->providerIndexes['vat'][$vat] ??= $row;
+        }
+        if ($siren !== '') {
+            $this->providerIndexes['siren'][$siren] ??= $row;
+        }
     }
 
     private function aggregateFiliales(array $rows): array

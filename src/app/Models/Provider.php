@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Exceptions\InternalServerException;
+use App\Services\ProviderFiscalId;
 use App\Services\ProviderLabelNormalizer;
 use Exception;
 use PDO;
@@ -146,21 +147,42 @@ class Provider extends Model
      */
     public function getNormalizedIndex(): array
     {
+        return $this->getMatchingIndexes()['label'];
+    }
+
+    /**
+     * Index de tous les fournisseurs pour le rapprochement, en une requête :
+     *   - label : par libellé normalisé (ProviderLabelNormalizer)
+     *   - vat   : par n° de TVA normalisé (ProviderFiscalId::normalizeVat)
+     *   - siren : par SIREN normalisé (ProviderFiscalId::normalizeSiren)
+     * En cas de doublons sur une même clé, on garde le plus complet
+     * (cf. ProviderLabelNormalizer::isBetterCandidate).
+     *
+     * @return array{label: array<string, array<string,mixed>>, vat: array<string, array<string,mixed>>, siren: array<string, array<string,mixed>>}
+     */
+    public function getMatchingIndexes(): array
+    {
         try {
             $query = 'SELECT provider_code, provider_label, provider_siren, provider_numero_tva, provider_code_naf
                       FROM ' . $this->table;
             $sth = $this->db->getPDO()->query($query);
-            $index = [];
+            $indexes = ['label' => [], 'vat' => [], 'siren' => []];
             foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                $norm = ProviderLabelNormalizer::normalize($row['provider_label']);
-                if ($norm === '') {
-                    continue;
-                }
-                if (!isset($index[$norm]) || ProviderLabelNormalizer::isBetterCandidate($row, $index[$norm])) {
-                    $index[$norm] = $row;
+                $keys = [
+                    'label' => ProviderLabelNormalizer::normalize($row['provider_label']),
+                    'vat'   => ProviderFiscalId::normalizeVat($row['provider_numero_tva']),
+                    'siren' => ProviderFiscalId::normalizeSiren($row['provider_siren']),
+                ];
+                foreach ($keys as $type => $key) {
+                    if ($key === '') {
+                        continue;
+                    }
+                    if (!isset($indexes[$type][$key]) || ProviderLabelNormalizer::isBetterCandidate($row, $indexes[$type][$key])) {
+                        $indexes[$type][$key] = $row;
+                    }
                 }
             }
-            return $index;
+            return $indexes;
         } catch (\Exception $e) {
             throw new InternalServerException();
         }
