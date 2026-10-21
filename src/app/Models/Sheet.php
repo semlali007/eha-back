@@ -183,7 +183,12 @@ class Sheet extends Model
             }
             if (count($stipulationAutrui) > 0) {
                 $stipulationAutruiStr = '(' . implode(', ', $stipulationAutrui) . ')';
-                $search .= " INNER JOIN {$this->sheetStipulationTable} sf on sf.sheet_id = s.id and sf.filiale_id in $stipulationAutruiStr  ";
+                // Alias distinct de celui du JOIN beneficiaries ci-dessus (sf) —
+                // même table physique (sheet_filiales), mais les deux JOIN
+                // peuvent coexister dans la même requête quand les deux filtres
+                // sont actifs simultanément. Un alias identique fait planter
+                // Postgres avec "table name specified more than once".
+                $search .= " INNER JOIN {$this->sheetStipulationTable} sf2 on sf2.sheet_id = s.id and sf2.filiale_id in $stipulationAutruiStr  ";
             }
         }
 
