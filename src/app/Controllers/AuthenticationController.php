@@ -52,16 +52,37 @@ class AuthenticationController extends Controller
     // }
 
 
+    /**
+     * GARDIAN does not send every attribute for every user. The REC
+     * SECURINTERNET IdP omits gardianwebsso_mail entirely, and this method
+     * used to dereference it unconditionally:
+     *
+     *     Undefined array key "gardianwebsso_mail"
+     *     ... AuthenticationController.php on line 62
+     *
+     * The error handler turned that into an HTTP 200 whose body is a PHP
+     * stack trace. The F5 passes it (it is not a 4XX/5XX), Angular cannot
+     * parse it as JSON, decides the user is not authenticated, and sends a
+     * fully authenticated user back to /login. Only gardianwebsso_status had
+     * a guard; every other attribute was one missing value away from the same
+     * failure.
+     */
     public function attributes(): mixed
     {
-        $attr =  $this->getSp()->getAttributes();
-        $attr['gardianwebsso_groupid'] = $attr['gardianwebsso_groupid'][0];
-        $attr['gardianwebsso_id'] = $attr['gardianwebsso_id'][0];
-        $attr['gardianwebsso_cn'] = $attr['gardianwebsso_cn'][0];
-        $attr['gardianwebsso_department'] = $attr['gardianwebsso_department'][0];
-        $attr['gardianwebsso_email'] = $attr['gardianwebsso_mail'][0];
-        // $attr['gardianwebsso_status'] = $attr['gardianwebsso_status'][0];
-        $attr['gardianwebsso_status'] = isset($attr['gardianwebsso_status'][0]) ? $attr['gardianwebsso_status'][0] : '';
+        $raw = $this->getSp()->getAttributes();
+
+        $first = static function (array $attributes, string $key): string {
+            return isset($attributes[$key][0]) ? (string) $attributes[$key][0] : '';
+        };
+
+        $attr = $raw;
+        $attr['gardianwebsso_groupid']    = $first($raw, 'gardianwebsso_groupid');
+        $attr['gardianwebsso_id']         = $first($raw, 'gardianwebsso_id');
+        $attr['gardianwebsso_cn']         = $first($raw, 'gardianwebsso_cn');
+        $attr['gardianwebsso_department'] = $first($raw, 'gardianwebsso_department');
+        $attr['gardianwebsso_email']      = $first($raw, 'gardianwebsso_mail');
+        $attr['gardianwebsso_status']     = $first($raw, 'gardianwebsso_status');
+
         return $this->response($attr);
     }
     
