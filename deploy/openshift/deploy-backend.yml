@@ -324,6 +324,61 @@ objects:
                 try_files $uri /index.php?$query_string;
           }
 
+          # -------------------------------------------------------------------
+          # simplesamlphp.
+          #
+          # .s2i/bin/assemble installs it at /opt/app-root/src/simplesamlphp,
+          # i.e. OUTSIDE the docroot (/opt/app-root/src/public), and nothing
+          # links it in. Without this block the IdP's assertion is silently
+          # lost: a POST to
+          #     /simplesaml/module.php/saml/sp/saml2-acs.php/default-sp
+          # does not match `location ~ \.php$` below - that regex requires the
+          # URI to END in .php, and this one ends in /default-sp - so it falls
+          # through to `location /`, try_files misses, and it is handed to the
+          # application front controller, whose router knows only /saml/login,
+          # /saml/logout and /saml/attributes. Confirmed in the pod: the ACS
+          # POST produced no nginx access entry for simplesamlphp at all.
+          #
+          # `^~` makes this prefix beat the regex locations whatever the order,
+          # which also sidesteps the duplicate `location ~ \.php$` further down
+          # (the second one, `return 404`, is already dead - nginx takes the
+          # first matching regex).
+          #
+          # Reached only via the frontend proxy (F5 -> frontend nginx /api ->
+          # here); nothing new is exposed. Static assets under /simplesaml/
+          # still 404 because this container has no volume carrying the app
+          # image - only PHP works, which is all the ACS needs.
+          location ^~ /simplesaml {
+              alias /opt/app-root/src/simplesamlphp/public;
+              index index.php;
+
+              # Non-greedy `.+?\.php` is load-bearing: this URL carries TWO
+              # .php segments (module.php and saml2-acs.php). A greedy match
+              # splits at the second and yields a SCRIPT_FILENAME of
+              # .../public/module.php/saml/sp/saml2-acs.php, which is not a
+              # file. Non-greedy splits at the first, giving module.php as the
+              # script and /saml/sp/saml2-acs.php/default-sp as PATH_INFO -
+              # exactly what simplesamlphp dispatches on.
+              location ~ ^(?<prefix>/simplesaml)(?<phpfile>.+?\.php)(?<pathinfo>/.*)?$ {
+                  include fastcgi_params;
+                  fastcgi_pass 127.0.0.1:9000;
+
+                  # Inside an alias location $document_root is the alias target,
+                  # so this resolves in the php-fpm container's filesystem.
+                  fastcgi_param SCRIPT_FILENAME $document_root$phpfile;
+
+                  # PATH_INFO is NOT in the global fastcgi_params, and
+                  # fastcgi_split_path_info only sets a variable - nginx does
+                  # not forward it by itself. module.php routes on this.
+                  fastcgi_param PATH_INFO       $pathinfo if_not_empty;
+
+                  # Without this simplesamlphp derives its self-URL from the
+                  # aliased path and stops matching the ACS the IdP posted to,
+                  # which surfaces much later as a Destination mismatch.
+                  fastcgi_param SCRIPT_NAME     /simplesaml$phpfile;
+              }
+          }
+
           location ~ \.php$ {
                     include fastcgi_params;
                     fastcgi_split_path_info ^(.+\.php)(/.+)$;
