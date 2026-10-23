@@ -678,8 +678,16 @@ objects:
                   mkdir -p "$DST"
                   cp -a "$SRC/." "$DST/"
                   # nginx-rp runs as a different arbitrary UID in the root
-                  # group; make sure it can traverse and read.
-                  chmod -R a+rX /mnt/simplesaml-public
+                  # group, so the files must be world-readable. cp -a already
+                  # preserves the image's modes (-rw-rw-r--), and the emptyDir
+                  # mount point is drwxrwsrwx, so this is belt-and-braces.
+                  #
+                  # Scoped to $DST on purpose: the mount point itself is owned
+                  # by root and chmod on it fails with "Operation not
+                  # permitted" under the arbitrary UID, which under `set -e`
+                  # crash-looped the whole pod. `|| true` because read access
+                  # does not depend on it succeeding.
+                  chmod -R a+rX "$DST" || true
                   echo "copied $(find "$DST" -type f | wc -l) asset files"
               volumeMounts:
                 - name: simplesaml-public
