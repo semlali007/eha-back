@@ -345,12 +345,28 @@ objects:
           # first matching regex).
           #
           # Reached only via the frontend proxy (F5 -> frontend nginx /api ->
-          # here); nothing new is exposed. Static assets under /simplesaml/
-          # still 404 because this container has no volume carrying the app
-          # image - only PHP works, which is all the ACS needs.
+          # here); nothing new is exposed.
           location ^~ /simplesaml {
               alias /opt/app-root/src/simplesamlphp/public;
               index index.php;
+
+              # Static assets come from the shared emptyDir, NOT from the alias
+              # above: that path exists only in the php-fpm container. The
+              # simplesaml-assets initContainer populates this volume from the
+              # application image at pod start.
+              #
+              # Deliberately a separate location rather than a change to the
+              # outer alias - the alias also builds SCRIPT_FILENAME for the ACS
+              # sub-location below, and that must keep resolving inside the
+              # php-fpm container's filesystem.
+              #
+              # `^~` so this wins over the .php regex below; nothing under
+              # assets/ is executable anyway.
+              location ^~ /simplesaml/assets/ {
+                  alias /opt/app-root/etc/simplesamlphp/public/assets/;
+                  access_log off;
+                  expires 1h;
+              }
 
               # Non-greedy `.+?\.php` is load-bearing: this URL carries TWO
               # .php segments (module.php and saml2-acs.php). A greedy match
@@ -593,6 +609,13 @@ objects:
                 "name": "${IMAGE_NAME}:${IMAGE_TAG}"
               },
               "fieldPath": "spec.template.spec.containers[?(@.name==\"backend-${APPLICATION_NAME}\")].image"
+            },
+            {
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${IMAGE_NAME}:${IMAGE_TAG}"
+              },
+              "fieldPath": "spec.template.spec.initContainers[?(@.name==\"simplesaml-assets\")].image"
             }
           ]
     spec:
@@ -614,11 +637,66 @@ objects:
           dnsPolicy: ClusterFirst
           schedulerName: default-scheduler
           terminationGracePeriodSeconds: 30
+          # -------------------------------------------------------------------
+          # simplesamlphp static assets -> shared emptyDir.
+          #
+          # nginx-rp has no application filesystem: PHP works because those
+          # requests are handed to php-fpm in another container, but static
+          # files nginx must open itself, and /opt/app-root/src/simplesamlphp
+          # does not exist in the nginx container. The result was a 404 on
+          #     /simplesaml/assets/base/js/post.js
+          # which is the script that auto-submits the SAML AuthnRequest form.
+          # Without it the login page degrades to its no-JS fallback and waits
+          # for the user to press a button: measured at 32 s on CaaS against
+          # 89 ms on the VM, where the asset resolves.
+          #
+          # The ACS leg never needed this, which is why it was missed - it is
+          # pure PHP. Only the login leg renders HTML that pulls assets.
+          #
+          # NOTE: the trigger annotation above carries a second entry for this
+          # container. A fieldPath naming a container that does not exist
+          # matches nothing silently and leaves the base image in place.
+          # -------------------------------------------------------------------
+          initContainers:
+            - name: simplesaml-assets
+              image: "${LOCAL_REGISTRY}/${NAMESPACE_DEPLOY_BACKEND}/${IMAGE_NAME}:${IMAGE_TAG}"
+              imagePullPolicy: Always
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  SRC=/opt/app-root/src/simplesamlphp/public/assets
+                  DST=/mnt/simplesaml-public/assets
+                  # Fail loudly here rather than serving a login page that
+                  # silently needs a click.
+                  if [ ! -d "$SRC" ]; then
+                      echo "ERROR: $SRC missing in the application image"
+                      exit 1
+                  fi
+                  rm -rf "$DST"
+                  mkdir -p "$DST"
+                  cp -a "$SRC/." "$DST/"
+                  # nginx-rp runs as a different arbitrary UID in the root
+                  # group; make sure it can traverse and read.
+                  chmod -R a+rX /mnt/simplesaml-public
+                  echo "copied $(find "$DST" -type f | wc -l) asset files"
+              volumeMounts:
+                - name: simplesaml-public
+                  mountPath: /mnt/simplesaml-public
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
           containers:
             # -----------------------------------------------------------------
             # nginx reverse proxy in front of PHP-FPM.
-            # Its configuration still comes from the cluster-managed cm-rp-nginx
-            # ConfigMap rather than from this repository.
+            # Its configuration comes from the cm-nginx-backend-* ConfigMap
+            # defined earlier in this template (captured from the formerly
+            # cluster-managed cm-rp-nginx), mounted on the nginx-conf volume.
             # -----------------------------------------------------------------
             - name: nginx-rp
               image: "${LOCAL_REGISTRY}/openshift/dck_nginx-ubi8:1.26"
