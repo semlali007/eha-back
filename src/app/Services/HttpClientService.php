@@ -99,8 +99,15 @@ class HttpClientService {
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
         curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
+        // Both were 360. A connect timeout that long pins a php-fpm worker for
+        // six minutes whenever HLK is unreachable (firewalled egress drops the
+        // SYN silently, so curl waits the full budget). With pm.max_children=5
+        // a handful of such calls starve the pool and unrelated requests queue:
+        // an /api/saml/attributes at login was observed waiting 68s, released
+        // the instant an HLK call expired. max_execution_time does not help --
+        // on Linux it counts CPU time, which a blocked socket does not consume.
+        curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_VERBOSE, true);
@@ -140,8 +147,15 @@ class HttpClientService {
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_TCP_KEEPALIVE, 1);
         curl_setopt($curl, CURLOPT_TCP_KEEPIDLE, 2);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 360);
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 360);
+        // Both were 360. A connect timeout that long pins a php-fpm worker for
+        // six minutes whenever HLK is unreachable (firewalled egress drops the
+        // SYN silently, so curl waits the full budget). With pm.max_children=5
+        // a handful of such calls starve the pool and unrelated requests queue:
+        // an /api/saml/attributes at login was observed waiting 68s, released
+        // the instant an HLK call expired. max_execution_time does not help --
+        // on Linux it counts CPU time, which a blocked socket does not consume.
+        curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_VERBOSE, true);
