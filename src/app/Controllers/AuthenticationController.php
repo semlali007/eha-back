@@ -27,8 +27,18 @@ class AuthenticationController extends Controller
                 } else {
                     error_log("Type d'employé autorisé");
                 }
+            } else {
+                // Fail-open, et volontairement bruyant. GARDIAN ne publie pas
+                // gardianwebsso_status pour l'entityID CaaS
+                // (https://eha-v2-preprod-caas.edf.fr/api/saml/metadata) : le SP
+                // ne demande aucun RequestedAttribute, la diffusion est donc
+                // pilotée entièrement côté IdP. Sans l'attribut, isset() est
+                // faux et le filtre fournisseur était silencieusement ignoré -
+                // un fournisseur entrait faute de preuve qu'il en est un.
+                // À basculer en refus dès que l'IdP confirme la diffusion.
+                error_log("ALERTE: gardianwebsso_status absent de l'assertion SAML - filtre fournisseur inopérant (accès accordé par défaut)");
             }
-                
+
         } else {
                 throw new AccessDeniedException('You must authenticate');
         }

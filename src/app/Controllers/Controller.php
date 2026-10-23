@@ -96,25 +96,23 @@ abstract class Controller
             //var_dump($userInfo);exit;
             if (is_array($userInfo) && isset($userInfo['gardianwebsso_id'][0]) &&  !empty($userInfo['gardianwebsso_id'][0])) {
                 
+                // Filtre des utilisateurs fournisseurs.
+                //
+                // Fail-open, et volontairement bruyant : voir le commentaire
+                // détaillé dans AuthenticationController::login(). GARDIAN ne
+                // diffuse pas gardianwebsso_status à l'entityID CaaS, donc
+                // isset() est faux et ce filtre ne s'applique à personne. Le
+                // cas manquant était auparavant muet, ce qui a masqué le trou.
+                // À basculer en refus dès que l'IdP confirme la diffusion.
                 if (isset($userInfo["gardianwebsso_status"])) {
                     error_log("La valeur de gardianwebsso_status est : " . print_r($userInfo["gardianwebsso_status"], true));
-                }
-                
-                // Filtre des utilisateurs fournisseurs
-                // if (isset($userInfo["gardianwebsso_status"])) {
-                //     if (in_array("P", $userInfo["gardianwebsso_status"])) {
-                //         error_log("Type d'employé non autorisé");
-                //         throw new AccessDeniedException();
-                //     } else {
-                //         error_log("Type d'employé autorisé");
-                //     }
-                // }
-                if (isset($userInfo["gardianwebsso_status"])) {
                     if (in_array("P", $userInfo["gardianwebsso_status"])) {
                         $this->showAccessDeniedPage();
                     } else {
                         error_log("Type d'employé autorisé");
                     }
+                } else {
+                    error_log("ALERTE: gardianwebsso_status absent de l'assertion SAML - filtre fournisseur inopérant (accès accordé par défaut)");
                 }
 
                 //var_dump($userInfo);exit;
