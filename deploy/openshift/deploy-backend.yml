@@ -705,9 +705,24 @@ objects:
             # Its configuration comes from the cm-nginx-backend-* ConfigMap
             # defined earlier in this template (captured from the formerly
             # cluster-managed cm-rp-nginx), mounted on the nginx-conf volume.
+            #
+            # alma8, not ubi8: the ubi8 line is stuck on rhel 8.8 and ships
+            # autorite_chain.pem, the G2-only EDF CA bundle, even in its most
+            # recent tag. dck_nginx-alma8:1.30 is rhel 8.10 and carries
+            # ac_bundle_edf.pem with the G3 chain that replaces G2 at the end
+            # of 2027. Both verified by probing the images.
+            #
+            # The mount paths below carry the nginx version because the image
+            # does: --prefix=/opt/nginx/<version>, and /var/projects/instance/
+            # nginx_<version>. They all move 1.26 -> 1.30 together. What does
+            # NOT move is NGINX_CONF_DIR, still
+            # /appli/projects/instance/nginx/conf/, and nothing in the
+            # ConfigMap refers to a versioned path -- its only absolute paths
+            # are /opt/app-root/... and /var/projects/instance/nginx_1/run,
+            # which has no version in it.
             # -----------------------------------------------------------------
             - name: nginx-rp
-              image: "${LOCAL_REGISTRY}/openshift/dck_nginx-ubi8:1.26"
+              image: "${LOCAL_REGISTRY}/openshift/dck_nginx-alma8:1.30"
               imagePullPolicy: Always
               command:
                 - /usr/libexec/s2i/run
@@ -730,12 +745,16 @@ objects:
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
               volumeMounts:
+                # Vestigial VM-era docroot, shared with php-fpm. The served
+                # root is /opt/app-root/src/public, declared in the ConfigMap;
+                # nothing reads this path. Renamed with the rest rather than
+                # left saying 1.26 under a 1.30 image.
                 - name: appli-sharing
-                  mountPath: /appli/projects/EHA/nginx_1.26/html
+                  mountPath: /appli/projects/EHA/nginx_1.30/html
                 - name: test-app-nginx-volume-1
-                  mountPath: /var/projects/instance/nginx_1.26/cache/
+                  mountPath: /var/projects/instance/nginx_1.30/cache/
                 - name: test-app-nginx-volume-2
-                  mountPath: /var/projects/instance/nginx_1.26/run/
+                  mountPath: /var/projects/instance/nginx_1.30/run/
                 - name: nginx-conf
                   mountPath: /appli/projects/instance/nginx/conf
                 - name: app-nginx-crt
@@ -745,15 +764,15 @@ objects:
                 - name: client-cache
                   mountPath: /var/lib/nginx/cache/proxy_cache
                 - name: proxy-temp
-                  mountPath: /opt/nginx/1.26/proxy_temp
+                  mountPath: /opt/nginx/1.30/proxy_temp
                 - name: fastcgi-temp
-                  mountPath: /opt/nginx/1.26/fastcgi_temp
+                  mountPath: /opt/nginx/1.30/fastcgi_temp
                 - name: uwsgi-temp
-                  mountPath: /opt/nginx/1.26/uwsgi_temp
+                  mountPath: /opt/nginx/1.30/uwsgi_temp
                 - name: scgi-temp
-                  mountPath: /opt/nginx/1.26/scgi_temp
+                  mountPath: /opt/nginx/1.30/scgi_temp
                 - name: pid-vol
-                  mountPath: /opt/nginx/1.26/logs/
+                  mountPath: /opt/nginx/1.30/logs/
                   subPath: nginx.pid
                 - name: simple-saml-config
                   mountPath: /opt/app-root/etc/simplesamlphp/config
@@ -825,7 +844,7 @@ objects:
                 - name: log-dir
                   mountPath: /var/projects/EHA/php-fpm_8.4/log/
                 - name: appli-sharing
-                  mountPath: /appli/projects/EHA/nginx_1.26/html
+                  mountPath: /appli/projects/EHA/nginx_1.30/html
                 - name: simplesaml-public
                   mountPath: /opt/app-root/etc/simplesamlphp/src
                 # The `backend-config` mount is gone on purpose. It mounted the
