@@ -163,12 +163,21 @@ objects:
       # shadowed the instance configuration phpman had generated.
       filebeat.yml: |-
         filebeat.inputs:
-        - input_type: log
+        # `type`, not `input_type`: the latter is a pre-6.0 alias that 8.19
+        # still honours but warns about on every start. Verified both forms
+        # harvest identically on 8.19.2 before changing it.
+        - type: log
           paths:
             - /achatpedia/log/*.log
         #output.console:
         #  pretty: true
         setup.template.enabled: false
+        # ILM must be off explicitly. Left unset it defaults to auto, and when
+        # the cluster supports ILM filebeat writes to its own rollover alias
+        # and silently ignores output.elasticsearch.index below -- the index
+        # this application is actually expected to land in. mtb's sidecar has
+        # always set this; this one did not.
+        setup.ilm.enabled: false
         #setup.template.overwrite: true
         output.elasticsearch:
           hosts: ["${ELASTICSEARCH_HOST}"]
@@ -872,9 +881,20 @@ objects:
 
             # -----------------------------------------------------------------
             # Log shipping to PADAONE.
+            #
+            # ubi9, not ubi: the two 8.19.2 tags are not equivalent.
+            # dck_filebeat-ubi:8.19.2 is rhel 9.2 and still ships
+            # autorite_chain.pem (G2 only); dck_filebeat-ubi9:8.19.2 is rhel
+            # 9.8 with ac_bundle_edf.pem (G3). Both probed. Since this sidecar
+            # talks TLS to PADAONE, the bundle is not cosmetic.
+            #
+            # Drop-in otherwise: the image keeps FILEBEAT_CONFIG and
+            # FILEBEAT_DATA at /opt/filebeat/{config,data}, so the mounts
+            # below are unchanged. Its CMD is
+            #   filebeat -e --path.config /opt/filebeat/config --strict.perms=false
             # -----------------------------------------------------------------
             - name: filebeat-container
-              image: "${LOCAL_REGISTRY}/openshift/dck_filebeat-ubi:7.9.3"
+              image: "${LOCAL_REGISTRY}/openshift/dck_filebeat-ubi9:8.19.2"
               imagePullPolicy: IfNotPresent
               env:
                 - name: SECRETS_PADAONE_USERNAME
