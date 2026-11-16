@@ -66,14 +66,21 @@ class SheetLot extends Model
                 $query = '
                 DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId   
                 ";
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             } else {
-                $lots = implode("', '", $lotsArray);
+                // Valider et échapper chaque valeur du tableau
+                $escapedLots = array_map(function($lot) {
+                    return str_replace("'", "''", $lot); // Échappement PostgreSQL
+                }, $lotsArray);
+                $lots = implode("', '", $escapedLots);
+                
                 $query = '
             DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId AND name NOT IN ('$lots') 
             ";
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             }
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();

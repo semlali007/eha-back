@@ -35,8 +35,7 @@ class NewsCast extends Model
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
-            var_dump($e);
-            exit;
+            error_log("NewsCast error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
@@ -45,13 +44,20 @@ class NewsCast extends Model
     {
         try {
             $search = ' WHERE 1 = 1 ';
+            $params = [];
+            
             if (isset($options) && isset($options['name']) && strlen($options['name']) > 0) {
-                $search_input = strtolower($options['name']);
-                $search .= " AND  lower(name) LIKE '%$search_input%'  ";
+                $search .= " AND lower(name) LIKE :search_name ";
+                $params[':search_name'] = '%' . strtolower($options['name']) . '%';
             }
 
             $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ' . $search;
             $sth = $this->db->getPDO()->prepare($query);
+            
+            foreach ($params as $key => $value) {
+                $sth->bindValue($key, $value, PDO::PARAM_STR);
+            }
+            
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -103,8 +109,7 @@ class NewsCast extends Model
             $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
             return $data;
         } catch (\Exception $e) {
-            var_dump($e);
-            exit;
+            error_log("NewsCast error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
@@ -112,8 +117,22 @@ class NewsCast extends Model
     public function get($id)
     {
         try {
-            $query = 'SELECT n.*, nc.label as categ, nc.code as categ_code  FROM ' . $this->table . ' n LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc 
+            $query = 'SELECT n.*, nc.label as categ, nc.code as categ_code  FROM ' . $this->table . ' n LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc
 			ON nc.id = n.category WHERE n.id=:id';
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function getPublished($id)
+    {
+        try {
+            $query = 'SELECT n.*, nc.label as categ, nc.code as categ_code  FROM ' . $this->table . ' n LEFT JOIN '.(new NewsCastCategory())->table .'  AS nc
+			ON nc.id = n.category WHERE n.id=:id AND n.status = 1';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
@@ -228,8 +247,7 @@ class NewsCast extends Model
             $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
             return $data;
         } catch (\Exception $e) {
-            var_dump($e);
-            exit;
+            error_log("NewsCast error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }

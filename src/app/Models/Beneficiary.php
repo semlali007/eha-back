@@ -30,13 +30,20 @@ class Beneficiary extends Model
     {
         try {
             $search = ' WHERE 1 = 1 ';
+            $params = [];
+            
             if (isset($options) && isset($options['name']) && strlen($options['name']) > 0) {
-                $search_input = strtolower($options['name']);
-                $search .= " AND  lower(name) LIKE '%$search_input%'  ";
+                $search .= " AND lower(name) LIKE :search_name ";
+                $params[':search_name'] = '%' . strtolower($options['name']) . '%';
             }
 
             $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ' . $search;
             $sth = $this->db->getPDO()->prepare($query);
+            
+            foreach ($params as $key => $value) {
+                $sth->bindValue($key, $value, PDO::PARAM_STR);
+            }
+            
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -47,16 +54,8 @@ class Beneficiary extends Model
     public function getPaginatedList($options)
     {
         try {
-            $perpage = $options['perpage'] ?? 10;
-            $page = $options['page'] ?? 1;
-            $page = ($page - 1) * $perpage;
-            $query = 'SELECT DISTINCT * FROM ' . $this->table . ' ORDER BY name ' . ' LIMIT ' . $perpage . ' offset ' . $page;
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->execute();
-            $data['data'] = $sth->fetchall(PDO::FETCH_ASSOC);
-            $count_sql = "SELECT COUNT(*) FROM " . $this->table;
-            $res = $this->db->getPDO()->query($count_sql);
-            $data['total'] = $res->fetch(PDO::FETCH_ASSOC)['count'];
+            $options['perpage'] = $options['perpage'] ?? 10;
+            return $this->getSecurePaginatedList($options, 'name');
             return $data;
         } catch (\Exception $e) {
             throw new InternalServerException();
@@ -66,7 +65,29 @@ class Beneficiary extends Model
     public function get($options)
     {
         try {
-            $query = 'SELECT * FROM ' . $this->table . ' WHERE name=:name';
+            // Comparaison INSENSIBLE à la casse, aux accents et aux espaces
+            // de tête/queue : HLK renvoie souvent en majuscules sans accents
+            // ("ELECTRICITE DE STRASBOURG") alors qu'un utilisateur a saisi
+            // la variante accentuée ("Electricité de Strasbourg"). Sans cette
+            // normalisation on crée des doublons dans la table filiale.
+            //
+            // Utilise public.unaccent (extension installée sur la BDD EHA)
+            // qualifié explicitement pour éviter tout souci de search_path.
+            //
+            // Tri par usage_count DESC puis id ASC : quand des doublons existent
+            // ("Enedis" id=3 avec 500 liens actifs ET "ENEDIS" id=2400 orphelin),
+            // on retourne d'abord la row la PLUS UTILISÉE. Le consommateur (sync
+            // HLK, migration managers) qui prend $found[0] cible ainsi la row
+            // "canonique de fait" plutôt qu'un orphelin. Tie-break par id ASC
+            // pour rester déterministe.
+            $schema = $this->db->getSchema();
+            $query = 'SELECT f.*, '
+                . '       (SELECT COUNT(*) FROM ' . $schema . 'sheet_filiales sf '
+                . '        WHERE sf.filiale_id = f.id AND sf.type = \'beneficiary\''
+                . '       ) AS usage_count '
+                . 'FROM ' . $this->table . ' f '
+                . 'WHERE LOWER(public.unaccent(TRIM(f.name))) = LOWER(public.unaccent(TRIM(:name))) '
+                . 'ORDER BY usage_count DESC, f.id ASC';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':name', $options['name'], PDO::PARAM_STR);
             $sth->execute();

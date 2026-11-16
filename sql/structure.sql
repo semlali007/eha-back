@@ -918,7 +918,10 @@ CREATE TABLE "EHA".sheet_headers (
     partnership boolean DEFAULT false NOT NULL,
     protected_sector boolean DEFAULT false NOT NULL,
     committee integer,
-    showcase boolean DEFAULT false NOT NULL
+    showcase boolean DEFAULT false NOT NULL,
+    supplier_vat_number text,
+    contract_manager character varying(255),
+    pcm_link character varying(500)
 );
 
 

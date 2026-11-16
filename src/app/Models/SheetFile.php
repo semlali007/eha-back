@@ -51,7 +51,34 @@ class SheetFile extends Model
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
             $sth->execute();
-            return $sth->fetchAll();
+            return $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function getBySheetAndType($sheetId, $type)
+    { 
+        try { 
+            $query = 'SELECT * FROM ' . $this->table . ' WHERE sheet_id=:sheet_id AND type=:type'; 
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
+            $sth->bindParam(':type', $type, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function getAllBySheet($sheetId)
+    { 
+        try { 
+            $query = 'SELECT * FROM ' . $this->table . ' WHERE sheet_id=:sheet_id'; 
+            $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindParam(':sheet_id', $sheetId, PDO::PARAM_INT);
+            $sth->execute();
+            return $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             throw new InternalServerException();
         }

@@ -1,25 +1,41 @@
 <?php
 
 namespace App\Services;
-use Core\Http\Request ;
+use Core\Http\Request;
 
+/**
+ * Service de gestion des fichiers
+ * @deprecated Utiliser SecureFileService::secureDownload() à la place
+ */
 class FileService
 {
+    /**
+     * Télécharge un fichier de manière sécurisée
+     * 
+     * @param array $options Options contenant 'file' et optionnellement 'directory'
+     * @return bool|int
+     */
     public static function download($options)
     {
-        if (isset($options["file"])) {
-            $filepath = getenv("CONFIG_UPLOAD_PATH") .DIRECTORY_SEPARATOR.urldecode($options["file"]);
-            if (file_exists($filepath)) {
-                header('Content-Description: File Transfer');
-                header('Content-Type: application/octet-stream');
-                header('Content-Disposition: attachment; filename="' . basename($filepath) . '"');
-                header('Expires: 0');
-                header('Cache-Control: must-revalidate');
-                header('Pragma: public');
-                header('Content-Length: ' . filesize($filepath));
-                flush(); // Flush system output buffer
-                return readfile($filepath); 
-            } 
+        try {
+            return SecureFileService::secureDownload($options);
+        } catch (\Exception $e) {
+            // Logger la tentative suspecte
+            $userNni = $_SESSION['user_nni'] ?? 'unknown';
+            SecureFileService::logSuspiciousAccess(
+                $options['file'] ?? 'unknown',
+                $userNni,
+                $e->getMessage()
+            );
+            
+            // Retourner une erreur générique (ne pas exposer les détails)
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'error' => 'Accès non autorisé',
+                'code' => 403
+            ]);
+            exit;
         }
     }
 }

@@ -12,6 +12,7 @@ use SimpleSAML\{Auth\Simple, Session};
 use App\Security\Role;
 use App\Security\User as SecurityUser;
 use App\Exceptions\AccessDeniedException;
+use App\Services\OrgRoleMappingService;
 
 abstract class Controller
 {
@@ -24,11 +25,9 @@ abstract class Controller
      */
     protected $roles;
 
-
     protected $currentUser;
 
     protected $sp;
-
 
     /**
      * Controller constructor.
@@ -41,7 +40,6 @@ abstract class Controller
         $this->roles = $roles;
         $this->sp = new Simple('default-sp');
         $this->checkUserAuthorization($roles);
-        //$this->sp = new Simple('default-sp') ;
     }
 
     /**
@@ -75,6 +73,7 @@ abstract class Controller
     {
         return json_decode($json, true) ?? [];
     }
+
     protected function showAccessDeniedPage()
     {
         //throw new AccessDeniedException();
@@ -88,12 +87,10 @@ abstract class Controller
      */
     protected function checkUserAuthorization()
     {
-        //var_dump($this->roles);exit;
-
         if (is_array($this->roles) && !empty($this->roles)) {
 
             $userInfo =  $this->getSp()->getAttributes();
-            //var_dump($userInfo);exit;
+
             if (is_array($userInfo) && isset($userInfo['gardianwebsso_id'][0]) &&  !empty($userInfo['gardianwebsso_id'][0])) {
                 
                 // Filtre des utilisateurs fournisseurs.
@@ -115,7 +112,6 @@ abstract class Controller
                     error_log("ALERTE: gardianwebsso_status absent de l'assertion SAML - filtre fournisseur inopérant (accès accordé par défaut)");
                 }
 
-                //var_dump($userInfo);exit;
                 $user = new SecurityUser();
                 if (array_key_exists("gardianwebsso_id", $userInfo)) {
                     $user->setNni($userInfo['gardianwebsso_id'][0]);
@@ -135,6 +131,23 @@ abstract class Controller
                     $user->addRoles($formatedRoles);
                 }
 
+                // Enrichir avec les rôles d'organisation (mapping)
+                if (array_key_exists("gardianwebsso_department", $userInfo)) {
+                    $orgCode = $this->extractOrgCodeFromDepartment($userInfo['gardianwebsso_department'][0]);
+                    if ($orgCode) {
+                        $orgRoleMappingService = new OrgRoleMappingService();
+                        $orgRoles = $orgRoleMappingService->getRolesForOrganization($orgCode);
+                        if (!empty($orgRoles)) {
+                            // Formater les rôles d'organisation au même format que les rôles SAML
+                            foreach ($orgRoles as $orgRole) {
+                                $roleString = "cn={$orgRole['role_name']},ou={$orgRole['role_ou']},dc={$orgRole['role_dc']}";
+                                $formatedOrgRoles = Role::format([$roleString]);
+                                $user->addRoles($formatedOrgRoles);
+                            }
+                        }
+                    }
+                }
+
                 $user->setEmail(getenv("DEFAULT_SEND_EMAIL"));
                 if (array_key_exists("gardianwebsso_mail", $userInfo) && !empty($userInfo['gardianwebsso_mail'])) {
                     $user->setEmail($userInfo['gardianwebsso_mail'][0]);
@@ -152,11 +165,8 @@ abstract class Controller
         }
     }
 
-
-
     public function translateRoles(array $roles): array
     {
-
         $input = array_fill_keys(array_values($roles), "");
         return array_values(array_replace(
             $input,
@@ -166,6 +176,40 @@ abstract class Controller
             )
         ));
     }
+
+    /**
+     * Extrait le code organisation depuis le department SAML
+     * 
+     * Exemple: "/EDF/9651/9803/9708/9708-3/6217M/621727/62172702/62172702B" → "621727"
+     * 
+     * @param string $department Chemin complet du department
+     * @return string|null Code organisation (avant-dernier segment)
+     */
+    protected function extractOrgCodeFromDepartment(string $department): ?string
+    {
+        if (empty($department)) {
+            return null;
+        }
+
+        // Supprimer les slashs de début/fin et découper
+        $parts = explode('/', trim($department, '/'));
+        
+        // Prendre le segment à la position 6 (7ème élément)
+        // Ex: /EDF/9651/9803/9708/9708-3/6217M/621727/62172702/62172702B → 621727
+        if (count($parts) < 7) {
+            return null;
+        }
+        
+        $orgSegment = $parts[6];
+        
+        // Vérifier que c'est un code valide (chiffres uniquement ou alphanumériques)
+        if (preg_match('/^[0-9A-Z]+$/i', $orgSegment)) {
+            return $orgSegment;
+        }
+        
+        return null;
+    }
+    
     /**
      * @param Exception
      */
