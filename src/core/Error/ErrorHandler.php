@@ -30,9 +30,16 @@ class ErrorHandler {
      */
 
     public static function errorHandler($level, $message, $file, $line) {
-        if ((bool) $_ENV["DEV_MODE"] == true && error_reporting() !== 0) {  // to keep the @ operator working
+        // Respect error_reporting (php.ini masks E_DEPRECATED) and the @ operator,
+        // which lowers error_reporting() for the duration of the call.
+        if (!(error_reporting() & $level)) {
+            return false;
+        }
+        // filter_var, not a (bool) cast: (bool) "false" is true in PHP.
+        if (filter_var($_ENV["DEV_MODE"] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             throw new \ErrorException($message, 0, $level, $file, $line);
         }
+        return false;
     }
 
     /**
