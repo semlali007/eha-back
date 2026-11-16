@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Exceptions\AccessDeniedException;
 
 class AuthenticationController extends Controller
 {
