@@ -1,2 +1,5 @@
 /nbproject
 /src/vendor
+
+# Local-only environment overrides (may hold real credentials). Never commit.
+/src/.env.dev
