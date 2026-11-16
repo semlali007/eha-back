@@ -905,14 +905,14 @@ class Mailer
                 echo gmdate('Y-m-d H:i:s'),
                 "\t",
                     //Trim trailing space
-                trim(
+                htmlspecialchars(trim(
                     //Indent for readability, except for trailing break
                     str_replace(
                         "\n",
                         "\n                   \t                  ",
                         trim($str)
                     )
-                ),
+                ), ENT_QUOTES, 'UTF-8'),
                 "\n";
         }
     }

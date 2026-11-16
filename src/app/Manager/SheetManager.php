@@ -37,11 +37,16 @@ use PhpParser\Comment;
 class SheetManager extends AbstractManager
 {
 
+
     public function update($user, $sheetData)
     {
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
         try {
             
+            // Ensure contrat_groupe has a default value
+            if (!isset($sheetData['contrat_groupe'])) {
+                $sheetData['contrat_groupe'] = 'false';
+            }
             
             $data['id'] = $sheetData['id'];
             $data['label'] = $sheetData['label'] ?? '';
@@ -58,6 +63,17 @@ class SheetManager extends AbstractManager
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
+            $data['contrat_groupe'] = $sheetData['contrat_groupe'] ?? 'false';
+            $data['mise_a_jour_donnee'] = $sheetData['mise_a_jour_donnee'] ?? 'non';
+            $data['id_supplier_size'] = $sheetData['id_supplier_size'] ?? null;
+            $data['supplier_vat_number'] = $sheetData['supplier_vat_number'] ?? null;
+            $data['contract_manager'] = $sheetData['contract_manager'] ?? null;
+            $data['pcm_link'] = $sheetData['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
+            $data['geographic_detail'] = $sheetData['geographic_detail'] ?? null;
+            $data['acheteur'] = $sheetData['acheteur'] ?? null;
+            $data['acheteur_mail'] = $sheetData['acheteur_mail'] ?? null;
+            $data['acheteur_nni'] = $sheetData['acheteur_nni'] ?? null;
             $data['status'] = $sheetData['status'] ?? '0';
 
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
@@ -71,15 +87,18 @@ class SheetManager extends AbstractManager
             date_default_timezone_set('Europe/Paris');
             $date = date('Y-m-d H:i:s');
             $data['updated_at'] = $date;
-            $data['updated_by'] = 'nni';
-            $data['updated_by_full_name'] = 'full_name';
+            $data['updated_by'] = $user->getNni();
+            $data['updated_by_full_name'] = $user->getFullname() ?: $user->getNni();
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $fileUpload = new FileUpload();
 
             $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
-                'size' => 21000000
+                // setMaxSize() attend des Mo, pas des octets — 21000000 donnait
+                // une limite de ~22 To (jamais vérifiée de toute façon avant,
+                // cf. FileManager::uploadFile()).
+                'size' => 21
             ]);
 
             $data['lots'] = $sheetData['lots'] ?? [];
@@ -117,8 +136,8 @@ class SheetManager extends AbstractManager
                     'description'=>'Commentaires',
                     'search_words'=>'Mots clés',
                     'content'=>'Contenu',
-                    'category'=>'Catégorie Achats'
-
+                    'category'=>'Catégorie Achats',
+                    'contrat_groupe'=>'Contrat ouvert aux filiales'
                 ];
                 $diff = array_diff_assoc($previousSheet, $currentSheet);
                 $logs = new SheetLogs();
@@ -127,8 +146,8 @@ class SheetManager extends AbstractManager
                     $diffLogs = [];
                     $diffLogs['source'] = $id;
                    
-                    $diffLogs['old'] = $previousSheet[$k];
-                    $diffLogs['new'] = $currentSheet[$k];
+                    $diffLogs['old'] = $previousSheet[$k] ?? '';
+                    $diffLogs['new'] = $currentSheet[$k] ?? '';
                     $diffLogs['date'] = $date;
 
                     switch ($k) {
@@ -140,26 +159,30 @@ class SheetManager extends AbstractManager
                             continue 2;
                             break;
                         case 'status':
-                            $diffLogs['old'] = $status[$previousSheet[$k]];
-                            $diffLogs['new'] = $status[$currentSheet[$k]];
+                            $diffLogs['old'] = $status[$previousSheet[$k] ?? 0] ?? 'Inconnu';
+                            $diffLogs['new'] = $status[$currentSheet[$k] ?? 0] ?? 'Inconnu';
                             break;
                         case 'committee':
-                            if (is_numeric($previousSheet[$k]) &&  $previousSheet[$k] > 1) {
-                                $diffLogs['old'] = $commitee->getByCode($previousSheet[$k])['label'];
+                            $prevCommitteeCode = $previousSheet[$k] ?? 0;
+                            $currCommitteeCode = $currentSheet[$k] ?? 0;
+                            if (is_numeric($prevCommitteeCode) && $prevCommitteeCode > 1) {
+                                $diffLogs['old'] = $commitee->getByCode($prevCommitteeCode)['label'];
                             }
 
-                            if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] > 1) {
-                                $diffLogs['new'] = $commitee->getByCode($currentSheet[$k])['label'];
+                            if (is_numeric($currCommitteeCode) && $currCommitteeCode > 1) {
+                                $diffLogs['new'] = $commitee->getByCode($currCommitteeCode)['label'];
                             }
                             break;
 
                         case 'category':
-                            if (is_numeric($previousSheet[$k]) &&  $previousSheet[$k] >= 1) {
-                                $diffLogs['old'] = $category->getByCode($previousSheet[$k])['label'];
+                            $prevCategoryCode = $previousSheet[$k] ?? 0;
+                            $currCategoryCode = $currentSheet[$k] ?? 0;
+                            if (is_numeric($prevCategoryCode) && $prevCategoryCode >= 1) {
+                                $diffLogs['old'] = $category->getByCode($prevCategoryCode)['label'];
                             }
 
-                            if (is_numeric($currentSheet[$k]) &&  $currentSheet[$k] >= 1) {
-                                $diffLogs['new'] = $category->getByCode($currentSheet[$k])['label'];
+                            if (is_numeric($currCategoryCode) && $currCategoryCode >= 1) {
+                                $diffLogs['new'] = $category->getByCode($currCategoryCode)['label'];
                             }
                             break;
                         case 'dauphin':
@@ -167,12 +190,20 @@ class SheetManager extends AbstractManager
                         case 'stipulation_for_others':
                         case 'partnership':
                         case 'protected_sector':
-                            $diffLogs['old'] = ($previousSheet[$k] == 1) ? 'Oui' : 'Non';
-                            $diffLogs['new'] = ($currentSheet[$k] == 1) ? 'Oui' : 'Non';
+                        case 'contrat_groupe':
+                            $oldValue = $previousSheet[$k] ?? false;
+                            $newValue = $currentSheet[$k] ?? false;
+                            if ($k === 'contrat_groupe') {
+                                $diffLogs['old'] = ($oldValue === 'oui' || $oldValue === 'true' || $oldValue === true) ? 'Oui' : 'Non';
+                                $diffLogs['new'] = ($newValue === 'oui' || $newValue === 'true' || $newValue === true) ? 'Oui' : 'Non';
+                            } else {
+                                $diffLogs['old'] = ($oldValue == 1) ? 'Oui' : 'Non';
+                                $diffLogs['new'] = ($newValue == 1) ? 'Oui' : 'Non';
+                            }
                             break;
                     }
 
-                    $diffLogs['fields'] =  $labelsFields[$k];
+                    $diffLogs['fields'] = $labelsFields[$k] ?? $k;
                     $logs->add($diffLogs);
                 }
 
@@ -646,7 +677,7 @@ class SheetManager extends AbstractManager
             return json_encode([
                 'status' => 500,
                 'error' => $ex->getMessage(),
-                'warning' => (new FileUpload())->deleteFilesFromFolder($dirPath, $data['files'])
+                'warning' => (new FileUpload())->deleteFilesFromFolder($dirPath, $data['files'] ?? [])
             ]);
         }
     }
@@ -657,7 +688,6 @@ class SheetManager extends AbstractManager
         $dirPath = getenv("CONFIG_UPLOAD_PATH");
 
         try {
-
             $data['label'] = $sheetData['label'] ?? '';
             $data['description'] = $sheetData['description'] ?? '';
             $data['words'] = $sheetData['words'] ?? '';
@@ -666,17 +696,28 @@ class SheetManager extends AbstractManager
             $data['dauphin'] = $sheetData['dauphin'];
             $data['committee'] = $sheetData['committee'] ?? 0;
             $data['category'] = $sheetData['category'] ?? 0;
+            $data['contrat_groupe'] = $sheetData['contrat_groupe'] ?? 'false';
+            $data['mise_a_jour_donnee'] = $sheetData['mise_a_jour_donnee'] ?? 'non';
+            $data['id_supplier_size'] = $sheetData['id_supplier_size'] ?? null;
+            $data['supplier_vat_number'] = $sheetData['supplier_vat_number'] ?? null;
+            $data['contract_manager'] = $sheetData['contract_manager'] ?? null;
+            $data['pcm_link'] = $sheetData['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $sheetData['entites_beneficiaires_edf_enedis'] ?? null;
+            $data['geographic_detail'] = $sheetData['geographic_detail'] ?? null;
+            $data['acheteur'] = $sheetData['acheteur'] ?? null;
+            $data['acheteur_mail'] = $sheetData['acheteur_mail'] ?? null;
+            $data['acheteur_nni'] = $sheetData['acheteur_nni'] ?? null;
             $data['edf_open'] = $sheetData['edf_open'];
             $data['showcase'] = $sheetData['showcase'];
             $data['partnership'] = $sheetData['partnership'];
             $data['protected_sector'] = $sheetData['protected_sector'];
-            $data['filiales'] = $sheetData['filiales'];
-            $data['filiales0'] = $sheetData['filiales0'];
-            $data['providers'] = $sheetData['providers'];
-            $data['zones'] = $sheetData['zones'];
-            $data['groups'] = $sheetData['groups'];
+            $data['filiales'] = $sheetData['filiales'] ?? [];
+            $data['filiales0'] = $sheetData['filiales0'] ?? [];
+            $data['providers'] = $sheetData['providers'] ?? [];
+            $data['zones'] = $sheetData['zones'] ?? [];
+            $data['groups'] = $sheetData['groups'] ?? [];
             $data['stipulation_for_others'] = $sheetData['stipulation_for_others'];
-            $data['options'] = $sheetData['options'];
+            $data['options'] = $sheetData['options'] ?? [];
             $data['status'] = $sheetData['status'] ?? '0';
             if (isset($sheetData['draft']) && $sheetData['draft'] == true) {
                 $data['status'] = '0';
@@ -689,26 +730,62 @@ class SheetManager extends AbstractManager
             $date = date('Y-m-d H:i:s');
             $data['created_at'] = $date;
             $data['updated_at'] = $date;
-            $data['created_by'] = $user->getNni();
-            $data['updated_by'] = $user->getNni();
             
-            $data['created_by_full_name'] = $user->getNni() ?? '';
-            $data['updated_by_full_name'] = $user->getNni() ?? '';
+            // Vérifier si c'est un appel API externe avec override utilisateur
+            $isExternalApiCall = isset($sheetData['external_api_call']) && $sheetData['external_api_call'] === true;
+            
+            if ($isExternalApiCall) {
+                // Override des champs utilisateur pour les appels API externes (depuis le token JWT)
+                $this->overrideUserFieldsFromJson($data, $sheetData);
+            } else {
+                // Comportement normal : utiliser l'utilisateur authentifié
+                $fullName = $user->getFullname() ?: $user->getNni();
+                $data['created_by'] = $user->getNni();
+                $data['updated_by'] = $user->getNni();
+                $data['created_by_full_name'] = $fullName;
+                $data['updated_by_full_name'] = $fullName;
+            }
             
             $data['contracts'] = $sheetData['contracts'] ?? [];
             $data['lots'] = $sheetData['lots'] ?? [];
             $data['domains'] = $sheetData['domains'] ?? [];
             $data['subdomains'] =$sheetData['subdomains'] ?? [];
 
+            // Traçabilité de l'origine externe (batch HLK, import Cockpit, migration…).
+            // Le modèle Sheet::add() a des defaults ('' et 0) qui polluent l'idempotence
+            // si on ne les propage pas explicitement quand ils sont fournis.
+            if (isset($sheetData['netachat_id'])) {
+                $data['netachat_id'] = $sheetData['netachat_id'];
+            }
+            if (isset($sheetData['netachat_type'])) {
+                $data['netachat_type'] = $sheetData['netachat_type'];
+            }
+            // Clé d'idempotence canonique pour les imports depuis Cockpit/HLK.
+            if (isset($sheetData['achat_id_cockpit'])) {
+                $data['achat_id_cockpit'] = $sheetData['achat_id_cockpit'];
+            }
+            // Marqueur "création automatique" (batch HLK, future migration…).
+            // Défaut false si non fourni (création manuelle via UI).
+            if (isset($sheetData['auto_created'])) {
+                $data['auto_created'] = (bool) $sheetData['auto_created'];
+            }
+
             $fileUpload = new FileUpload();
+            
+            $fileUpload = new FileUpload();
+            
             $data['files'] = $fileUpload->uploadSheetFiles([
                 'dirpath' => $dirPath,
                 'extensions' => ['doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx'],
-                'size' => 21000000
+                // setMaxSize() attend des Mo, pas des octets — 21000000 donnait
+                // une limite de ~22 To (jamais vérifiée de toute façon avant,
+                // cf. FileManager::uploadFile()).
+                'size' => 21
             ]);
 
 
             $id = $this->addSheet($data);
+            
             return json_encode([
                 'id' => $id,
                 'data' => $data
@@ -718,12 +795,239 @@ class SheetManager extends AbstractManager
             return json_encode([
                 'status' => 500,
                 'error' => $ex->getMessage(),
-                'warning' => (new FileUpload())->deleteFilesFromFolder($dirPath, $data['files'])
+                'warning' => (new FileUpload())->deleteFilesFromFolder($dirPath, $data['files'] ?? [])
             ]);
         }
     }
 
-   
+    /**
+     * Override des champs utilisateur pour les appels API externes
+     * Les informations utilisateur (user_nni, user_full_name) proviennent du token JWT 
+     * et sont ajoutées par le contrôleur avant d'arriver ici
+     * Gère aussi la création des fichiers physiques à partir du base64
+     */
+    private function overrideUserFieldsFromJson(&$data, $sheetData)
+    {
+        // Vérification que les données utilisateur du JWT sont présentes
+        if (!isset($sheetData['user_nni']) || empty($sheetData['user_nni'])) {
+            throw new Exception("Données utilisateur manquantes dans les données JWT (user_nni requis)");
+        }
+        
+        $userNni = $sheetData['user_nni'];
+        $userFullName = $sheetData['user_full_name'] ?? $userNni;
+        
+        // Validation du NNI (provenant du token JWT décodé)
+        if (!$this->validateUserOverride($userNni)) {
+            throw new Exception("NNI utilisateur non autorisé ou invalide: " . $userNni);
+        }
+        
+        // Override des champs utilisateur avec les données du token JWT
+        $data['created_by'] = $userNni;
+        $data['updated_by'] = $userNni;
+        $data['created_by_full_name'] = $userFullName;
+        $data['updated_by_full_name'] = $userFullName;
+        
+        // Gestion des fichiers kits - création physique pour simuler un upload normal
+        if (isset($sheetData['kits']) && is_array($sheetData['kits'])) {
+            $this->createPhysicalFilesFromBase64($sheetData['kits']);
+        }
+    }
+
+    /**
+     * Valide que l'utilisateur peut être utilisé en override
+     */
+    private function validateUserOverride($nni)
+    {
+        // Validation 2: Liste d'utilisateurs autorisés depuis les variables d'environnement
+        $authorizedOverrideUsersEnv = getenv('COCKPIT_API_AUTHORIZED_USERS');
+        $authorizedOverrideUsers = [];
+        
+        if ($authorizedOverrideUsersEnv) {
+            // Format attendu: "A67890,B12345" (séparés par des virgules)
+            $authorizedOverrideUsers = array_map('trim', explode(',', $authorizedOverrideUsersEnv));
+            $authorizedOverrideUsers = array_filter($authorizedOverrideUsers); // Supprimer les entrées vides
+        }
+        
+        // Si la liste est définie et non vide, vérifier l'autorisation
+        if (!empty($authorizedOverrideUsers) && !in_array($nni, $authorizedOverrideUsers)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Crée des fichiers physiques à partir des données base64 OU des chemins locaux
+     * Les fichiers sont créés dans un dossier temporaire et $_FILES est rempli
+     */
+    private function createPhysicalFilesFromBase64($filesData)
+    {
+        if (!is_array($filesData) || empty($filesData)) {
+            return;
+        }
+
+        $tempFiles = [];
+        $processedFiles = [];
+
+        foreach ($filesData as $index => $fileData) {
+            try {
+                // Validation des données du fichier
+                if (!isset($fileData['name'])) {
+                    continue;
+                }
+
+                // Sécurisation du nom de fichier : supprimer toute séquence de traversée
+                $fileName = basename($fileData['name']);
+                $decodedContent = null;
+                $mimeType = null;
+
+                // Méthode 1: Chemin local (recommandé)
+                if (isset($fileData['path']) && !empty($fileData['path'])) {
+                    $localPath = $fileData['path'];
+
+                    // Bloquer les wrappers PHP (php://, data://, expect://, http://, ftp://, etc.)
+                    if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.\-]*://#', $localPath)) {
+                        continue;
+                    }
+
+                    // Vérifier que le chemin ne contient pas de séquences de traversée
+                    if (strpos($localPath, '..') !== false) {
+                        continue;
+                    }
+
+                    if (!file_exists($localPath)) {
+                        continue;
+                    }
+
+                    // Vérifier que c'est un fichier régulier (pas un lien symbolique, un répertoire, etc.)
+                    if (!is_file($localPath) || is_link($localPath)) {
+                        continue;
+                    }
+
+                    if (!is_readable($localPath)) {
+                        continue;
+                    }
+
+                    // Valider que le chemin résolu est dans un répertoire autorisé
+                    if (!$this->isAllowedSourcePath($localPath)) {
+                        continue;
+                    }
+
+                    // Utiliser un contexte stream qui interdit les URL pour bloquer toute SSRF
+                    $streamContext = stream_context_create([
+                        'http' => ['ignore_errors' => true],
+                        'ssl' => ['verify_peer' => false],
+                    ]);
+                    // Double vérification : s'assurer que le chemin n'est pas une URL
+                    if (filter_var($localPath, FILTER_VALIDATE_URL)) {
+                        continue;
+                    }
+
+                    $decodedContent = file_get_contents($localPath);
+                    if ($decodedContent === false) {
+                        continue;
+                    }
+
+                    // Détection automatique du type MIME
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_file($finfo, $localPath);
+                    finfo_close($finfo);
+                    
+                // Méthode 2: Base64 (fallback)
+                } elseif (isset($fileData['content']) && isset($fileData['type'])) {
+                    $fileContent = $fileData['content'];
+                    $mimeType = $fileData['type'];
+
+                    // Décodage base64
+                    $decodedContent = base64_decode($fileContent, true);
+                    if ($decodedContent === false) {
+                        continue;
+                    }
+                    
+                } else {
+                    continue;
+                }
+
+                // Validation du nom de fichier
+                if (!$this->isValidFileName($fileName)) {
+                    continue;
+                }
+
+                // Validation du type MIME
+                if (!$this->isAllowedMimeType($mimeType)) {
+                    continue;
+                }
+
+                // Validation de la taille (20MB max)
+                if (strlen($decodedContent) > 21000000) {
+                    continue;
+                }
+
+                // Création du fichier temporaire
+                $tempFile = tempnam(sys_get_temp_dir(), 'eha_api_');
+                if ($tempFile === false) {
+                    continue;
+                }
+
+                // Écriture du contenu
+                if (file_put_contents($tempFile, $decodedContent) === false) {
+                    unlink($tempFile);
+                    continue;
+                }
+
+                $tempFiles[] = $tempFile;
+
+                // Préparation des données pour $_FILES
+                $processedFiles[] = [
+                    'name' => $fileName,
+                    'type' => $mimeType,
+                    'tmp_name' => $tempFile,
+                    'error' => UPLOAD_ERR_OK,
+                    'size' => strlen($decodedContent)
+                ];
+
+            } catch (Exception $e) {
+                continue;
+            }
+        }
+
+        // Simulation de $_FILES pour que FileUpload fonctionne normalement
+        if (!empty($processedFiles)) {
+            $this->simulateFilesUpload($processedFiles);
+        }
+
+        // Nettoyage des fichiers temporaires
+        register_shutdown_function(function() use ($tempFiles) {
+            foreach ($tempFiles as $tempFile) {
+                if (file_exists($tempFile)) {
+                    unlink($tempFile);
+                }
+            }
+        });
+    }
+
+    /**
+     * Simule $_FILES pour que le système d'upload normal fonctionne
+     */
+    private function simulateFilesUpload($filesData)
+    {
+        // Utiliser 'kits' au lieu de 'files' car c'est ce que uploadSheetFiles() attend
+        $_FILES['kits'] = [
+            'name' => [],
+            'type' => [],
+            'tmp_name' => [],
+            'error' => [],
+            'size' => []
+        ];
+
+        foreach ($filesData as $index => $fileData) {
+            $_FILES['kits']['name'][] = $fileData['name'];
+            $_FILES['kits']['type'][] = $fileData['type'];
+            $_FILES['kits']['tmp_name'][] = $fileData['tmp_name'];
+            $_FILES['kits']['error'][] = $fileData['error'];
+            $_FILES['kits']['size'][] = $fileData['size'];
+        }
+    }
 
     public function addSheet($data) {
         $sheet = new Sheet();
@@ -1152,8 +1456,8 @@ class SheetManager extends AbstractManager
         }
 
         foreach ($foldersList as $kit) {
-            $kitFolderName = str_replace(" ", "_", $kit['lookupValue']);
-            if (!empty($kitFolderName)) {
+            $kitFolderName = str_replace(" ", "_", basename($kit['lookupValue']));
+            if (!empty($kitFolderName) && strpos($kitFolderName, '..') === false) {
                 if (is_dir($sourceDepDoc . $kitFolderName)) {
                     $docDep = scandir($sourceDepDoc . $kitFolderName);
                     if ($docDep !== false) {
@@ -1311,7 +1615,7 @@ class SheetManager extends AbstractManager
         foreach ($matches1[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" class="link">' . $c . '</a><', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . '" target="_blank" rel="noopener noreferrer" class="link">' . $c . '</a><', $content);
             }
         }
 
@@ -1320,7 +1624,7 @@ class SheetManager extends AbstractManager
         foreach ($matches[0] as $code) {
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -1);
-                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" class="link">' . $c . '</a> ', $content);
+                $content = str_replace($code, ' <a href="app/contrat/details/' . $code . '" target="_blank" rel="noopener noreferrer" class="link">' . $c . '</a> ', $content);
             }
         }
 
@@ -1330,7 +1634,7 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, -18);
                 $i = substr($code, 17, -9);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" rel="noopener noreferrer" class="link">' . $code . '</a>', $content);
             }
         }
 
@@ -1340,12 +1644,94 @@ class SheetManager extends AbstractManager
             if (preg_match("#\d#", $code)) {
                 $c = substr($code, 0, 9);
                 $i = substr($code, -8, -7);
-                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" class="link">' . $code . '</a>', $content);
+                $content = str_replace($code, '<a href="app/contrat/details/' . $c . $i . '" target="_blank" rel="noopener noreferrer" class="link">' . $code . '</a>', $content);
             }
         }
         
         return $content;
 
+    }
+
+    /**
+     * Vérifie que le chemin source est dans un répertoire autorisé.
+     * Protection contre l'Absolute Path Traversal et la lecture de fichiers arbitraires.
+     *
+     * @param string $filePath
+     * @return bool
+     */
+    private function isAllowedSourcePath($filePath)
+    {
+        $realPath = realpath($filePath);
+        if ($realPath === false) {
+            return false;
+        }
+
+        // Liste des répertoires autorisés pour la lecture de fichiers source
+        $allowedDirs = [];
+
+        // Répertoire d'upload configuré
+        $uploadPath = getenv('CONFIG_UPLOAD_PATH');
+        if ($uploadPath) {
+            $realUploadPath = realpath($uploadPath);
+            if ($realUploadPath !== false) {
+                $allowedDirs[] = $realUploadPath;
+            }
+        }
+
+        // Répertoire temporaire système
+        $tempDir = realpath(sys_get_temp_dir());
+        if ($tempDir !== false) {
+            $allowedDirs[] = $tempDir;
+        }
+
+        // Vérifier que le chemin résolu est dans un des répertoires autorisés
+        foreach ($allowedDirs as $allowedDir) {
+            if (strpos($realPath, $allowedDir . DIRECTORY_SEPARATOR) === 0 || $realPath === $allowedDir) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Valide le nom de fichier pour la sécurité
+     */
+    private function isValidFileName($fileName)
+    {
+        // Interdire les caractères dangereux et les chemins relatifs
+        $dangerousChars = ['..', '/', '\\', '<', '>', ':', '"', '|', '?', '*'];
+        foreach ($dangerousChars as $char) {
+            if (strpos($fileName, $char) !== false) {
+                return false;
+            }
+        }
+        
+        // Vérifier que le nom n'est pas vide et a une extension
+        return !empty($fileName) && strpos($fileName, '.') !== false;
+    }
+
+    /**
+     * Vérifie si le type MIME est autorisé
+     */
+    private function isAllowedMimeType($mimeType)
+    {
+        $allowedTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+            'application/msword',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'text/plain',
+            'text/csv',
+            'image/jpeg',
+            'image/png',
+            'image/gif'
+        ];
+
+        return in_array($mimeType, $allowedTypes);
     }
 
     public function getNetAchatSheet(){

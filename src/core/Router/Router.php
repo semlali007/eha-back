@@ -11,7 +11,13 @@ class Router {
 
     public function __construct($url)
     {
-        
+        // Strip de la query string avant matching : sinon toute route appelée
+        // avec ?param=value produit un 404 (la regex de Route::matches n'accepte
+        // pas de trailing content).
+        $qPos = strpos($url, '?');
+        if ($qPos !== false) {
+            $url = substr($url, 0, $qPos);
+        }
         $this->url = trim($url, '/');
     }
 

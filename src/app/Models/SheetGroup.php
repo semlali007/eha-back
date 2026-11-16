@@ -60,15 +60,27 @@ class SheetGroup extends Model
                 $query = '
                 DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId   
                 ";
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             } else {
-                $groups = '(' . implode(',', $groupsId) . ')';
+                // Valider que tous les IDs sont des entiers
+                $validGroupIds = array_filter($groupsId, function($id) {
+                    return is_numeric($id) && (int)$id == $id;
+                });
+                $validGroupIds = array_map('intval', $validGroupIds);
+                
+                if (count($validGroupIds) === 0) {
+                    return true;
+                }
+                
+                $groups = '(' . implode(',', $validGroupIds) . ')';
                 $query = '
             DELETE FROM  ' . $this->table . "  WHERE sheet_id = :sheetId AND group_id NOT IN $groups  
             ";
+                $sth = $this->db->getPDO()->prepare($query);
+                $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             }
 
-            $sth = $this->db->getPDO()->prepare($query);
-            $sth->bindParam(':sheetId', $sheetId, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
             throw new InternalServerException();

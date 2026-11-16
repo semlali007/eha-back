@@ -5,4 +5,11 @@ require __DIR__.'/../vendor/autoload.php'; // charger le vendor
 use Core\Util\DotEnv ;
 
 (new DotEnv(__DIR__ . '/../.env',__DIR__ . '/../.env.dev'))->load(); // Charger le dotenv module
+
+// Charger la config applicative (constantes globales HLK, canaux de log, etc.).
+// Idem que ce que fait public/index.php pour le contexte HTTP — sans ça,
+// une commande console qui référence HLK[...] plante avec 'Undefined constant HLK'.
+include __DIR__ . '/../app/Config/Config.php';
+include __DIR__ . '/../app/Config/Globals.php';
+
 (new App\Command\Bootstrap())->init(); // initialiser les commandes

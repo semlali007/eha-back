@@ -19,6 +19,12 @@ class NewsCastRepository extends AbstractRepository
         $news->get($id);
     }
 
+    public function getPublishedNews($id){
+        $news = new NewsCast();
+        return
+        $news->getPublished($id);
+    }
+
     public function list($options)
     {
         $news = new NewsCast();

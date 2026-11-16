@@ -29,3 +29,14 @@
     user: webadm
     state: present
 
+- name: "import fiches marché HLK"
+  cron:
+    name: "import fiches marché HLK - app:import-sheets:hlk"
+    minute: "0"
+    hour: "2"
+    weekday: "0-6"
+    job: "cd /appli/projects/EHA/nginx_1.24/html/src && LD_LIBRARY_PATH=\"/logiciels/php/lib/imap-2007 /logiciels/php/lib/mm-1 /logiciels/php/lib/libzip-1/lib64 /logiciels/openssl/1.1.1/lib64\" /logiciels/php/8.2/bin/php -c /appli/projects/PHPEHA/php-fpm_8.2/conf/php.ini bin/console app:import-sheets:hlk --triggered-by=cron >> /tmp/import_sheets_hlk.log 2>&1"
+    user: webadm
+    state: present
+
+
