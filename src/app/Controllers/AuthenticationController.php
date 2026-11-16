@@ -53,6 +53,7 @@ class AuthenticationController extends Controller
 
         $this->getSp()->requireAuth(['ReturnTo' => $state]);
         header('Location: '. $state);
+        return null;
     }
 
     // public function login($state = '/app/accueil'): mixed
