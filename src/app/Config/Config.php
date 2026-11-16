@@ -32,7 +32,10 @@ $configuration = [
             'purchases' => [
                 "search" => "get_purchase_situation_id", // Action
                 "list" => "list_purchase_situations",
-            ]
+            ],
+            'market_sheets' => [
+                "list" => "get_market_sheet", // Récupération des fiches marché (utilisé par la sync bénéficiaires)
+            ],
         ],
          "config" => [
             "PGI Création" => 1, // Création

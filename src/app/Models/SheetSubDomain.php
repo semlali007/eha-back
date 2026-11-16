@@ -11,7 +11,7 @@ use App\Models\SubDomain;
 class SheetSubDomain extends Model
 {
     protected $tableName = 'sheet_subdomain';
-    protected $domainTable;
+    protected $subDomainTable; // Ajout de la déclaration de la propriété
     public function __construct()
     {
         parent::__construct();

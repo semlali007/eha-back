@@ -12,6 +12,16 @@ class AreaRepository extends AbstractRepository
         return $area->getList(['name' => $word]);
     }
 
+    /**
+     * Récupère toutes les zones au format simple [{code, label}, ...]
+     * @return array
+     */
+    public function getAll()
+    {
+        $area = new Area();
+        return $area->getAllSimple();
+    }
+
     public function search($options)
     {
         $area = new Area();

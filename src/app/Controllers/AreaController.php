@@ -40,6 +40,15 @@ class AreaController extends Controller
     }
 
     /**
+     * Récupère la liste simple de toutes les zones
+     * @return array Format [{code, label}, ...]
+     */
+    public function getList()
+    {
+        return $this->response($this->areaRepository->getAll());
+    }
+
+    /**
      *
      */
     public function search()

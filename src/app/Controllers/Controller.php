@@ -12,6 +12,7 @@ use SimpleSAML\{Auth\Simple, Session};
 use App\Security\Role;
 use App\Security\User as SecurityUser;
 use App\Exceptions\AccessDeniedException;
+use App\Services\OrgRoleMappingService;
 
 abstract class Controller
 {
@@ -24,11 +25,9 @@ abstract class Controller
      */
     protected $roles;
 
-
     protected $currentUser;
 
     protected $sp;
-
 
     /**
      * Controller constructor.
@@ -41,7 +40,6 @@ abstract class Controller
         $this->roles = $roles;
         //$this->sp = new Simple('default-sp');
         $this->checkUserAuthorization($roles);
-        //$this->sp = new Simple('default-sp') ;
     }
 
     /**
@@ -75,6 +73,7 @@ abstract class Controller
     {
         return json_decode($json, true) ?? [];
     }
+
     protected function showAccessDeniedPage()
     {
         //throw new AccessDeniedException();
@@ -88,8 +87,6 @@ abstract class Controller
      */
     protected function checkUserAuthorization()
     {
-        //var_dump($this->roles);exit;
-
         if (is_array($this->roles) && !empty($this->roles)) {
 
             if (getenv('ENV') == 'locale') {
@@ -141,7 +138,6 @@ abstract class Controller
                     error_log("ALERTE: gardianwebsso_status absent de l'assertion SAML - filtre fournisseur inopérant (accès accordé par défaut)");
                 }
 
-                //var_dump($userInfo);exit;
                 $user = new SecurityUser();
                 if (array_key_exists("gardianwebsso_id", $userInfo)) {
                     $user->setNni($userInfo['gardianwebsso_id'][0]);
@@ -159,6 +155,23 @@ abstract class Controller
                     // Vérifier les roles user (Appel Userinfo) => isMemberOf
                     $formatedRoles = Role::format($userInfo["gardianwebsso_ismemberof"]);
                     $user->addRoles($formatedRoles);
+                }
+
+                // Enrichir avec les rôles d'organisation (mapping)
+                if (array_key_exists("gardianwebsso_department", $userInfo)) {
+                    $orgCode = $this->extractOrgCodeFromDepartment($userInfo['gardianwebsso_department'][0]);
+                    if ($orgCode) {
+                        $orgRoleMappingService = new OrgRoleMappingService();
+                        $orgRoles = $orgRoleMappingService->getRolesForOrganization($orgCode);
+                        if (!empty($orgRoles)) {
+                            // Formater les rôles d'organisation au même format que les rôles SAML
+                            foreach ($orgRoles as $orgRole) {
+                                $roleString = "cn={$orgRole['role_name']},ou={$orgRole['role_ou']},dc={$orgRole['role_dc']}";
+                                $formatedOrgRoles = Role::format([$roleString]);
+                                $user->addRoles($formatedOrgRoles);
+                            }
+                        }
+                    }
                 }
 
                 $user->setEmail(getenv("DEFAULT_SEND_EMAIL"));
@@ -180,11 +193,8 @@ abstract class Controller
         }
     }
 
-
-
     public function translateRoles(array $roles): array
     {
-
         $input = array_fill_keys(array_values($roles), "");
         return array_values(array_replace(
             $input,
@@ -194,6 +204,7 @@ abstract class Controller
             )
         ));
     }
+
     /**
      * Extrait le code organisation depuis le department SAML
      * 
