@@ -9,6 +9,7 @@ use Core\Util\HealthCheck as health;
 use Core\Http\Response;
 use Exception;
 use SimpleSAML\{Auth\Simple, Session};
+use App\Security\LocalSamlStub;
 use App\Security\Role;
 use App\Security\User as SecurityUser;
 use App\Exceptions\AccessDeniedException;
@@ -38,7 +39,9 @@ abstract class Controller
     {
         $this->db = DBConnection::getInstance();
         $this->roles = $roles;
-        $this->sp = new Simple('default-sp');
+        // Local workstations cannot complete the GARDIAN round trip; see
+        // LocalSamlStub for the (ENV=locale only) switch.
+        $this->sp = LocalSamlStub::isEnabled() ? new LocalSamlStub() : new Simple('default-sp');
         $this->checkUserAuthorization($roles);
     }
 

@@ -3,3 +3,5 @@
 
 # Local-only environment overrides (may hold real credentials). Never commit.
 /src/.env.dev
+# Local SAML stub user (see src/app/Security/LocalSamlStub.php).
+/src/.saml-local.json
