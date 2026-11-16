@@ -44,7 +44,7 @@ class SheetDomain extends Model
             $sth->bindParam(':domain_id', $domainId, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
-            var_dump($e);exit;
+            error_log("SheetDomain::add error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }

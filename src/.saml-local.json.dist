@@ -1,0 +1,17 @@
+{
+    "gardianwebsso_id": ["L00000"],
+    "gardianwebsso_groupid": ["L00000"],
+    "gardianwebsso_principal": ["uid=L00000,ou=People,dc=gardiansesame"],
+    "gardianwebsso_cn": ["UTILISATEUR LOCAL"],
+    "gardianwebsso_givenname": ["UTILISATEUR"],
+    "gardianwebsso_sn": ["LOCAL"],
+    "gardianwebsso_mail": ["utilisateur.local@example.invalid"],
+    "gardianwebsso_status": ["A"],
+    "gardianwebsso_department": ["/EDF/9651/9803/9708/9708-3/6217M/621727/62172702"],
+    "gardianwebsso_org": ["62172702"],
+    "gardianwebsso_nivauth": ["1"],
+    "gardianwebsso_ismemberof": [
+        "cn=EHA_ADMIN,ou=Groups,dc=gardiansesame",
+        "cn=EHA_GESTIONNAIRE,ou=Groups,dc=gardiansesame"
+    ]
+}

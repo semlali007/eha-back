@@ -36,6 +36,7 @@ class Sheet extends Model
     protected $sheetGroupTable;
     protected $searchCondition;
     protected $committeeTable;
+    protected $categoryTable;
     protected $sheetContract ;
     protected $subscriptionTable ;
 
@@ -53,6 +54,7 @@ class Sheet extends Model
         $this->sheetProviderTable = (new SheetProvider())->table;
         $this->sheetGroupTable = (new SheetGroup())->table;
         $this->committeeTable = (new Committee())->table;
+        $this->categoryTable = (new Category())->table;
         $this->subscriptionTable = (new Subscription())->table;
         $this->searchCondition = null;
         $this->sheetContract = (new SheetContract())->table ;
@@ -67,12 +69,12 @@ class Sheet extends Model
             $direction = $options['direction'] ?? 'desc';
 
             $data = [];
-            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as filiales0, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words 
+            $query = "select distinct  sss.label, to_char(sss.start_date, 'DD/MM/YYYY') as start_date, to_char(sss.end_date, 'DD/MM/YYYY') as end_date,  '' as options, sss.description, sss.dauphin,sss.edf_open,sss.stipulation_for_others, sss.partnership, sss.protected_sector, '' providers,'' as filiales, '' as filiales0, '' as zones, '' as groups,sss.committee, '' as domains, '' as subdomains, sss.status, '' as kits, '' as contracts, sss.id, sss.content, sss.search_words, sss.contrat_groupe, sss.mise_a_jour_donnee, sss.id_supplier_size, sss.supplier_vat_number, sss.entites_beneficiaires_edf_enedis, sss.contract_manager, sss.pcm_link, sss.geographic_detail, sss.acheteur, sss.formated_updated_date, sss.updated_by_full_name
             from ( SELECT distinct s.id,TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.label))),
 
             QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
-            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date , s.content, s.search_words
+            QUERY) AS RANK1,  s.description, s.start_date, s.end_date,s.dauphin,s.edf_open,s.stipulation_for_others, s.partnership, s.protected_sector,s.committee, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.updated_by_full_name, s.content, s.search_words, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link, s.geographic_detail, s.acheteur
                       FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
                       {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction} , RANK desc, RANK1 desc
                       )
@@ -96,8 +98,20 @@ class Sheet extends Model
             $perpage = $options['perpage'] ?? 10;
             $page =  $options['page'] ?? 1;
             $page = ($page - 1) * $perpage;
+
+            // Texte saisi par l'utilisateur, normalisé pour un boost "match littéral"
+            // qui place en tête les fiches dont le label contient la chaîne exacte.
+            // unaccent et lower sont appliqués en SQL (cohérent avec le reste de la requête).
+            $rawSearch = strtolower(trim($options['search']['searchText'] ?? ''));
+            // Strip des wildcards LIKE pour éviter qu'une saisie type "%test%" devienne
+            // une recherche "matches tout". Backslash retiré pour neutraliser les escapes.
+            $rawSearch = str_replace(['%', '_', '\\'], '', $rawSearch);
+            // Échappement PostgreSQL : on double les apostrophes pour qu'elles soient
+            // interprétées comme un caractère littéral dans la string SQL.
+            $escapedSearch = str_replace("'", "''", $rawSearch);
+
             $query = "select distinct *,
-            CASE 
+            CASE
             WHEN sub.sheet_id is not NULL THEN true
             ELSE false
             END subscribed
@@ -105,17 +119,19 @@ class Sheet extends Model
 
             QUERY) AS RANK, TS_RANK_CD(TO_TSVECTOR(unaccent(lower(S.description)) || ' ' || unaccent(lower(S.search_words))),
 
-            QUERY) AS RANK1, s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date 
-                     
-                      FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s 
-                       
-                      
-                      {$this->getSearchCondition($options)}  ORDER BY {$orderBy} {$direction}, RANK desc, RANK1  desc  LIMIT {$perpage} offset {$page} 
+            QUERY) AS RANK1,
+            (CASE WHEN unaccent(lower(s.label)) LIKE unaccent('%{$escapedSearch}%') THEN 1 ELSE 0 END) AS exact_label_match,
+            s.label, s.status,s.updated_at,s.created_at, to_char(s.updated_at, 'DD/MM/YYYY à HH24:MI:SS') as formated_updated_date, s.contrat_groupe, s.mise_a_jour_donnee, s.id_supplier_size, s.supplier_vat_number, s.entites_beneficiaires_edf_enedis, s.contract_manager, s.pcm_link, s.geographic_detail, s.acheteur
+
+                      FROM  TO_TSQUERY(unaccent(lower('{$words}'))) QUERY, {$this->table}  as s
+
+
+                      {$this->getSearchCondition($options)}  ORDER BY exact_label_match DESC, {$orderBy} {$direction}, RANK desc, RANK1  desc  LIMIT {$perpage} offset {$page}
                       )
-                      
+
                       as sss LEFT JOIN {$this->subscriptionTable} sub ON  sub.sheet_id = sss.ID and user_nni=:userNni
-                      
-                      ORDER BY  $orderBy $direction
+
+                      ORDER BY exact_label_match DESC, $orderBy $direction
                       ";
                       
                       $sth = $this->db->getPDO()->prepare($query);
@@ -146,7 +162,7 @@ class Sheet extends Model
     
     {
         $search = '';
-        $schema = pg_escape_string(getenv("DB_SCHEMA"));
+        //$schema = pg_escape_string(getenv("DB_SCHEMA"));
         $options = $params['search'] ?? [];
         if (!is_array($forFilter) || !array_key_exists('beneficiary', $forFilter)) {
             $beneficiariesList = $options['beneficiaries'] ?? [];
@@ -167,7 +183,12 @@ class Sheet extends Model
             }
             if (count($stipulationAutrui) > 0) {
                 $stipulationAutruiStr = '(' . implode(', ', $stipulationAutrui) . ')';
-                $search .= " INNER JOIN {$this->sheetStipulationTable} sf on sf.sheet_id = s.id and sf.filiale_id in $stipulationAutruiStr  ";
+                // Alias distinct de celui du JOIN beneficiaries ci-dessus (sf) —
+                // même table physique (sheet_filiales), mais les deux JOIN
+                // peuvent coexister dans la même requête quand les deux filtres
+                // sont actifs simultanément. Un alias identique fait planter
+                // Postgres avec "table name specified more than once".
+                $search .= " INNER JOIN {$this->sheetStipulationTable} sf2 on sf2.sheet_id = s.id and sf2.filiale_id in $stipulationAutruiStr  ";
             }
         }
 
@@ -205,20 +226,23 @@ class Sheet extends Model
                 $search .= " INNER JOIN {$this->subscriptionTable} ss on ss.sheet_id = s.id and ss.user_nni = '$userNni' ";
         }
 
-        $searchProvider = pg_escape_string(strtolower($options['searchProvider'] ?? ""));
-        if (($searchProvider != '')) {
-            $searchProvider = Arrays::getFormattedWords(strtolower($searchProvider));
+        $searchProviderRaw = strtolower(trim($options['searchProvider'] ?? ""));
+        // Strip wildcards LIKE et backslash, puis échappement PG (apostrophes doublées)
+        $searchProviderRaw = str_replace(['%', '_', '\\'], '', $searchProviderRaw);
+        if ($searchProviderRaw != '') {
+            $searchProvider = Arrays::getFormattedWords($searchProviderRaw);
+            $searchProviderEscaped = str_replace("'", "''", $searchProviderRaw);
             $queryListId = " (SELECT DISTINCT provider_code FROM {$this->providerTable} WHERE  TO_TSVECTOR(unaccent(lower(provider_label))) @@ TO_TSQUERY(unaccent(lower('{$searchProvider}'))) ) ";
             $condition = "  provider_code in $queryListId";
-            $search .= " INNER JOIN 
+            $search .= " LEFT JOIN
             (
-                select sheet_id 
-                from {$this->sheetProviderTable}  
+                select sheet_id
+                from {$this->sheetProviderTable}
                 where $condition
-            ) spa 
+            ) spa
             on spa.sheet_id = s.id  ";
         }
-        $search_input = pg_escape_string(strtolower($options['searchText'] ?? ""));
+        $search_input = (strtolower($options['searchText'] ?? ""));
         $isCode = SheetService::isCodeContract($search_input);
         if ($isCode) {
             $search .= " LEFT JOIN {$this->sheetContract} sc ON  sc.sheet_id = s.ID ";
@@ -234,6 +258,11 @@ class Sheet extends Model
             $search .= " WHERE   1=1 ";
         }
 
+        // Filtre searchProvider : par nom fournisseur OU par numéro TVA
+        if ($searchProviderRaw != '') {
+            $searchProviderEscaped = str_replace("'", "''", $searchProviderRaw);
+            $search .= " AND (spa.sheet_id IS NOT NULL OR lower(s.supplier_vat_number) LIKE '%{$searchProviderEscaped}%') ";
+        }
 
         if (!is_array($forFilter) || !array_key_exists('status', $forFilter)) {
             $status = $options['status'] ?? [];
@@ -275,6 +304,12 @@ class Sheet extends Model
             $this->addCondition($search, 's.showcase', [($showcase == true) ? 'true' : 'false']);
         }
     }
+    if (!is_array($forFilter) || !array_key_exists('categories', $forFilter)) {
+        $categories = $options['categories'] ?? [];
+        if (!empty($categories)) {
+            $this->addCondition($search, 's.category', $categories);
+        }
+    }
     if (!is_array($forFilter) || !array_key_exists('committees', $forFilter)) {
         $committees = $options['committees'] ?? [];
         if (!empty($committees)) {
@@ -282,6 +317,45 @@ class Sheet extends Model
         }
     }
 
+    if (!is_array($forFilter) || !array_key_exists('contrat_groupe', $forFilter)) {
+        $contratGroupe = $options['contratGroupe'] ?? '';
+        if ($contratGroupe !== '') {
+            $this->addCondition($search, 's.contrat_groupe', [$contratGroupe]);
+        }
+    }
+
+    if (!is_array($forFilter) || !array_key_exists('mise_a_jour_donnee', $forFilter)) {
+        $miseAJourDonnee = $options['miseAJourDonnee'] ?? '';
+        if ($miseAJourDonnee !== '') {
+            $this->addCondition($search, 's.mise_a_jour_donnee', [$miseAJourDonnee]);
+        }
+    }
+
+    if (!is_array($forFilter) || !array_key_exists('supplier_size', $forFilter)) {
+        $supplierSize = $options['supplierSize'] ?? [];
+        if (!empty($supplierSize)) {
+            $this->addCondition($search, 's.id_supplier_size', $supplierSize);
+        }
+    }
+
+    // Date range filtering
+    if (!is_array($forFilter) || !array_key_exists('date_range', $forFilter)) {
+        $dateStart = $options['dateStart'] ?? '';
+        $dateEnd = $options['dateEnd'] ?? '';
+        
+        if ($dateStart !== '' || $dateEnd !== '') {
+            if ($dateStart !== '' && $dateEnd !== '') {
+                // Both dates provided - filter sheets with start_date >= dateStart AND end_date <= dateEnd
+                $search .= " AND (s.start_date >= '" . str_replace("'", "''", $dateStart) . "' AND s.end_date <= '" . str_replace("'", "''", $dateEnd) . "')";
+            } elseif ($dateStart !== '') {
+                // Only start date - filter sheets with start_date >= dateStart
+                $search .= " AND s.start_date >= '" . str_replace("'", "''", $dateStart) . "'";
+            } elseif ($dateEnd !== '') {
+                // Only end date - filter sheets with end_date <= dateEnd
+                $search .= " AND s.end_date <= '" . str_replace("'", "''", $dateEnd) . "'";
+            }
+        }
+    }
 
         return $search;
     }
@@ -331,7 +405,7 @@ class Sheet extends Model
             $sth->execute();
             return  $sth->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            var_dump($e->getMessage());exit;
+            error_log("Sheet::groupedBySector error: " . $e->getMessage());
             throw new InternalServerException();
         }
     }
@@ -397,29 +471,16 @@ class Sheet extends Model
     public function groupedByFiliale0($options)
     {
         try {
-            $sql = "SELECT f.name, f.id as code, 
-                CASE WHEN stipulationAutrui.COUNT IS NULL THEN 0 ELSE stipulationAutrui.COUNT END AS COUNT
-            FROM {$this->stipulationTable} f
-            LEFT JOIN (
-                SELECT COUNT(sb.*) as COUNT, sb.filiale_id as code 
-                FROM {$this->sheetStipulationTable} sb 
-                WHERE sb.sheet_id IN (
-                    SELECT s.id 
-                    FROM " . $this->table . " s
-                ) 
-                GROUP BY sb.filiale_id
-            ) stipulationAutrui ON f.id = stipulationAutrui.code
-            ORDER BY COUNT DESC, f.id";
-    //         $sql = "
-    //    SELECT f.name , f.id as code , CASE WHEN STIPULATIONAUTRUI.COUNT IS NULL 
-    //    THEN 0 
-    //    ELSE STIPULATIONAUTRUI.COUNT 
-    //    END AS COUNT, f.id  from {$this->stipulationTable} f  LEFT join  
-    //     (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetStipulationTable} sb WHERE sb.sheet_id  in
-    //      ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['stipulation'=>true])} ) GROUP BY sb.filiale_id)  stipulationAutrui on f.id =  stipulationAutrui.code
-         
-    //      order by COUNT desc, f.id 
-    //      ";
+            $sql = "
+       SELECT f.name , f.id as code , CASE WHEN STIPULATIONAUTRUI.COUNT IS NULL
+       THEN 0
+       ELSE STIPULATIONAUTRUI.COUNT
+       END AS COUNT, f.id  from {$this->stipulationTable} f  LEFT join
+        (SELECT  count(sb.*) as count, sb.filiale_id as code FROM   {$this->sheetStipulationTable} sb WHERE sb.sheet_id  in
+         ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['stipulation'=>true])} ) GROUP BY sb.filiale_id)  stipulationAutrui on f.id =  stipulationAutrui.code
+
+         order by COUNT desc, f.id
+         ";
 
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
@@ -433,15 +494,14 @@ class Sheet extends Model
     {
         try {
             $sql = "
-       SELECT p.provider_label as name , p.provider_code as code , CASE WHEN PROVIDERS.COUNT IS NULL 
-       THEN 0 
-       ELSE PROVIDERS.COUNT 
-       END AS COUNT  from {$this->providerTable} p LEFT join 
-         
+       SELECT p.provider_label as name , p.provider_code as code , providers.count AS COUNT
+       from {$this->providerTable} p INNER JOIN
+
         (SELECT  count(sp.*) as count, sp.provider_code as code FROM   {$this->sheetProviderTable} sp WHERE sp.sheet_id  in
          ( SELECT s.id  FROM  " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
-         
-         order by COUNT desc, p.provider_label 
+
+         order by COUNT desc, p.provider_label
+         LIMIT 50
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
@@ -496,6 +556,18 @@ class Sheet extends Model
         }
     }
 
+    public function groupedByCategories($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, c.code as code, c.label as name FROM   " . $this->categoryTable . "  c " . " LEFT join {$this->table} s
+             ON c.code = s.category {$this->getSearchCondition($options,['categories'=>true])} GROUP BY c.code, c.label order by COUNT desc, c.label";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return $sth->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new \Exception("Error in groupedByCategories: " . $e->getMessage());
+        }
+    }
 
     public function groupedByCommittees($options)
     {
@@ -509,6 +581,46 @@ class Sheet extends Model
             throw new InternalServerException();
         }
     }
+
+    public function groupedByContratGroupe($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.contrat_groupe as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['contrat_groupe'=>true])}" . " GROUP BY contrat_groupe";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            throw new InternalServerException();
+        }
+    }
+
+    public function groupedByMiseAJourDonnee($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.mise_a_jour_donnee as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['mise_a_jour_donnee'=>true])}" . " GROUP BY mise_a_jour_donnee";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Si la colonne n'existe pas encore, on retourne un tableau vide
+            // Cela permet à l'application de fonctionner avant la migration
+            return [];
+        }
+    }
+
+    public function groupedBySupplierSize($options)
+    {
+        try {
+            $sql = "SELECT COUNT(s.*) as count, s.id_supplier_size as code FROM  " . $this->table . " s  {$this->getSearchCondition($options,['supplier_size'=>true])}" . " AND s.id_supplier_size IS NOT NULL GROUP BY id_supplier_size";
+            $sth = $this->db->getPDO()->prepare($sql);
+            $sth->execute();
+            return  $sth->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Si la colonne n'existe pas encore, on retourne un tableau vide
+            // Cela permet à l'application de fonctionner avant la migration
+            return [];
+        }
+    }
     
     function addCondition(&$sql, $key, $value)
     {
@@ -516,7 +628,17 @@ class Sheet extends Model
             return $this;
         }
 
-        $valueStr = '(' . implode(', ', $value) . ')';
+        // Ensure $value is always an array
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
+        // Quote string values properly for SQL
+        $quotedValues = array_map(function($val) {
+            return "'" . str_replace("'", "''", (string) $val) . "'";
+        }, $value);
+        
+        $valueStr = '(' . implode(', ', $quotedValues) . ')';
         $sql .= " AND ($key IN $valueStr) ";
 
         return $this;
@@ -609,8 +731,21 @@ class Sheet extends Model
     {
         $id = $data['id'];
         try {
+            // Assurer des valeurs par défaut pour éviter les NULL
+            $data['mise_a_jour_donnee'] = $data['mise_a_jour_donnee'] ?? 'non';
+            $data['contrat_groupe'] = $data['contrat_groupe'] ?? 'false';
+            $data['id_supplier_size'] = $data['id_supplier_size'] ?? null;
+            $data['supplier_vat_number'] = $data['supplier_vat_number'] ?? null;
+            $data['contract_manager'] = $data['contract_manager'] ?? null;
+            $data['pcm_link'] = $data['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $data['entites_beneficiaires_edf_enedis'] ?? null;
+            $data['geographic_detail'] = $data['geographic_detail'] ?? null;
+            $data['acheteur'] = $data['acheteur'] ?? null;
+            $data['acheteur_mail'] = $data['acheteur_mail'] ?? null;
+            $data['acheteur_nni'] = $data['acheteur_nni'] ?? null;
+
             $query = '
-                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words WHERE id =:id;
+                UPDATE ' . $this->table . ' set label=:label, description=:description, updated_at=:updated_at, updated_by=:updated_by, status=:status, updated_by_full_name =:updated_by_full_name, start_date=:start_date, end_date=:end_date, dauphin=:dauphin, edf_open=:edf_open, stipulation_for_others=:stipulation_for_others, partnership=:partnership, protected_sector=:protected_sector, committee=:committee, category=:category, showcase=:showcase, content=:content, search_words=:search_words, contrat_groupe=:contrat_groupe, mise_a_jour_donnee=:mise_a_jour_donnee, id_supplier_size=:id_supplier_size, supplier_vat_number=:supplier_vat_number, contract_manager=:contract_manager, pcm_link=:pcm_link, entites_beneficiaires_edf_enedis=:entites_beneficiaires_edf_enedis, geographic_detail=:geographic_detail, acheteur=:acheteur, acheteur_mail=:acheteur_mail, acheteur_nni=:acheteur_nni WHERE id =:id;
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -631,6 +766,17 @@ class Sheet extends Model
             $sth->bindParam(':showcase', $data['showcase'], PDO::PARAM_BOOL);
             $sth->bindParam(':content', $data['content'], PDO::PARAM_STR);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
+            $sth->bindParam(':contrat_groupe', $data['contrat_groupe'], PDO::PARAM_STR);
+            $sth->bindParam(':mise_a_jour_donnee', $data['mise_a_jour_donnee'], PDO::PARAM_STR);
+            $sth->bindParam(':id_supplier_size', $data['id_supplier_size'], PDO::PARAM_INT);
+            $sth->bindParam(':supplier_vat_number', $data['supplier_vat_number'], PDO::PARAM_STR);
+            $sth->bindParam(':contract_manager', $data['contract_manager'], PDO::PARAM_STR);
+            $sth->bindParam(':pcm_link', $data['pcm_link'], PDO::PARAM_STR);
+            $sth->bindParam(':entites_beneficiaires_edf_enedis', $data['entites_beneficiaires_edf_enedis'], PDO::PARAM_STR);
+            $sth->bindParam(':geographic_detail', $data['geographic_detail'], PDO::PARAM_STR);
+            $sth->bindParam(':acheteur', $data['acheteur'], PDO::PARAM_STR);
+            $sth->bindParam(':acheteur_mail', $data['acheteur_mail'], PDO::PARAM_STR);
+            $sth->bindParam(':acheteur_nni', $data['acheteur_nni'], PDO::PARAM_STR);
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
             $sth->execute();
         } catch (\Exception $e) {
@@ -644,8 +790,21 @@ class Sheet extends Model
             $data['content'] = $data['content']?? '';
             $data['netachat_type'] = $data['netachat_type']?? '';
             $data['netachat_id'] = $data['netachat_id']?? 0;
+            $data['contrat_groupe'] = $data['contrat_groupe']?? 'false';
+            $data['mise_a_jour_donnee'] = $data['mise_a_jour_donnee']?? 'non';
+            $data['id_supplier_size'] = $data['id_supplier_size'] ?? null;
+            $data['supplier_vat_number'] = $data['supplier_vat_number'] ?? null;
+            $data['contract_manager'] = $data['contract_manager'] ?? null;
+            $data['pcm_link'] = $data['pcm_link'] ?? null;
+            $data['entites_beneficiaires_edf_enedis'] = $data['entites_beneficiaires_edf_enedis'] ?? null;
+            $data['geographic_detail'] = $data['geographic_detail'] ?? null;
+            $data['acheteur'] = $data['acheteur'] ?? null;
+            $data['acheteur_mail'] = $data['acheteur_mail'] ?? null;
+            $data['acheteur_nni'] = $data['acheteur_nni'] ?? null;
+            $data['achat_id_cockpit'] = $data['achat_id_cockpit'] ?? null;
+            $data['auto_created'] = !empty($data['auto_created']);
             $query = '
-        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words);
+        INSERT INTO ' . $this->table . ' (label, description, created_at, updated_at, created_by, updated_by, status, created_by_full_name, updated_by_full_name, start_date, end_date, dauphin, edf_open, stipulation_for_others, partnership, protected_sector, committee, category, showcase, content, netachat_id, netachat_type, search_words, contrat_groupe, mise_a_jour_donnee, id_supplier_size, supplier_vat_number, contract_manager, pcm_link, entites_beneficiaires_edf_enedis, geographic_detail, acheteur, acheteur_mail, acheteur_nni, achat_id_cockpit, auto_created) VALUES (:label, :description ,:created_at, :updated_at,:created_by, :updated_by, :status, :created_by_full_name, :updated_by_full_name, :start_date, :end_date, :dauphin, :edf_open, :stipulation_for_others, :partnership, :protected_sector, :committee, :category, :showcase, :content, :netachat_id, :netachat_type, :search_words, :contrat_groupe, :mise_a_jour_donnee, :id_supplier_size, :supplier_vat_number, :contract_manager, :pcm_link, :entites_beneficiaires_edf_enedis, :geographic_detail, :acheteur, :acheteur_mail, :acheteur_nni, :achat_id_cockpit, :auto_created);
         ';
             $sth = $this->db->getPDO()->prepare($query);
             $sth->bindParam(':label', $data['label'], PDO::PARAM_STR);
@@ -671,6 +830,20 @@ class Sheet extends Model
             $sth->bindParam(':netachat_type', $data['netachat_type'], PDO::PARAM_STR);
             $sth->bindParam(':netachat_id', $data['netachat_id'], PDO::PARAM_INT);
             $sth->bindParam(':search_words', $data['words'], PDO::PARAM_STR);
+            $sth->bindParam(':contrat_groupe', $data['contrat_groupe'], PDO::PARAM_STR);
+            $sth->bindParam(':mise_a_jour_donnee', $data['mise_a_jour_donnee'], PDO::PARAM_STR);
+            $sth->bindParam(':id_supplier_size', $data['id_supplier_size'], PDO::PARAM_INT);
+            $sth->bindParam(':supplier_vat_number', $data['supplier_vat_number'], PDO::PARAM_STR);
+            $sth->bindParam(':contract_manager', $data['contract_manager'], PDO::PARAM_STR);
+            $sth->bindParam(':pcm_link', $data['pcm_link'], PDO::PARAM_STR);
+            $sth->bindParam(':entites_beneficiaires_edf_enedis', $data['entites_beneficiaires_edf_enedis'], PDO::PARAM_STR);
+            $sth->bindParam(':geographic_detail', $data['geographic_detail'], PDO::PARAM_STR);
+            $sth->bindParam(':acheteur', $data['acheteur'], PDO::PARAM_STR);
+            $sth->bindParam(':acheteur_mail', $data['acheteur_mail'], PDO::PARAM_STR);
+            $sth->bindParam(':acheteur_nni', $data['acheteur_nni'], PDO::PARAM_STR);
+            $sth->bindValue(':achat_id_cockpit', $data['achat_id_cockpit'],
+                $data['achat_id_cockpit'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $sth->bindValue(':auto_created', $data['auto_created'], PDO::PARAM_BOOL);
             $sth->execute();
             return  $this->db->getPDO()->lastInsertId();
         } catch (\Exception $e) {
@@ -781,6 +954,69 @@ class Sheet extends Model
         }
     }
 
+    /**
+     * Lookup pour l'idempotence des batchs d'import : cherche par achat_id_cockpit.
+     * C'est le champ métier canonique pour identifier un achat côté Cockpit.
+     *
+     * Retourne id + status, ou null si aucune fiche ne correspond.
+     */
+    public function findByAchatIdCockpit($achatId): ?array
+    {
+        $sth = $this->db->getPDO()->prepare(
+            'SELECT id, status FROM ' . $this->table
+            . ' WHERE achat_id_cockpit = :aid LIMIT 1'
+        );
+        $sth->bindValue(':aid', $achatId, \PDO::PARAM_INT);
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Lookup secondaire pour l'idempotence : cherche une fiche qui référence
+     * l'un des contract_code passés (via sheet_contracts). Utile pour rattacher
+     * des fiches créées manuellement (sans achat_id_cockpit) à leur équivalent HLK.
+     *
+     * Retourne id + status + achat_id_cockpit de la première fiche trouvée,
+     * ou null si aucun rattachement possible.
+     *
+     * @param string[] $codes
+     */
+    public function findByContractCodes(array $codes): ?array
+    {
+        $codes = array_values(array_filter(
+            array_map(fn($c) => is_string($c) ? trim($c) : (string) $c, $codes),
+            fn($c) => $c !== ''
+        ));
+        if (empty($codes)) {
+            return null;
+        }
+
+        $placeholders = [];
+        $params       = [];
+        foreach ($codes as $i => $c) {
+            $key = ':c' . $i;
+            $placeholders[] = $key;
+            $params[$key]   = $c;
+        }
+        $sheetContractsTable = $this->db->getSchema() . 'sheet_contracts';
+        $inClause = implode(', ', $placeholders);
+
+        $sql = "SELECT DISTINCT sh.id, sh.status, sh.achat_id_cockpit
+                FROM {$this->table} sh
+                JOIN {$sheetContractsTable} sc ON sc.sheet_id = sh.id
+                WHERE sc.contract_code IN ({$inClause})
+                LIMIT 1";
+
+        $sth = $this->db->getPDO()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $sth->bindValue($k, $v, \PDO::PARAM_STR);
+        }
+        $sth->execute();
+        $row = $sth->fetch(\PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
     public function getSheetByNetAchat($netAchatId)
     {
         try {
@@ -813,8 +1049,9 @@ class Sheet extends Model
     {
         $contractLink = 'app/contrat/details/' . $contractCode;
         try {
-            $query = "SELECT s.id,s.label  FROM  {$this->table}  s  WHERE s.content LIKE '%$contractLink%'" ;
+            $query = "SELECT s.id,s.label FROM {$this->table} s WHERE s.content LIKE :contractLink";
             $sth = $this->db->getPDO()->prepare($query);
+            $sth->bindValue(':contractLink', '%' . $contractLink . '%', PDO::PARAM_STR);
             $sth->execute();
             return  $sth->fetchall(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {

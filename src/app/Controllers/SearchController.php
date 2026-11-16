@@ -34,8 +34,23 @@ class SearchController extends Controller
     public function search()
     {
         $options = Request::input();
+
+        // Certaines recherches larges (ex. "bouygues" via HLK V2 supplier_mdm)
+        // renvoient de gros volumes. 256 MB laisse une marge sur le 128 MB
+        // par défaut ; le cap dur reste dans HttpClientService::sendViaStream.
+        @ini_set('memory_limit', '256M');
+
+        // Résilience : chaque source HLK est appelée dans son propre try/catch.
+        // Une source qui échoue n'annule plus les autres — le client reçoit ce
+        // qui a fonctionné + un log server-side pour investigation.
+        $providers = [];
+        $contracts = [];
+        $dauphins  = [];
+        $items     = [];
+        $sourcesFailed = 0;
+        $sourcesTotal  = 4;
+
         try {
-            $providers = [];
             $data = $this->providerRepository->serachMdmProviders($options);
             foreach ($data as $p) {
                 if ($p['supplier_business_unit_source_name'] === 'edf_pgi') {
@@ -47,44 +62,63 @@ class SearchController extends Controller
                     ];
                 }
             }
-        
-            $contracts = $this->contractRepository->searchFromApi($options);
-            $dauphins = $this->dauphinRepository->searchFromApi($options);
-            
-	if (self::isCodeItem($options['words']) ) {
+        } catch (\Throwable $ex) {
+            $sourcesFailed++;
+            error_log('[search] provider FAIL : ' . $ex->getMessage() . ' @ ' . $ex->getFile() . ':' . $ex->getLine());
+        }
+
+        try {
+            $rawContracts = $this->contractRepository->searchFromApi($options);
+            $contracts = Arrays::filterByValue($rawContracts ?? [], 'code', $options['system'] ?? '');
+        } catch (\Throwable $ex) {
+            $sourcesFailed++;
+            error_log('[search] contract FAIL : ' . $ex->getMessage() . ' @ ' . $ex->getFile() . ':' . $ex->getLine());
+        }
+
+        try {
+            $dauphins = $this->dauphinRepository->searchFromApi($options) ?? [];
+        } catch (\Throwable $ex) {
+            $sourcesFailed++;
+            error_log('[search] dauphin FAIL : ' . $ex->getMessage() . ' @ ' . $ex->getFile() . ':' . $ex->getLine());
+        }
+
+        try {
+            if (self::isCodeItem($options['words'] ?? '')) {
                 $hlk = $GLOBALS['configuration']['hlk'];
                 $queryData = [
                     'password' => $hlk['pwd'],
                     'action_code' => $hlk["actions"]["items"]["get"],
                     'action_info' => $options['words']
                 ];
-
                 $itemsData = HttpClientService::exec_post($hlk['url'], $queryData);
-                $items = [];
-                if(is_array($itemsData)){
+                if (is_array($itemsData) && isset($itemsData['infos'])) {
                     $items[] = [
-                        'code' => $itemsData['infos']['item_code'],
-                        'label' => $itemsData['infos']['item_label'],
-                        'other' => $itemsData['infos']['item_label_long']
+                        'code'  => $itemsData['infos']['item_code']       ?? null,
+                        'label' => $itemsData['infos']['item_label']      ?? null,
+                        'other' => $itemsData['infos']['item_label_long'] ?? null,
                     ];
                 }
             } else {
-                $items = $this->itemRepository->searchFromApi($options);
-            }	
-		return $this->response(
-                            [
-                                'provider' => $providers,
-                                'contract' => Arrays::filterByValue($contracts, 'code', $options['system']),
-                                'dauphin' => $dauphins,
-                                'item_generic' => $items,
-                            ]
-            );
-        } catch (HttpException $ex) {
-            return $this
-                            ->hlkErrorResponse();
+                $items = $this->itemRepository->searchFromApi($options) ?? [];
+            }
+        } catch (\Throwable $ex) {
+            $sourcesFailed++;
+            error_log('[search] item FAIL : ' . $ex->getMessage() . ' @ ' . $ex->getFile() . ':' . $ex->getLine());
         }
-    
-}
+
+        // Si TOUTES les sources HLK échouent → 503 (comportement historique).
+        // Sinon on renvoie les résultats partiels.
+        if ($sourcesFailed === $sourcesTotal) {
+            return $this->hlkErrorResponse();
+        }
+
+        return $this->response([
+            'provider'     => $providers,
+            'contract'     => $contracts,
+            'dauphin'      => $dauphins,
+            'item_generic' => $items,
+        ]);
+    }
 
    static function isCodeItem(string $searchInput): ?bool {
         if (strlen($searchInput) != 10) {
