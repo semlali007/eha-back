@@ -1079,6 +1079,8 @@ objects:
       # managers, which pick the mail subject prefix and the recipients.
       ENV: "PREPROD"
       INSTALL_ENV: "PREPROD"
+      
+      DEV_MODE: "0"
 
       # --- logging ----------------------------------------------------------
       # DEFAULT_LOGS_PATH is the log-dir emptyDir, shared with filebeat.
