@@ -86,7 +86,11 @@ class HotlineGroup extends Model
             if ($existingRecord) {
                 // enregistrement avec ID existe déjà, le prochain numéro
                 $counter = 1;
+                $maxCounter = 9999;
                 while ($this->get($initials . $counter)) {
+                    if ($counter >= $maxCounter) {
+                        throw new InternalServerException();
+                    }
                     $counter++;
                 }
 

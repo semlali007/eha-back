@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Exceptions\AccessDeniedException;
 
 class AuthenticationController extends Controller
 {
@@ -52,6 +53,7 @@ class AuthenticationController extends Controller
 
         $this->getSp()->requireAuth(['ReturnTo' => $state]);
         header('Location: '. $state);
+        return null;
     }
 
     // public function login($state = '/app/accueil'): mixed

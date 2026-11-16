@@ -75,7 +75,7 @@ class HotlineManager extends AbstractManager
                 'email' => $email,
                 'message' => substr($post, 0, 4900),
             ]);
-            $isAdminOrManager = ($options['user'] instanceof User) && ($options['user'])->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE']);
+            $isAdminOrManager = $user->hasRole(['EHA_ADMIN', 'EHA_GESTIONNAIRE']);
 
             if ($isAdminOrManager) {
                 $message = 'Question affectée automatiquement à ' . $emailTo;

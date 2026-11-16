@@ -1137,6 +1137,15 @@ objects:
       EMAIL_NO_REPLAY: "noreply@edf.fr"
       EMAIL_NO_REPLY_NAME: "Achatpedia"
 
+      # --- HLK sheet auto-import notifications (HlkSheetCreationNotifier) ----
+      # Functional mailbox: prod + preprod safety net, used only when no buyer
+      # email is known for a sheet (missing HLK data).
+      BAL_ACHATPEDIA_FICHES_A_PUBLIER: "mohamed-externe.semlali@edf.fr"
+      # Non-prod detector: when set, EVERY auto-created-sheet notification goes
+      # here (never to the real buyers). Must be ABSENT (name and value) in
+      # real prod - that absence is what signals "we are in prod".
+      MAIL_HORSPROD_FICHES_A_PUBLIER: "mohamed-externe.semlali@edf.fr,samantha-externe.mario-joy@edf.fr,francois.rusch@edf.fr,nadiah.alias@edf.fr,sandrine.goupil@edf.fr,myriam.baouji@edf.fr,audrey.paturel@edf.fr,jean-francois.mandon@edf.fr"
+
   # ---------------------------------------------------------------------------
   # 4c. Application secrets
   #
