@@ -39,7 +39,7 @@ abstract class Controller
     {
         $this->db = DBConnection::getInstance();
         $this->roles = $roles;
-        $this->sp = new Simple('default-sp');
+        //$this->sp = new Simple('default-sp');
         $this->checkUserAuthorization($roles);
         //$this->sp = new Simple('default-sp') ;
     }
@@ -92,7 +92,33 @@ abstract class Controller
 
         if (is_array($this->roles) && !empty($this->roles)) {
 
-            $userInfo =  $this->getSp()->getAttributes();
+            if (getenv('ENV') == 'locale') {
+                //$json = '{"gardianwebsso_groupid":["G68670"],"gardianwebsso_sn":["CEDRIC"],"gardianwebsso_id":["G68670"],"gardianwebsso_cn":["CEDRIC SIMOU NONO"],"gardianwebsso_mail":["cedric-externe.simou-nono@edf.fr"],"gardianwebsso_nivauth":["1"],"gardianwebsso_department":["\/EDF\/9651\/9803\/9708\/9708-3\/6217M\/621727\/62172702"],"gardianwebsso_profil":["CAM_CONSTAT LIMITE SD-EXT_6217M","CAM_CONSTAT EMETTEUR SD-EXT_6217M","CHIFFREMENTDONNEES_CD_62172704","CAM_CONSTAT REAL VISITE-EXT_6217M","VPN ADMIN_ASTREINTE-ADMIN","98S_EMETTEUR-AUTONOME_62172704"],"gardianwebsso_ismemberof":["cn=EHA_ADMIN,ou=Groups,dc=gardiansesame","cn=EHA_GESTIONNAIRE,ou=Groups,dc=gardiansesame"],"gardianwebsso_principal":["uid=G68670,ou=People,dc=gardiansesame"],"gardianwebsso_org":["62172704"],"gardianwebsso_givenname":["CEDRIC"],"gardianwebsso_email":"cedric-externe.simou-nono@edf.fr"}';
+                $json = '{"gardianwebsso_cn":["LAMYA TIDJANI"],
+"gardianwebsso_mail":["lamya.tidjani@testiam.edf.fr"],
+"gardianwebsso_status":["A"],
+"gardianwebsso_department":["\/EDF\/9651\/9803\/9708\/9708-3\/6217M\/621727\/62172702"],
+"gardianwebsso_principal":["uid=G68670,ou=People,dc=gardiansesame"],
+"gardianwebsso_groupid":["G68670"],
+"gardianwebsso_sn":["TIDJANI"],
+"gardianwebsso_id":["G68670"],
+"gardianwebsso_nivauth":["1"],
+"gardianwebsso_ismemberof":["cn=EHA_ADMIN,ou=Groups,dc=gardiansesame", "cn=EHA_GESTIONNAIRE,ou=Groups,dc=gardiansesame"],
+"gardianwebsso_org":["62172702"],
+"gardianwebsso_givenname":["LAMYA"],
+"gardianwebsso_email":"lamya.tidjani@testiam.edf.fr"}';
+
+
+// "gardianwebsso_ismemberof":["cn=EHA_ADMIN,ou=Groups,dc=gardiansesame"],
+// "gardianwebsso_ismemberof":["cn=EHA_GESTIONNAIRE,ou=Groups,dc=gardiansesame"],
+// "gardianwebsso_ismemberof":[],
+
+
+       $userInfo = json_decode($json, true);
+
+            } else {
+                $userInfo =  $this->getSp()->getAttributes();
+            }
             //var_dump($userInfo);exit;
             if (is_array($userInfo) && isset($userInfo['gardianwebsso_id'][0]) &&  !empty($userInfo['gardianwebsso_id'][0])) {
                 
@@ -139,8 +165,10 @@ abstract class Controller
                 if (array_key_exists("gardianwebsso_mail", $userInfo) && !empty($userInfo['gardianwebsso_mail'])) {
                     $user->setEmail($userInfo['gardianwebsso_mail'][0]);
                 }
+                //var_dump($this->roles);
                 // Traduction des roles de Standard to EHA_ROLES
                 $roles = $this->translateRoles($this->roles);
+                //var_dump($roles);
                 if (!$user->hasRole($roles)) {
                     throw new AccessDeniedException(); // retour a la frontend app 
                 }
@@ -165,6 +193,38 @@ abstract class Controller
                 $input
             )
         ));
+    }
+    /**
+     * Extrait le code organisation depuis le department SAML
+     * 
+     * Exemple: "/EDF/9651/9803/9708/9708-3/6217M/621727/62172702" → "621727"
+     * 
+     * @param string $department Chemin complet du department
+     * @return string|null Code organisation (avant-dernier segment)
+     */
+    protected function extractOrgCodeFromDepartment(string $department): ?string
+    {
+        if (empty($department)) {
+            return null;
+        }
+
+        // Supprimer les slashs de début/fin et découper
+        $parts = explode('/', trim($department, '/'));
+        
+        // Vérifier qu'il y a au moins 2 segments
+        if (count($parts) < 2) {
+            return null;
+        }
+        
+        // Prendre l'avant-dernier segment
+        $orgSegment = $parts[count($parts) - 2];
+        
+        // Vérifier que c'est un code valide (chiffres uniquement ou alphanumériques)
+        if (preg_match('/^[0-9A-Z]+$/i', $orgSegment)) {
+            return $orgSegment;
+        }
+        
+        return null;
     }
     /**
      * @param Exception
