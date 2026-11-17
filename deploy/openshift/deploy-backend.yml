@@ -1023,6 +1023,84 @@ objects:
                 defaultMode: 440
 
   # ---------------------------------------------------------------------------
+  # 3b. Nightly HLK market-sheet import
+  #
+  # The only application job the VMs ran (preprod webadm crontab, never on
+  # prod): `bin/console app:import-sheets:hlk --triggered-by=cron` daily at
+  # 02:00. Same image and same ConfigMap/Secret as the backend, so it sees
+  # exactly the backend's configuration.
+  #
+  # Sizing: the command raises memory_limit to 1024M; requests/limits are
+  # mandatory under the gabarit-compute quota and fit next to the backend
+  # (XS: 1 CPU / 4Gi requested, 2 CPU / 4Gi limits).
+  #
+  # Output: PHP CLI has no error_log file, so error_log() and the console
+  # output both go to the pod log (`oc logs job/<name>`). The Monolog files
+  # go to an emptyDir and are not shipped - no filebeat in this pod.
+  # ---------------------------------------------------------------------------
+  - kind: CronJob
+    apiVersion: batch/v1
+    metadata:
+      name: "cron-import-hlk-${APPLICATION_NAME}-${IMAGE_TAG}"
+      labels:
+        app: "backend-${APPLICATION_NAME}-${IMAGE_TAG}"
+    spec:
+      schedule: "0 2 * * *"
+      timeZone: "Europe/Paris"
+      # Never two imports at once: the import advances a cursor in
+      # sync_state and a second run would race it.
+      concurrencyPolicy: Forbid
+      # A run missed by more than an hour (cluster maintenance) is skipped
+      # rather than started in the middle of the working day.
+      startingDeadlineSeconds: 3600
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 3
+      jobTemplate:
+        spec:
+          # No automatic retry: the import creates sheets, and the next
+          # night's run resumes from the cursor anyway.
+          backoffLimit: 0
+          activeDeadlineSeconds: 10800
+          template:
+            metadata:
+              labels:
+                app: "cron-import-hlk-${APPLICATION_NAME}-${IMAGE_TAG}"
+            spec:
+              restartPolicy: Never
+              containers:
+                - name: import-hlk
+                  image: "${LOCAL_REGISTRY}/${NAMESPACE_DEPLOY_BACKEND}/${IMAGE_NAME}:${IMAGE_TAG}"
+                  imagePullPolicy: Always
+                  workingDir: /opt/app-root/src
+                  command:
+                    - /logiciels/php/8.4/bin/php
+                    - bin/console
+                    - app:import-sheets:hlk
+                    - --triggered-by=cron
+                  envFrom:
+                    - configMapRef:
+                        name: "cm-backend-${APPLICATION_NAME}-${IMAGE_TAG}-app"
+                    - secretRef:
+                        name: "sec-backend-${APPLICATION_NAME}-${IMAGE_TAG}-app"
+                  resources:
+                    requests:
+                      cpu: "100m"
+                      memory: "512Mi"
+                    limits:
+                      cpu: "500m"
+                      memory: "1280Mi"
+                  volumeMounts:
+                    - name: log-dir
+                      mountPath: /var/projects/EHA/php-fpm_8.4/log/
+                    - name: tmp
+                      mountPath: /tmp
+              volumes:
+                - name: log-dir
+                  emptyDir: {}
+                - name: tmp
+                  emptyDir: {}
+
+  # ---------------------------------------------------------------------------
   # 4. Backend Service
   # ---------------------------------------------------------------------------
   - kind: Service
