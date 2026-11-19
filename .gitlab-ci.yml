@@ -111,6 +111,8 @@ variables:
   MEMORY_LIMIT: "1536Mi"
   LOCAL_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
   NAMESPACE_REGISTRY: "image-registry.openshift-image-registry.svc:5000"
+  PVC_UPLOAD_NAME: "pvc-fsm-eha-preprod1"
+  PVC_UPLOAD_SUBPATH: "uploads"
 
   # --- OpenBao (secret manager) -----------------------------------------------
   # Namespace == the DevSecOps subscription name, which is the top-level GitLab

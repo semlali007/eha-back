@@ -49,6 +49,14 @@ parameters:
   - name: LOCAL_REGISTRY
     value: "image-registry.openshift-image-registry.svc:5000"
     required: true
+  - name: PVC_UPLOAD_NAME
+    description: "PersistentVolumeClaim name for storing uploaded files"
+    value: "pvc-fsm-eha-preprod1"
+    required: true
+  - name: PVC_UPLOAD_SUBPATH
+    description: "Subdirectory in the PersistentVolume for uploaded files"
+    value: "uploads"
+    required: true
   # --- Application configuration ---------------------------------------------
   - name: FRONTEND_DNS_NAME
     description: >-
@@ -878,6 +886,9 @@ objects:
                 # where a startup script would be one more thing to keep alive.
                 - name: session
                   mountPath: /tmp/session
+                - name: uploads-volume
+                  mountPath: /var/projects/uploads
+                  subPath: "${PVC_UPLOAD_SUBPATH}"
 
             # -----------------------------------------------------------------
             # Log shipping to PADAONE.
@@ -1021,6 +1032,9 @@ objects:
               secret:
                 secretName: "eha-${ENV}-haproxy"
                 defaultMode: 440
+            - name: uploads-volume
+              persistentVolumeClaim:
+                claimName: "${PVC_UPLOAD_NAME}"
 
   # ---------------------------------------------------------------------------
   # 3b. Nightly HLK market-sheet import
@@ -1171,6 +1185,7 @@ objects:
       CACHE_TTL: "300"
       EXPIRE_AFTER: "7200"
       SHOW_PRIVATE_DOC: "1"
+      CONFIG_UPLOAD_PATH: "/var/projects/uploads/"
 
       # --- webSSO / SAML ----------------------------------------------------
       # The federation configuration itself now lives in OpenBao with the salt,
