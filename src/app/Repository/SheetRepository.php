@@ -708,7 +708,7 @@ class SheetRepository extends AbstractRepository {
                 $compteur,                                                       // 0  → 1. N° / Compteur
                 $sheet['label'],                                                 // 1  → 2. Nom fiche
                 $sheet['contrat_groupe'],                                        // 2  → 3. Contrat ouvert aux filiales
-                isset($sheet['keywords']) ? $sheet['keywords'] : '',             // 3  → 4. Mots clés
+                $sheet['search_words'] ?? '',                                    // 3  → 4. Mots clés (colonne BDD search_words)
                 isset($sheet['start_date']) ? $sheet['start_date'] : '',         // 4  → 5. Date de début de validité
                 isset($sheet['end_date']) ? $sheet['end_date'] : '',             // 5  → 6. Date de fin de validité
                 $sheet['options'],                                               // 6  → 7. Options
