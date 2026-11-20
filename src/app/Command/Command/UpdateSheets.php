@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command\Command;
 
 use App\Repository\SheetRepository;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
@@ -19,10 +20,9 @@ use Symfony\Component\Console\{
  * pour les supprimer de la vue utilisateur et la basculer en Archive
  *
  */
+#[AsCommand(name: 'app:sheets:update')]
 class UpdateSheets extends Command {
 
-    // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:sheets:update';
     private $sheetRepository;
 
     /**

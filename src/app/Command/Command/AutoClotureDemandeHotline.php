@@ -6,6 +6,7 @@ namespace App\Command\Command;
 
  
 use App\Repository\Hotline\HotlineRepository;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Helper\Table,
     Command\Command,
@@ -19,10 +20,9 @@ use Symfony\Component\Console\{
  * Cette commande permet de supprimer automatiquement les demandes aprés une durée 
  * @author HGDDEDBN
  */
+#[AsCommand(name: 'app:hotline:remove')]
 class AutoClotureDemandeHotline extends Command {
 
-    // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:hotline:remove'; 
     private HotlineRepository $hotlineRepository;
  
     
