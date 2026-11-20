@@ -8,6 +8,7 @@ use App\Repository\Hotline\HotlineRepository ;
 use Core\Mailer\Builder ;
 use Core\Util\Date as dateHotline;
 use App\Services\StaticTextService ;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
@@ -19,10 +20,9 @@ use Symfony\Component\Console\{
 /**
  * @author HGDDEDBN
  */
+#[AsCommand(name: 'app:search:no-reply')]
 class SearchNoReplyHotline extends Command {
 
-    // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:search:no-reply';
     private $hotlineRepository;
 
     /**

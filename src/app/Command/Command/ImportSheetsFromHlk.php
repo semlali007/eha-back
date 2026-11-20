@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command\Command;
 
 use App\Manager\HlkSheetImportManager;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
@@ -32,9 +33,9 @@ use Throwable;
  *   php bin/console app:import-sheets:hlk --dry-run              → simulation
  *   php bin/console app:import-sheets:hlk --triggered-by=cron    → tag l'origine
  */
+#[AsCommand(name: 'app:import-sheets:hlk')]
 class ImportSheetsFromHlk extends Command
 {
-    protected static $defaultName = 'app:import-sheets:hlk';
 
     protected function configure(): void
     {

@@ -6,6 +6,7 @@ namespace App\Command\Command;
 
 use App\Services\ArchivageService ;
 use App\Repository\SheetRepository;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Helper\Table,
     Command\Command,
@@ -21,10 +22,9 @@ use Symfony\Component\Console\{
  *
  * @author HGDDEDBN
  */
+#[AsCommand(name: 'app:notif:start')]
 class AutoNotifArchivageFiche extends Command {
 
-    // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:notif:start'; 
     private SheetRepository $sheetRepository;
     private ArchivageService $archivageService ;
     

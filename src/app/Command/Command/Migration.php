@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command\Command;
 
 use App\Manager\SheetManager;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
@@ -20,10 +21,9 @@ use Symfony\Component\Console\{
  *
  * @author HGDDEDBN
  */
+#[AsCommand(name: 'app:migrate:start')]
 class Migration extends Command {
 
-    // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:migrate:start';
     private $sheetRepository;
 
     /**
