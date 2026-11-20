@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command\Command;
 
 use App\Repository\NotificationsRepository;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\{
     Command\Command,
     Input\InputInterface,
@@ -19,10 +20,9 @@ use Symfony\Component\Console\{
  *
  * @author HGDDEDBN
  */
+#[AsCommand(name: 'app:auto-remove:notifs')]
 class RemoveExpiredNotifications extends Command {
 
-    // le nom de la commande (s'écrit apres le "bin/console")
-    protected static $defaultName = 'app:auto-remove:notifs';
     private $notificationsRepository;
 
     /**
