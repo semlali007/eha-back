@@ -246,7 +246,7 @@ include:
       # resolved relative to the context dir, so they live in src/ too.
       build_context_dir: "src"
       build_strategy: "source"
-      build_source_image: "openshift/dck_php-fpm-alma8:8.4.25-202601"
+      build_source_image: "openshift/dck_php-fpm-alma8:8.4"
       # phpman creates and configures the instance *during* assemble, so these
       # have to be build-time. The legacy template set them as container env on
       # the Deployment, which is far too late. PHP_INSTANCE must match the value
