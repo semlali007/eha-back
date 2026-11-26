@@ -2,6 +2,6 @@
 /src/vendor
 
 # Local-only environment overrides (may hold real credentials). Never commit.
-/src/.env.dev
+# /src/.env.dev
 # Local SAML stub user (see src/app/Security/LocalSamlStub.php).
-/src/.saml-local.json
+# /src/.saml-local.json
