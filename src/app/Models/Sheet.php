@@ -501,7 +501,6 @@ class Sheet extends Model
          ( SELECT s.id  FROM  " . $this->table . "  s  {$this->getSearchCondition($options, ['provider'=>true])} ) GROUP BY sp.provider_code)  providers on p.provider_code =  providers.code
 
          order by COUNT desc, p.provider_label
-         LIMIT 50
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
@@ -546,7 +545,7 @@ class Sheet extends Model
         (SELECT  count(sd.*) as count, sd.group_id as code FROM   {$this->sheetGroupTable} sd WHERE sd.sheet_id  in
          ( SELECT s.id  FROM  " . $this->table . "  s   {$this->getSearchCondition($options, ['direction'=>true])} ) GROUP BY sd.group_id)  directions on d.id =  directions.code
          
-         order by COUNT desc,d.name limit 15
+         order by COUNT desc,d.name
          ";
             $sth = $this->db->getPDO()->prepare($sql);
             $sth->execute();
